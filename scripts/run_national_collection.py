@@ -1,16 +1,26 @@
 """Fetch every national PNCP page on the runner; checkpoint each page through OIDC."""
 import concurrent.futures
+import gzip
+import http.client
+import io
 import json
 import os
+import ssl
 import threading
 import time
 from urllib.error import HTTPError,URLError
 from urllib.request import Request,build_opener
+from urllib.parse import urlsplit
 from radar.pncp import PNCPClient,PNCPError,CollectionMetrics
 from radar.national_collection import validate_payload
 from run_scheduled_collection import identity,NoRedirect,AUDIENCE
 
 SOURCE_PATH='/v1/contratacoes/proposta'
+
+
+class BufferedResponse(io.BytesIO):
+    def __init__(self,body,status,headers):
+        super().__init__(body);self.status=status;self.headers=headers
 
 
 def validate_plan(plan):
@@ -41,15 +51,51 @@ class Receiver:
 
 
 class Source:
-    def __init__(self):self.lock=threading.Lock();self.last_started=0
+    def __init__(self):
+        self.lock=threading.Lock();self.last_started=0;self.local=threading.local()
+        self.context=ssl.create_default_context();self.timings={}
+    def open(self,request,timeout):
+        parsed=urlsplit(request.full_url)
+        if parsed.scheme!='https' or parsed.netloc!='pncp.gov.br' or parsed.path!='/api/consulta'+SOURCE_PATH:
+            raise ValueError('Unexpected source destination')
+        # Honour a configured proxy instead of bypassing the runner's network policy.
+        if os.environ.get('HTTPS_PROXY') or os.environ.get('https_proxy'):
+            from urllib.request import urlopen
+            return urlopen(request,timeout=timeout)
+        connection=getattr(self.local,'connection',None)
+        if connection is None:
+            connection=http.client.HTTPSConnection('pncp.gov.br',timeout=timeout,context=self.context)
+            self.local.connection=connection
+        try:
+            connection.request('GET',parsed.path+'?'+parsed.query,headers={
+                'Accept':'application/json','Accept-Encoding':'gzip','Connection':'keep-alive',
+                'User-Agent':'NexoRadar/1.0 (public procurement collection)'})
+            response=connection.getresponse();headers=response.headers;status=response.status
+            body=response.read(4_000_001)
+            if len(body)>4_000_000:raise ValueError('Source page exceeds transport budget')
+            if headers.get('Content-Encoding','').lower()=='gzip':
+                with gzip.GzipFile(fileobj=io.BytesIO(body)) as stream:body=stream.read(4_000_001)
+                if len(body)>4_000_000:raise ValueError('Source page exceeds transport budget')
+            response.close()
+            if status>=400:raise HTTPError(request.full_url,status,'PNCP response',headers,io.BytesIO(body))
+            return BufferedResponse(body,status,headers)
+        except http.client.HTTPException:
+            connection.close();self.local.connection=None
+            raise URLError('PNCP connection interrupted') from None
+        except Exception:
+            connection.close();self.local.connection=None
+            raise
     def fetch(self,page):
         with self.lock:
             delay=1.5-(time.monotonic()-self.last_started)
             if delay>0:time.sleep(delay)
             self.last_started=time.monotonic()
         metrics=CollectionMetrics()
-        return PNCPClient(timeout_seconds=60,retries=0,pause_seconds=0).get_page(SOURCE_PATH,
+        started=time.monotonic()
+        result=PNCPClient(timeout_seconds=60,retries=0,pause_seconds=0,opener=self.open).get_page(SOURCE_PATH,
                     {'dataFinal':'99991231','pagina':page,'tamanhoPagina':50},modality=0,page=page,metrics=metrics)
+        self.timings[page]=round((time.monotonic()-started)*1000)
+        return result
 
 
 def write_summary(progress,complete):
@@ -105,7 +151,8 @@ def run(*,budget_seconds=2700,receiver=None,source=None):
                         print(json.dumps({'event':'national_source_retry','page':page,'reason':reason,'waitSeconds':delay}),flush=True)
                         time.sleep(delay)
                 progress=receiver.post({'action':'national_commit','executionId':plan['executionId'],
-                          'passNumber':plan['passNumber'],'page':page,'payload':payload})
+                          'passNumber':plan['passNumber'],'page':page,'payload':payload,
+                          'sourceMs':getattr(source,'timings',{}).get(page)})
                 if progress.get('done') or time.monotonic()-last_log>=30:
                     print(json.dumps({key:value for key,value in progress.items() if key!='plan'}),flush=True);last_log=time.monotonic()
             write_summary(progress,False)

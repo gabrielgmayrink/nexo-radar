@@ -1,6 +1,10 @@
 import importlib.util
 import sys
 import unittest
+import gzip
+import io
+import json
+import http.client
 from pathlib import Path
 from unittest.mock import patch
 from test_national_collection import Store,payload
@@ -44,3 +48,34 @@ class WorkerTests(unittest.TestCase):
             worker.run(budget_seconds=120,receiver=receiver,source=TimeoutSource())
         self.assertFalse(summary.call_args.args[1]);self.assertEqual(receiver.store.rows,{})
         self.assertEqual(receiver.store.cursor['status'],'partial')
+
+    def test_source_reuses_connection_and_decodes_gzip(self):
+        original=json.dumps(payload(1,total=1)).encode()
+        class Connection:
+            closed=False
+            requests=[]
+            def request(self,*args,**kwargs):self.requests.append(kwargs['headers'])
+            def getresponse(self):
+                return worker.BufferedResponse(gzip.compress(original),200,{'Content-Type':'application/json','Content-Encoding':'gzip'})
+            def close(self):self.closed=True
+        source=worker.Source();connection=Connection();source.local.connection=connection
+        request=worker.Request('https://pncp.gov.br/api/consulta'+worker.SOURCE_PATH+'?pagina=1')
+        with patch.dict('os.environ',{},clear=True):
+            for _ in range(2):
+                with source.open(request,60) as response:self.assertEqual(response.read(),original)
+        self.assertEqual(len(connection.requests),2);self.assertFalse(connection.closed)
+        self.assertEqual(connection.requests[0]['Accept-Encoding'],'gzip')
+
+    def test_invalid_source_destinations_are_never_requested(self):
+        source=worker.Source()
+        with self.assertRaises(ValueError):source.open(worker.Request('https://example.com/api/consulta'+worker.SOURCE_PATH),60)
+
+    def test_broken_persistent_connection_is_closed_before_retry(self):
+        class Connection:
+            closed=False
+            def request(self,*args,**kwargs):raise http.client.RemoteDisconnected('closed')
+            def close(self):self.closed=True
+        source=worker.Source();connection=Connection();source.local.connection=connection
+        with patch.dict('os.environ',{},clear=True):
+            with self.assertRaises(worker.URLError):source.open(worker.Request('https://pncp.gov.br/api/consulta'+worker.SOURCE_PATH),60)
+        self.assertTrue(connection.closed);self.assertIsNone(source.local.connection)

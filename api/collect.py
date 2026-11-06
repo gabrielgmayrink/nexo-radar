@@ -1,6 +1,7 @@
 """A bounded collection batch, callable only by this repository's scheduled job."""
 import json
 import os
+import time
 from http.server import BaseHTTPRequestHandler
 
 
@@ -9,6 +10,7 @@ class handler(BaseHTTPRequestHandler):
         self.respond(405, {'error': 'Use POST.'})
 
     def do_POST(self):
+        started=time.monotonic()
         from radar.job_auth import authenticate
         try:
             run_key = authenticate(self.headers.get('Authorization', ''))
@@ -44,6 +46,10 @@ class handler(BaseHTTPRequestHandler):
             store = PostgresStore()
             result = handle_national(store,body['action'],body,run_key) if national else run_chunk(store, body.get('kind', 'incremental'), run_key=run_key,
                                                                                               execution_id=execution_id, budget_seconds=budget_seconds)
+            if national and body['action']=='national_commit':
+                print(json.dumps({'event':'national_page_received','page':body.get('page'),
+                                  'sourceMs':body.get('sourceMs'),'receiverMs':round((time.monotonic()-started)*1000),
+                                  'region':os.environ.get('VERCEL_REGION')}))
             self.respond(200, result)
         except StalePage:
             self.respond(409,{'error':'A página já avançou. Consulte o progresso atual.'})
