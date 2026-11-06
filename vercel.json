@@ -1,5 +1,6 @@
 {
   "framework": null,
+  "regions": ["gru1"],
   "installCommand": "npm ci --prefix web",
   "buildCommand": "npm run build --prefix web",
   "outputDirectory": "web/dist",

@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from radar.pncp import CollectionMetrics, PAGE_SIZE, PUBLICATION_MODALITIES, PNCPClient, PNCPError, page_count
 from radar.relevance import TZ
 
-KINDS = ('incremental', 'backfill', 'open')
+KINDS = ('incremental', 'backfill', 'open', 'national_open')
 LEGACY_MODALITIES = (6, 7, 8, 4, 5, 12, 2, 10, 11, 15)
 
 
@@ -19,14 +19,16 @@ def initial_cursor(kind, today, last_completed=None):
     start = today - timedelta(days=29)
     if kind == 'incremental' and last_completed:
         start = max(start, min(today - timedelta(days=1), last_completed - timedelta(days=1)))
-    return {'kind': kind, 'start': start.isoformat(), 'end': today.isoformat(),
-            'horizon': (today + timedelta(days=365)).isoformat(),
+    return {'kind': kind, 'start': (today if kind=='national_open' else start).isoformat(), 'end': today.isoformat(),
+            'horizon': '9999-12-31' if kind=='national_open' else (today + timedelta(days=365)).isoformat(),
+            **({'scope':'all_open_brazil','passNumber':1} if kind=='national_open' else {}),
             'partition': 0, 'page': 1, 'fingerprints': [], 'status': 'running',
             'pages': 0, 'received': 0, 'request_count': 0, 'request_errors': 0,
             'latency_total_ms': 0, 'latency_max_ms': 0, 'http_statuses': {}}
 
 
 def partitions(kind):
+    if kind=='national_open':return [('proposta',0)]
     if kind=='open':
         modes=('proposta',)
     elif kind=='backfill':
@@ -76,7 +78,8 @@ def ready_cursor(cursor):
 def page_query(cursor):
     task = pending_tasks(cursor)[0]
     mode, modality = task['mode'], task['modality']
-    params = {'codigoModalidadeContratacao': modality, 'pagina': task['page'], 'tamanhoPagina': PAGE_SIZE}
+    params = {'pagina': task['page'], 'tamanhoPagina': PAGE_SIZE}
+    if modality:params['codigoModalidadeContratacao']=modality
     if mode == 'proposta':
         params['dataFinal'] = cursor['horizon'].replace('-', '')
     else:
@@ -99,7 +102,7 @@ def advance(cursor, records, payload):
     next_tasks = tasks[1:]
     done = not records or (total is not None and (not total or task['page'] >= total))
     if not done:
-        if task['page'] >= 10000:
+        if task['page'] >= 10000 and cursor['kind']!='national_open':
             raise ValueError('partition_page_limit')
         next_tasks = next_tasks + [{**task, 'page':task['page']+1,
                                    'fingerprints':(task['fingerprints']+[digest])[-64:]}]
@@ -122,6 +125,7 @@ def add_metrics(cursor, metrics):
 def public_progress(cursor, execution_id):
     remaining=max(0,int((datetime.fromisoformat(cursor['next_attempt_at'])-datetime.now(timezone.utc)).total_seconds())) if cursor.get('next_attempt_at') else 0
     return {'executionId': execution_id, 'kind': cursor['kind'], 'done': cursor['status'] == 'ok',
+            **({key:cursor.get(key) for key in ('scope','passNumber','passPages','expectedRecords','expectedPages','uniqueRecords','coverageComplete')} if cursor['kind']=='national_open' else {}),
             'status': cursor['status'], 'window': {'start': cursor['start'], 'end': cursor['end']},
             'completedPartitions': cursor['partition'], 'totalPartitions': len(partitions(cursor['kind'])),
             'pages': cursor['pages'], 'recordsReceived': cursor['received'],

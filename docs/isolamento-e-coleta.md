@@ -17,13 +17,17 @@ Mantém quatro grupos: documentos/apoio administrativo; gestão empresarial púb
 
 Frases específicas no objeto produzem candidatas. Combinações de treinamento/curso com servidores, gestores ou contexto profissional entram com 45 pontos e exigem análise. Menções apenas nas informações complementares não viram recomendações. Essa ampliação não significa que toda candidata está apta à participação.
 
-## Coleta
+## Coleta nacional de abertas
 
-A coleta inicial tinha recebido 1.400 registros e estava na primeira modalidade; seis candidatas não representavam cobertura nacional concluída. A modalidade 9 (inexigibilidade) foi acrescentada. Além de publicações e atualizações, a coleta inclui propostas abertas.
+O requisito é percorrer todas as contratações com propostas abertas no PNCP, em todo o Brasil. A coleta usa `/v1/contratacoes/proposta`, sem filtro de modalidade, UF, órgão, empresa ou data de publicação. O parâmetro obrigatório `dataFinal=99991231` evita o limite anterior de um ano para o encerramento. A API aceita até 50 registros por página, embora o manual antigo mencione 500; isso foi conferido no serviço real.
 
-A fila incremental prioriza a primeira leitura das propostas abertas. Depois, alterna uma página por modalidade e origem antes de retornar à próxima página. O cursor antigo é migrado mantendo a página já salva e as verificações de repetição. Assim, uma modalidade com muitas páginas não impede a primeira leitura das demais. Cada página e seu avanço são gravados juntos. Falhas de transporte de uma modalidade mantêm sua página pendente e deixam as demais avançarem. Limites do PNCP (429), espera entre consultas, retomada e proteção de armazenamento foram mantidos.
+O GitHub consulta diretamente as páginas públicas, com até três leituras em andamento e intervalo mínimo entre inícios. A Vercel, em São Paulo, autentica o workflow por OIDC e recebe cada página. Nenhuma credencial do banco sai da Vercel. A gravação em lote usa duas operações de dados por página e preserva os registros originais antes da classificação por empresa.
 
-Execuções automáticas em 00h15, 06h15, 12h15 e 18h15 (Brasília), com orçamento de oito minutos cada. Uma execução pode terminar com cobertura parcial e progresso salvo. Timeouts, limites de consulta e indisponibilidades conhecidas do PNCP são registrados como pausa, com aviso e resumo explícito de cobertura incompleta no GitHub. Falhas de autenticação, dados inválidos e problemas de armazenamento continuam sendo falhas da execução. Uma checagem manual de 120 segundos está disponível sem alterar o orçamento normal agendado. O painel distingue registros recebidos, candidatas por perfil e processos com prazo futuro. Inexigibilidades e processos encerrados podem servir como referência e não são apresentados como disputa aberta.
+Cada página tem um recibo durável, hash e referência à execução. Repetir o envio após uma perda de resposta não duplica dados nem avança duas páginas. Uma resposta com paginação incompleta é rejeitada. A coleta só recebe `coverageComplete=true` após percorrer as páginas previstas e conferir os registros únicos. Uma divergência inicia nova conferência; a conclusão da última página pode ser retomada se houver interrupção antes da finalização.
+
+A leitura não possui o antigo limite de 10.000 páginas. Cada execução tem tempo operacional limitado, com retomada do cursor; atingir esse tempo não significa completar a busca. O primeiro preenchimento pode usar 90 minutos; o agendamento diário das 06h15 (Brasília) usa até 45 minutos. Timeouts e limites do PNCP continuam respeitados.
+
+O painel mostra as páginas recebidas, o total nacional informado pela fonte e as candidatas da empresa. Contratações encerradas da antiga coleta por publicação não integram esse catálogo de abertas. Atualizações completas substituem a fotografia anterior; durante a leitura, os resultados já recebidos e a última fotografia concluída permanecem disponíveis.
 
 ## Verificação
 

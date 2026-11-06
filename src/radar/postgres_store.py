@@ -100,17 +100,52 @@ class PostgresStore:
     def _write_records(self, records):
         records=list(records)
         rows = [prepared_record(row) for row in records]
-        with self.db.cursor() as c:
-            c.executemany('''insert into radar_raw(opportunity_id,content_hash,payload_gzip) values(%s,%s,%s)
-                on conflict do nothing''', [(r[0], r[7], encode_raw(record)) for r,record in zip(rows,records)])
-            c.executemany('''insert into radar_opportunities(id,payload,product_scores,rule_version,score,card,source_updated_at,content_hash)
-                values(%s,%s,%s,%s,%s,%s,%s,%s) on conflict(id) do update set payload=excluded.payload,
+        if not rows:return
+        self.db.execute('''insert into radar_raw(opportunity_id,content_hash,payload_gzip)
+            select * from unnest(%s::text[],%s::text[],%s::bytea[]) on conflict do nothing''',
+                        ([r[0] for r in rows],[r[7] for r in rows],[encode_raw(record) for record in records]))
+        best={}
+        for record,r in zip(records,rows):
+            previous=best.get(r[0])
+            if previous and previous[1][6] and (not r[6] or r[6]<previous[1][6]):continue
+            best[r[0]]=(record,r)
+        documents=[{'id':r[0],'payload':record,'product_scores':r[2].obj,'rule_version':r[3],
+                    'score':r[4],'card':r[5].obj if r[5] else None,'source_updated_at':r[6].isoformat() if r[6] else None,
+                    'content_hash':r[7]} for record,r in best.values()]
+        self.db.execute('''insert into radar_opportunities(id,payload,product_scores,rule_version,score,card,source_updated_at,content_hash)
+                select id,payload,product_scores,rule_version,score,card,source_updated_at,content_hash
+                from jsonb_to_recordset(%s::jsonb) as r(id text,payload jsonb,product_scores jsonb,rule_version text,
+                    score integer,card jsonb,source_updated_at timestamptz,content_hash text)
+                on conflict(id) do update set payload=excluded.payload,
                 product_scores=excluded.product_scores,rule_version=excluded.rule_version,score=excluded.score,
                 card=excluded.card,source_updated_at=excluded.source_updated_at,content_hash=excluded.content_hash,updated_at=now()
                 where (radar_opportunities.source_updated_at is null
                    or excluded.source_updated_at >= radar_opportunities.source_updated_at)
                   and (radar_opportunities.content_hash is distinct from excluded.content_hash
-                       or radar_opportunities.rule_version<>excluded.rule_version)''', rows)
+                       or radar_opportunities.rule_version<>excluded.rule_version)''', (Jsonb(documents),))
+
+    def national_page(self,execution_id,pass_number,page):
+        result=self.db.execute('select content_hash from radar_national_pages where execution_id=%s and pass_number=%s and page_number=%s',
+                               (execution_id,pass_number,page)).fetchone()
+        return result[0] if result else None
+
+    def national_counts(self,execution_id,pass_number):
+        unique=self.db.execute('select count(*) from radar_opportunities where national_execution_id=%s and national_pass=%s',
+                               (execution_id,pass_number)).fetchone()[0]
+        pages=self.db.execute('select count(*) from radar_national_pages where execution_id=%s and pass_number=%s',
+                              (execution_id,pass_number)).fetchone()[0]
+        return unique,pages
+
+    def commit_national_page(self,execution_id,records,cursor,page,digest,total,pages):
+        if self.db.execute('select pg_database_size(current_database())').fetchone()[0]>450*1024*1024:raise ValueError('storage_guard')
+        with self.db.transaction():
+            self._write_records(records)
+            self.db.execute('update radar_opportunities set national_execution_id=%s,national_pass=%s where id=any(%s)',
+                             (execution_id,cursor.get('passNumber',1),[row['numeroControlePNCP'] for row in records]))
+            self.db.execute('insert into radar_national_pages(execution_id,pass_number,page_number,content_hash,record_count,source_total,source_pages) values(%s,%s,%s,%s,%s,%s,%s)',
+                             (execution_id,cursor.get('passNumber',1),page,digest,len(records),total,pages))
+            self._checkpoint('national_open',cursor)
+            self.db.execute("update radar_executions set status='running',metrics=%s where id=%s",(Jsonb(public_progress(cursor,execution_id)),execution_id))
 
     def commit_page(self, execution_id, kind, records, cursor):
         if self.db.execute('select pg_database_size(current_database())').fetchone()[0]>450*1024*1024:
@@ -132,17 +167,21 @@ class PostgresStore:
             from datetime import timedelta
             cutoff=(date.fromisoformat(cursor['end'])-timedelta(days=29)).isoformat()
             now=datetime.now(TZ).replace(tzinfo=None).isoformat()
-            total, candidates = self.db.execute('''select count(*),count(*) filter(where score>=40) from radar_opportunities
+            if kind=='national_open':
+                total,candidates=self.db.execute('select count(*),count(*) filter(where score>=40) from radar_opportunities where national_execution_id=%s and national_pass=%s',
+                                                 (execution_id,cursor.get('passNumber',1))).fetchone()
+            else:
+                total, candidates = self.db.execute('''select count(*),count(*) filter(where score>=40) from radar_opportunities
                 where coalesce(payload->>'dataPublicacaoPncp','') >= %s
                    or coalesce(payload->>'dataPublicacaoPncp','') = ''
                    or (payload->>'situacaoCompraId'='1' and coalesce(payload->>'dataEncerramentoProposta','') >= %s)''',
-                                               (cutoff,now)).fetchone()
+                                                   (cutoff,now)).fetchone()
             content = {**public_progress(cursor, execution_id), 'completedAt': datetime.now(timezone.utc).isoformat(),
-                       'catalogWindow':{'start':cutoff,'end':cursor['end']},
+                       'catalogWindow':{'scope':'all_open_brazil','publicationDateFilter':None} if kind=='national_open' else {'start':cutoff,'end':cursor['end']},
                        'metrics': {'unique': total, 'candidates': candidates, 'discarded': total - candidates}}
             self._checkpoint(kind, cursor)
             self.db.execute("update radar_executions set status='ok',metrics=%s,finished_at=now() where id=%s",
                             (Jsonb(content), execution_id))
             self.db.execute('''insert into radar_catalog_state(id,content) values(%s,%s)
                 on conflict(id) do update set content=excluded.content,updated_at=now()''',
-                            ('open' if kind == 'open' else 'publications', Jsonb(content)))
+                            ('open' if kind in ('open','national_open') else 'publications', Jsonb(content)))

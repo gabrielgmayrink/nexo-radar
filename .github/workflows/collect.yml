@@ -1,18 +1,22 @@
 name: Collect Radar
 on:
   schedule:
-    - cron: '15 3,9,15,21 * * *'
+    - cron: '15 9 * * *'
   workflow_dispatch:
     inputs:
       kind:
         type: choice
-        options: [incremental, backfill, open, diagnostic]
-        default: incremental
+        options: [national_open, diagnostic, incremental, backfill, open]
+        default: national_open
       budget:
         description: 'Tempo máximo: coleta normal ou checagem curta com progresso salvo'
         type: choice
         options: ['480', '120']
         default: '480'
+      national_budget:
+        type: choice
+        options: ['2700', '5400', '120']
+        default: '2700'
 permissions:
   contents: read
   id-token: write
@@ -23,7 +27,7 @@ jobs:
   collect:
     if: vars.RADAR_COLLECTION_ENABLED == '1'
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 125
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -33,7 +37,13 @@ jobs:
           python-version: '3.12'
       - if: inputs.kind == 'diagnostic'
         run: python scripts/probe_pncp_source.py
-      - if: inputs.kind != 'diagnostic'
+      - if: github.event_name == 'schedule' || inputs.kind == 'national_open'
+        run: python scripts/run_national_collection.py
+        env:
+          PYTHONPATH: src
+          RADAR_APP_URL: ${{ vars.RADAR_APP_URL }}
+          RADAR_NATIONAL_BUDGET_SECONDS: ${{ inputs.national_budget || '2700' }}
+      - if: github.event_name == 'workflow_dispatch' && inputs.kind != 'diagnostic' && inputs.kind != 'national_open'
         run: python scripts/run_scheduled_collection.py
         env:
           RADAR_APP_URL: ${{ vars.RADAR_APP_URL }}

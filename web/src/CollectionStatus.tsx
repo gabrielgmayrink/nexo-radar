@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle2, Clock, RefreshCw } from 'lucide-react';
 
-type Job = { kind: string; status: string; recordsReceived: number; completedPartitions?: number; totalPartitions?: number; lastActivityAt?: string; error?: string };
-type Status = { enabled: boolean; collections: { publications?: { completedAt?: string; source?: string }; open?: { completedAt?: string } }; executions: Job[] };
+type Job = { kind: string; status: string; recordsReceived: number; expectedRecords?: number; expectedPages?: number; passPages?: number; passNumber?: number; coverageComplete?: boolean; completedPartitions?: number; totalPartitions?: number; lastActivityAt?: string; error?: string };
+type Status = { enabled: boolean; collections: { publications?: { completedAt?: string; source?: string }; open?: { completedAt?: string; coverageComplete?: boolean; metrics?: {unique?: number} } }; executions: Job[] };
 
 export default function CollectionStatus({ collectionDate, totalScanned }: { collectionDate?: string; totalScanned?: number }) {
   const [status,setStatus] = useState<Status|null>(null);
@@ -24,8 +24,8 @@ export default function CollectionStatus({ collectionDate, totalScanned }: { col
         if (!next.collections || !Array.isArray(next.executions)) throw Error();
         if (controller.signal.aborted) return;
         setStatus(next); setStatusError('');
-        const completed = next.collections.publications?.completedAt || '';
-        const progress=next.executions.map(job => job.kind+':'+job.recordsReceived).join('|');
+        const completed = next.collections.open?.completedAt || '';
+        const progress=next.executions.map(job => job.kind+':'+job.recordsReceived+':'+job.status).join('|');
         if (emitRefresh && hasLoaded.current && ((completed && completed !== lastCompleted.current) || progress!==lastProgress.current)) window.dispatchEvent(new Event('radar:refresh'));
         lastCompleted.current=completed;lastProgress.current=progress;hasLoaded.current=true;
       } catch { if (!controller.signal.aborted) setStatusError('Não foi possível consultar o andamento da coleta. A data abaixo é a última confirmada.'); }
@@ -54,8 +54,8 @@ export default function CollectionStatus({ collectionDate, totalScanned }: { col
   const pending = unfinished.find(job => job.status === 'running' && !!job.lastActivityAt && Date.now()-Date.parse(job.lastActivityAt) < 300000) || unfinished[0];
   const partial = !!pending?.error || pending?.status === 'partial' || pending?.status === 'failed';
   const active = !!pending && !partial && !!pending.lastActivityAt && Date.now()-Date.parse(pending.lastActivityAt) < 300000;
-  const completedAt = status?.collections.publications?.completedAt;
-  const historical = !completedAt || status?.collections.publications?.source === 'historical-import';
+  const completedAt = status?.collections.open?.completedAt;
+  const historical = !completedAt || !status?.collections.open?.coverageComplete;
   const current = !historical && !!completedAt && Date.now()-Date.parse(completedAt) < 26*3600000;
   const awaitingFirstCollection = totalScanned === 0 && !collectionDate && !pending;
   const lastDate = completedAt ? new Date(completedAt).toLocaleString('pt-BR',{ timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short' }) : collectionDate?.split('-').reverse().join('/') || '…';
@@ -65,10 +65,10 @@ export default function CollectionStatus({ collectionDate, totalScanned }: { col
     <div className={'freshness collection-health'+(partial ? ' collection-warning' : current && !pending ? ' collection-current' : '')}>
       <span><Icon size={19} className={active ? 'spinning' : ''}/></span>
       <div className="collection-message">
-        <strong>{awaitingFirstCollection ? 'A primeira coleta de licitações ainda não foi executada.' : partial ? pauseMessage : active ? 'Coletando novas publicações do PNCP.' : pending ? 'Coleta parcial: faltam lotes do PNCP. A próxima execução continua de onde parou.' : current ? 'Coleta automática atualizada.' : historical ? 'Base histórica do PNCP.' : 'A base aguarda uma nova coleta completa.'}</strong>
-        <p>{awaitingFirstCollection ? 'Os critérios da Public estão preparados. As oportunidades aparecerão após a ativação da coleta.' : <>{completedAt ? `Última varredura concluída: ${lastDate}.` : 'A primeira varredura completa ainda está em andamento.'}{pending ? ` ${pending.recordsReceived.toLocaleString('pt-BR')} registros recebidos${pending.totalPartitions ? ` · ${pending.completedPartitions || 0}/${pending.totalPartitions} etapas concluídas` : ''}.` : ' Confira sempre a situação no PNCP.'}</>}</p>
-        {pending && <p>Cada lote contém até 50 licitações. Os resultados já encontrados estão disponíveis; recarregar o painel não inicia uma nova coleta.</p>}
-        {completedAt && totalScanned !== undefined && <p>{totalScanned.toLocaleString('pt-BR')} contratações na base concluída.</p>}<p>O Radar mostra as contratações compatíveis com os serviços da empresa. A lista com prazo futuro é uma seleção dentro desse total; contratações encerradas servem para consulta e referência.</p>
+        <strong>{awaitingFirstCollection ? 'Preparando a varredura nacional de licitações abertas.' : partial ? pauseMessage : active ? 'Percorrendo todas as licitações abertas do Brasil.' : pending ? 'Varredura nacional incompleta: há páginas pendentes do PNCP.' : current ? 'Varredura nacional concluída.' : historical ? 'A primeira varredura nacional ainda não foi concluída.' : 'A base aguarda uma nova coleta completa.'}</strong>
+        <p>{awaitingFirstCollection ? 'A consulta percorre todas as páginas do PNCP, sem filtro de empresa, estado ou modalidade.' : <>{completedAt ? `Última varredura concluída: ${lastDate}.` : 'A primeira varredura completa ainda está em andamento.'}{pending ? ` ${pending.recordsReceived.toLocaleString('pt-BR')} registros recebidos${pending.expectedPages ? ` · ${pending.passPages || 0}/${pending.expectedPages || '…'} páginas da varredura atual` : ''}.` : ' Confira sempre a situação no PNCP.'}</>}</p>
+        {pending?.expectedPages && <div className="national-coverage"><label htmlFor="national-coverage-progress">{(pending.passPages || 0).toLocaleString('pt-BR')} de {pending.expectedPages.toLocaleString('pt-BR')} páginas · {pending.expectedRecords?.toLocaleString('pt-BR')} licitações informadas pelo PNCP</label><progress id="national-coverage-progress" max={pending.expectedPages} value={pending.passPages || 0}/><p>{(pending.passNumber || 1)>1 ? 'Conferência adicional: houve mudança ou divergência na paginação da fonte. ' : ''}A cobertura só será concluída após confirmar todas as páginas e os registros únicos.</p></div>}
+        {completedAt && totalScanned !== undefined && <p>{totalScanned.toLocaleString('pt-BR')} contratações na base concluída.</p>}<p>A coleta considera todas as abertas do Brasil. Depois do recebimento, o painel mostra somente as compatíveis com os serviços da sua empresa. Recarregar o painel preserva o progresso da varredura.</p>
         {statusError && <p className="collection-error">{statusError}</p>}
       </div>
       <button className="refresh-catalog" disabled={refreshing || manual} onClick={() => refresh.current()} aria-label="Recarregar resultados"><RefreshCw size={15} className={refreshing || manual ? 'spinning' : ''}/><span>{manual ? 'Recarregando…' : 'Recarregar resultados'}</span></button>

@@ -20,10 +20,12 @@ class handler(BaseHTTPRequestHandler):
             return
         try:
             length = int(self.headers.get('Content-Length', '0'))
-            if not 1 <= length <= 4096:
+            if not 1 <= length <= 3_500_000:
                 raise ValueError('Invalid request size')
             body = json.loads(self.rfile.read(length))
-            if not isinstance(body, dict) or body.get('kind', 'incremental') not in ('incremental', 'open', 'backfill'):
+            if not isinstance(body, dict):raise ValueError('Invalid request')
+            national=body.get('action') in ('national_plan','national_commit','national_failure')
+            if not national and body.get('kind', 'incremental') not in ('incremental', 'open', 'backfill'):
                 raise ValueError('Invalid request')
             execution_id = body.get('executionId')
             if execution_id is not None and (type(execution_id) is not int or execution_id < 1):
@@ -36,12 +38,19 @@ class handler(BaseHTTPRequestHandler):
             return
         from radar.postgres_store import PostgresStore
         from radar.sync import run_chunk
+        from radar.national_collection import handle_national,StalePage
         store = None
         try:
             store = PostgresStore()
-            result = run_chunk(store, body.get('kind', 'incremental'), run_key=run_key,
-                               execution_id=execution_id, budget_seconds=budget_seconds)
+            result = handle_national(store,body['action'],body,run_key) if national else run_chunk(store, body.get('kind', 'incremental'), run_key=run_key,
+                                                                                              execution_id=execution_id, budget_seconds=budget_seconds)
             self.respond(200, result)
+        except StalePage:
+            self.respond(409,{'error':'A página já avançou. Consulte o progresso atual.'})
+        except ValueError as exc:
+            label='storage_guard' if str(exc)=='storage_guard' else 'invalid_page'
+            print(json.dumps({'event':'collection_rejected','error':label}))
+            self.respond(400,{'error':label})
         except Exception as exc:
             # PostgreSQL exceptions can include passwords/DSNs: report type only in server logs.
             print(json.dumps({'event': 'collection_failed', 'errorType': type(exc).__name__}))

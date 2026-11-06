@@ -79,11 +79,12 @@ def _notify_company(db,kind,company,recipients,*,now=None,sender=send_reserved,f
     if not dry_run and handled==len(recipients):return {'sent':0,'skipped':handled,'candidates':0,'kind':kind,'verified':0}
     cards=[];verified=0;check_errors=0
     if kind!='test':
-        state=db.execute("select content from radar_catalog_state where id='publications'").fetchone()
+        state=db.execute("select content from radar_catalog_state where id='open'").fetchone()
         completed=datetime.fromisoformat(state[0]['completedAt'].replace('Z','+00:00')) if state else None
         if completed and completed.tzinfo is None:completed=completed.replace(tzinfo=TZ)
         stale=not completed or now-completed>timedelta(hours=72)
         rows=db.execute('''select o.card,r.offer,r.status from radar_opportunities o
+            join radar_national_candidates n on n.id=o.id
             left join radar_review_state r on r.opportunity_id=o.id and r.company_id=%s
               and r.example_object=o.payload->>'objetoCompra'
               and r.example_additional=coalesce(o.payload->>'informacaoComplementar','')

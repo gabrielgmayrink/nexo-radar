@@ -121,3 +121,10 @@ body,.radar-app { background:var(--canvas); color:var(--ink); }
  .radar-app .heading-row h1 { font-size:31px; }
 }
 @media(prefers-reduced-motion:reduce) { .radar-app * { scroll-behavior:auto!important; transition:none!important; } }
+
+.national-coverage { margin:12px 0; max-width:680px; }
+.national-coverage label { display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:7px; }
+.national-coverage progress { display:block; width:100%; height:8px; border:0; border-radius:8px; overflow:hidden; accent-color:var(--accent); }
+.national-coverage progress::-webkit-progress-bar { background:var(--border); border-radius:8px; }
+.national-coverage progress::-webkit-progress-value { background:var(--accent); border-radius:8px; }
+.national-coverage progress::-moz-progress-bar { background:var(--accent); border-radius:8px; }
