@@ -1,4 +1,9 @@
 /* Product identity uses shared color roles from theme.css. */
+.page-recovery { min-height:100svh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:32px; text-align:center; background:var(--canvas); color:var(--ink); }
+.page-recovery .brand-lockup { margin:0 0 18px; }
+.page-recovery h1 { font-size:26px; margin:0; }
+.page-recovery p { color:var(--muted); max-width:420px; line-height:1.7; margin:0; }
+.page-recovery button { display:flex; align-items:center; gap:8px; background:var(--accent); color:var(--on-dark); border:0; border-radius:8px; padding:13px 18px; }
 body,.radar-app { background:var(--canvas); color:var(--ink); }
 .radar-app .workspace { padding-inline:clamp(20px,3vw,48px); }
 .radar-app .rail { background:var(--rail); border-color:var(--rail-hover); color:var(--on-dark-muted); }
