@@ -8,6 +8,11 @@ on:
         type: choice
         options: [incremental, backfill, open]
         default: incremental
+      budget:
+        description: 'Tempo máximo: coleta normal ou checagem curta com progresso salvo'
+        type: choice
+        options: ['480', '120']
+        default: '480'
 permissions:
   contents: read
   id-token: write
@@ -30,3 +35,4 @@ jobs:
         env:
           RADAR_APP_URL: ${{ vars.RADAR_APP_URL }}
           RADAR_SYNC_KIND: ${{ inputs.kind || 'incremental' }}
+          RADAR_SYNC_BUDGET_SECONDS: ${{ inputs.budget || '480' }}

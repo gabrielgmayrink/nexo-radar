@@ -109,6 +109,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(task['fingerprints'],['saved'])
         self.assertEqual(updated['received'],1400)
         self.assertEqual(page_query(updated)[1],9)
+        self.assertEqual(page_query(updated)[0],'proposta')
 
     def test_concurrent_batch_is_rejected_without_accessing_provider(self):
         store=MemoryStore();store.locked=True

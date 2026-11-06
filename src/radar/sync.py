@@ -27,7 +27,12 @@ def initial_cursor(kind, today, last_completed=None):
 
 
 def partitions(kind):
-    modes = ('proposta',) if kind == 'open' else ('publicacao', 'atualizacao', 'proposta')
+    if kind=='open':
+        modes=('proposta',)
+    elif kind=='backfill':
+        modes=('publicacao','atualizacao','proposta')
+    else:
+        modes=('proposta','publicacao','atualizacao')
     return [(mode, modality) for mode in modes for modality in PUBLICATION_MODALITIES]
 
 
@@ -47,7 +52,10 @@ def pending_tasks(cursor):
 
 def upgrade_cursor(cursor):
     tasks = pending_tasks(cursor)
-    return {**cursor, 'pending_tasks': tasks, 'partition': len(partitions(cursor['kind']))-len(tasks),
+    if cursor.get('queue_version')!=3:
+        order={key:index for index,key in enumerate(partitions(cursor['kind']))}
+        tasks=sorted(tasks,key=lambda task:order[(task['mode'],task['modality'])])
+    return {**cursor, 'queue_version':3, 'pending_tasks': tasks, 'partition': len(partitions(cursor['kind']))-len(tasks),
             'page': tasks[0]['page'] if tasks else 1,
             'fingerprints': tasks[0]['fingerprints'] if tasks else []}
 

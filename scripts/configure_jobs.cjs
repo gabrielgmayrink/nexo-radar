@@ -42,8 +42,8 @@ async function api(path,options={}){return fetch('https://api.github.com'+path,{
     if(!response.ok)throw Error('Could not dispatch verification (HTTP '+response.status+')');
     console.log(JSON.stringify({verificationRequested:true,emailSent:false}));return;
   }
-  if(mode==='collect'){
-    const response=await api(base+'/actions/workflows/collect.yml/dispatches',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ref:'main',inputs:{kind:'incremental'}})});
+  if(mode==='collect'||mode==='collect-check'){
+    const response=await api(base+'/actions/workflows/collect.yml/dispatches',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ref:'main',inputs:{kind:'incremental',...(mode==='collect-check'?{budget:'120'}:{})}})});
     if(!response.ok)throw Error('Could not start collection (HTTP '+response.status+')');
     console.log(JSON.stringify({collectionRequested:true}));return;
   }

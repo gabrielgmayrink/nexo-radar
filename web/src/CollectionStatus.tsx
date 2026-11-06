@@ -52,7 +52,7 @@ export default function CollectionStatus({ collectionDate, totalScanned }: { col
   const latest = status?.executions.filter((job,index,jobs) => jobs.findIndex(other => other.kind === job.kind) === index) || [];
   const unfinished = latest.filter(job => job.status !== 'ok');
   const pending = unfinished.find(job => job.status === 'running' && !!job.lastActivityAt && Date.now()-Date.parse(job.lastActivityAt) < 300000) || unfinished[0];
-  const partial = pending?.status === 'partial' || pending?.status === 'failed';
+  const partial = !!pending?.error || pending?.status === 'partial' || pending?.status === 'failed';
   const active = !!pending && !partial && !!pending.lastActivityAt && Date.now()-Date.parse(pending.lastActivityAt) < 300000;
   const completedAt = status?.collections.publications?.completedAt;
   const historical = !completedAt || status?.collections.publications?.source === 'historical-import';

@@ -2,6 +2,7 @@ import importlib.util
 import io
 import json
 import unittest
+import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -64,3 +65,20 @@ class ScheduledRunnerTests(unittest.TestCase):
         with patch.object(runner,'identity',return_value='unit-test-only'),patch('builtins.print'):
             result=runner.run('open',opener=opener,clock=clock.read,sleeper=clock.sleep)
         self.assertEqual(result,1);self.assertEqual(opener.calls,3)
+
+    def test_known_pncp_pause_is_reported_as_incomplete_with_saved_progress(self):
+        scratch=Path(__file__).resolve().parents[1]/'work'
+        scratch.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=scratch) as directory:
+            summary=Path(directory)/'summary.md'
+            with patch.dict('os.environ',{'GITHUB_STEP_SUMMARY':str(summary)}),patch('builtins.print') as output:
+                result=runner.defer_source({'executionId':7,'error':'timeout'})
+            self.assertEqual(result,0)
+            self.assertIn('não concluiu a cobertura',summary.read_text(encoding='utf-8'))
+            self.assertTrue(any('source_paused' in str(call) for call in output.call_args_list))
+
+    def test_unknown_failure_or_missing_checkpoint_is_not_hidden(self):
+        with patch('builtins.print') as output:
+            for value in ({'executionId':7,'error':'storage_guard'},{'error':'timeout'},{'executionId':True,'error':'timeout'}):
+                self.assertEqual(runner.defer_source(value),1)
+        output.assert_not_called()

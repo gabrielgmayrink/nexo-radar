@@ -2,6 +2,7 @@
 import json
 import os
 import time
+from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -10,6 +11,20 @@ BASE = os.environ.get('RADAR_APP_URL', 'https://nexo-radar.example.invalid').rst
 AUDIENCE = BASE + '/api/collect'
 MIN_BATCH_SECONDS = 10
 REQUEST_MARGIN_SECONDS = 90
+RETRYABLE_SOURCE_ERRORS = {'timeout','erro_transporte','http_429','resposta_html_waf'}
+
+
+def defer_source(last):
+    if last.get('error') not in RETRYABLE_SOURCE_ERRORS or type(last.get('executionId')) is not int:
+        return 1
+    print(json.dumps({'event':'source_paused','executionId':last['executionId'],'sourceError':last['error'],
+                      'coverageComplete':False,'resume':'Progresso salvo. A próxima execução retomará as páginas pendentes.'}),flush=True)
+    print('::warning title=Coleta parcial do PNCP::O PNCP não respondeu ou limitou as consultas. Progresso salvo; a próxima execução retomará a coleta. Cobertura ainda incompleta.',flush=True)
+    summary=os.environ.get('GITHUB_STEP_SUMMARY')
+    if summary:
+        with Path(summary).open('a',encoding='utf-8') as stream:
+            stream.write('\n### Coleta parcial — aguardando o PNCP\n\nO PNCP não respondeu ou limitou as consultas. O progresso foi salvo e a próxima execução retomará as páginas pendentes. Esta execução não concluiu a cobertura.\n')
+    return 0
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -63,7 +78,7 @@ def run(kind, *, budget_seconds=480, opener=None, clock=time.monotonic, sleeper=
                 failures+=1
             elif last.get('status')!='partial':failures=0
             previous_errors=errors
-            if failures>=3:return 1
+            if failures>=3:return defer_source(last)
             if last.get('retryAfterSeconds',0)>0:
                 sleeper(min(last['retryAfterSeconds']+1,60))
                 continue
@@ -77,7 +92,7 @@ def run(kind, *, budget_seconds=480, opener=None, clock=time.monotonic, sleeper=
             sleeper(min(10 * 2 ** failures, 30))
     print(json.dumps({'event': 'budget_reached', 'executionId': execution_id,
                       'resume': 'Próxima execução retomará o progresso salvo.'}), flush=True)
-    return 1 if failures or last.get('status')=='partial' else 0
+    return defer_source(last) if failures or last.get('status')=='partial' else 0
 
 
 if __name__ == '__main__':
