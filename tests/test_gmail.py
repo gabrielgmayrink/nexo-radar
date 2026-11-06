@@ -3,7 +3,7 @@ import smtplib
 import unittest
 import uuid
 from unittest.mock import MagicMock,patch
-from radar.mail import send_reserved,MailUnavailable
+from radar.mail import send_reserved,verify_gmail,gmail_client,MailUnavailable
 
 
 class GmailTests(unittest.TestCase):
@@ -43,3 +43,15 @@ class GmailTests(unittest.TestCase):
         with self.assertRaises(MailUnavailable):self.send()
         self.assertEqual(self.smtp.send_message.call_count,1)
         self.assertIn("status='unknown'",self.db.execute.call_args.args[0])
+
+    def test_transport_check_authenticates_without_sending(self):
+        self.assertTrue(verify_gmail(factory=self.factory)['smtpAuthenticated'])
+        self.smtp.send_message.assert_not_called()
+
+    def test_submission_port_requires_tls_before_use(self):
+        with patch.dict(os.environ,{'RADAR_SMTP_PORT':'587'}):
+            gmail_client(factory=self.factory)
+        client=self.factory.return_value
+        self.assertEqual(self.factory.call_args.args,('smtp.gmail.com',587))
+        self.assertTrue(client.starttls.call_args.kwargs['context'].check_hostname)
+        self.assertEqual(client.ehlo.call_count,2)

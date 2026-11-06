@@ -107,7 +107,7 @@ def send_gmail(db,identifier,recipient,subject,html,text,sender,reply,address,*,
     message['Message-ID']='<nexo.'+str(uuid.UUID(identifier))+'@gmail.com>'
     message.set_content(text);message.add_alternative(html,subtype='html')
     try:
-        with (factory or smtplib.SMTP_SSL)('smtp.gmail.com',465,timeout=20,context=ssl.create_default_context()) as smtp:
+        with gmail_client(factory=factory) as smtp:
             smtp.login(username,os.environ['SMTP_APP_PASSWORD'].replace(' ',''))
             refused=smtp.send_message(message)
             if refused:raise MailUnavailable('Gmail refused recipient')
@@ -120,3 +120,24 @@ def send_gmail(db,identifier,recipient,subject,html,text,sender,reply,address,*,
     except (smtplib.SMTPException,OSError,ValueError,MailUnavailable):
         db.execute("update radar_mail_outbox set status='unknown' where id=%s",(identifier,))
         raise MailUnavailable('Gmail delivery could not be confirmed') from None
+
+
+def gmail_client(*,factory=None):
+    port=os.environ.get('RADAR_SMTP_PORT','465')
+    if port=='465':return (factory or smtplib.SMTP_SSL)('smtp.gmail.com',465,timeout=20,context=ssl.create_default_context())
+    if port!='587':raise MailUnavailable('Unexpected Gmail port')
+    smtp=(factory or smtplib.SMTP)('smtp.gmail.com',587,timeout=20)
+    try:
+        smtp.ehlo();smtp.starttls(context=ssl.create_default_context());smtp.ehlo()
+        return smtp
+    except Exception:
+        smtp.close();raise
+
+
+def verify_gmail(*,factory=None):
+    username=os.environ.get('SMTP_USERNAME','').strip().lower()
+    if not EMAIL_PATTERN.fullmatch(username) or not username.endswith('@gmail.com') or not os.environ.get('SMTP_APP_PASSWORD'):
+        raise MailUnavailable('Gmail is not configured')
+    with gmail_client(factory=factory) as smtp:
+        smtp.login(username,os.environ['SMTP_APP_PASSWORD'].replace(' ',''))
+    return {'smtpAuthenticated':True,'emailSent':False}

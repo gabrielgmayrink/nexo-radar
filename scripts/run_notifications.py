@@ -7,7 +7,7 @@ import run_scheduled_collection as jobs
 
 def run():
     kind=os.environ.get('RADAR_NOTIFY_KIND','weekly')
-    if kind not in ('weekly','urgent','test','verify'):raise ValueError('Invalid notification')
+    if kind not in ('weekly','urgent','test','verify','verify_smtp'):raise ValueError('Invalid notification')
     jobs.AUDIENCE=jobs.BASE+'/api/notify'
     opener=build_opener(jobs.NoRedirect())
     token=jobs.identity(opener)
