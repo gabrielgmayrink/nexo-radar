@@ -13,7 +13,7 @@
 
 ## Perfil Public
 
-Mantém quatro grupos: documentos/apoio administrativo; gestão empresarial pública e privada; palestras e capacitação profissional/gerencial; ensino EAD. Desenvolvimento de sistemas e serviços de TI foram removidos. A reclassificação recalcula apenas dados derivados, preservando os registros originais.
+Mantém quatro grupos: documentos/apoio administrativo; gestão empresarial pública e privada; palestras e capacitação profissional/gerencial; ensino EAD. Desenvolvimento de sistemas e serviços de TI foram removidos. Contratos de licenciamento, locação, desenvolvimento ou manutenção de software são excluídos mesmo quando mencionam treinamento como serviço acessório. A reclassificação recalcula apenas dados derivados, preservando os registros originais.
 
 Frases específicas no objeto produzem candidatas. Combinações de treinamento/curso com servidores, gestores ou contexto profissional entram com 45 pontos e exigem análise. Menções apenas nas informações complementares não viram recomendações. Essa ampliação não significa que toda candidata está apta à participação.
 

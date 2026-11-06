@@ -6,7 +6,7 @@ import unicodedata
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-VERSION = "2026-11-06.4"
+VERSION = "2026-11-06.5"
 TZ = ZoneInfo("America/Sao_Paulo")
 
 

@@ -27,7 +27,7 @@ export default function Dashboard({company,companies,email,onCompany}: {company:
   const configurationPending=!companyProfiles.some(profile=>profile.id===company && profile.enabled);
   const fetchCatalog=useMemo(()=>createCatalogLoader(),[]);
   const [catalog,setCatalog] = useState<Catalog|null>(null), [error,setError] = useState('');
-  const [filters,setFilters] = useState<Filters>(EMPTY_FILTERS), [view,setView] = useState<View>('open');
+  const [filters,setFilters] = useState<Filters>(EMPTY_FILTERS), [view,setView] = useState<View>('all');
   const [sort,setSort] = useState('deadline'), [page,setPage] = useState(1), [selected,setSelected] = useState<Row|null>(null);
   const [pageSize,setPageSize] = useState(12);
   const deferredQuery=useDeferredValue(filters.query);

@@ -21,6 +21,14 @@ class ProfileTests(unittest.TestCase):
         for obj in ('Desenvolvimento de sistemas e software', 'Suporte técnico em informática', 'Aquisição de equipamentos de TI'):
             self.assertEqual(classify(obj)['score'],0,obj)
 
+    def test_software_contracts_with_incidental_training_do_not_return_as_public(self):
+        from radar.relevance import classify
+        for obj in ('Solução de gestão municipal com licenciamento de uso de software, treinamento e capacitação dos usuários',
+                    'Locação de software em ambiente web, com capacitação de servidores',
+                    'Desenvolvimento de sistemas, consultoria em gestão pública e treinamento profissional'):
+            self.assertEqual(classify(obj)['score'],0,obj)
+        self.assertEqual(classify('Curso de capacitação de servidores em gestão de contratos')['suggestedOffer'],'Public')
+
     def test_enabling_incomplete_profile_is_rejected(self):
         companies=load_profiles()
         companies[1]['enabled']=True
