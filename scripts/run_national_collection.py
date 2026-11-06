@@ -140,8 +140,9 @@ def run(*,budget_seconds=2700,receiver=None,source=None):
                         validate_payload(payload,page)
                         break
                     except (PNCPError,ValueError) as exc:
-                        reason=str(exc) if isinstance(exc,PNCPError) else 'source_contract'
-                        if reason not in ('timeout','erro_transporte','http_429','resposta_html_waf','source_contract'):
+                        raw_reason=str(exc) if isinstance(exc,PNCPError) else 'source_contract'
+                        reason='source_5xx' if raw_reason.startswith('http_5') else 'source_contract' if raw_reason in ('resposta_nao_json','contrato_resposta_sem_lista_data') else raw_reason
+                        if reason not in ('timeout','erro_transporte','http_429','resposta_html_waf','source_contract','source_5xx'):
                             raise
                         if attempt==4 or time.monotonic()-started>=budget_seconds-180:
                             progress=receiver.post({'action':'national_failure','executionId':plan['executionId'],
@@ -164,5 +165,6 @@ def run(*,budget_seconds=2700,receiver=None,source=None):
 if __name__=='__main__':
     try:raise SystemExit(run(budget_seconds=int(os.environ.get('RADAR_NATIONAL_BUDGET_SECONDS','2700'))))
     except Exception as exc:
-        print(json.dumps({'event':'national_worker_failed','errorType':type(exc).__name__}),flush=True)
+        print(json.dumps({'event':'national_worker_failed','errorType':type(exc).__name__,
+                          **({'sourceError':str(exc)} if isinstance(exc,PNCPError) else {})}),flush=True)
         raise SystemExit(1)

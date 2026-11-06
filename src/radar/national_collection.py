@@ -85,7 +85,7 @@ def handle_national(store,action,body,run_key):
             if cursor['status']=='ok':return plan(cursor,execution_id)
             if page!=page_query(cursor)[2]['pagina'] or pass_number!=cursor.get('passNumber',1):raise StalePage('National page changed')
             reason=body.get('reason')
-            if reason not in ('timeout','erro_transporte','http_429','resposta_html_waf','source_contract'):raise ValueError('Invalid source error')
+            if reason not in ('timeout','erro_transporte','http_429','resposta_html_waf','source_contract','source_5xx'):raise ValueError('Invalid source error')
             cursor.update(status='partial',error=reason,coverageComplete=False)
             store.save_failure(execution_id,KIND,cursor)
             return plan(cursor,execution_id)

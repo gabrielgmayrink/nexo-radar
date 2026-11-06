@@ -49,7 +49,7 @@ def load_collection_status(*, opener=urlopen):
         if row.get('task')!='sync:national_open':continue
         metrics=row.get('metrics') or {}
         error=metrics.get('error')
-        if error not in ('http_429','timeout','erro_transporte','resposta_html_waf','storage_guard','invalid_page','coverage_gap','source_contract'):error=None
+        if error not in ('http_429','timeout','erro_transporte','resposta_html_waf','storage_guard','invalid_page','coverage_gap','source_contract','source_5xx'):error=None
         jobs.append({'id':row['id'],'kind':row['task'][5:],'status':row['status'],
                      'startedAt':row['started_at'],'finishedAt':row.get('finished_at'),
                      'lastActivityAt':activity.get(row['task'][5:],row['started_at']),

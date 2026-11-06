@@ -49,6 +49,14 @@ class WorkerTests(unittest.TestCase):
         self.assertFalse(summary.call_args.args[1]);self.assertEqual(receiver.store.rows,{})
         self.assertEqual(receiver.store.cursor['status'],'partial')
 
+    def test_temporary_source_server_error_is_not_a_completed_scan(self):
+        receiver=Receiver()
+        class ServerErrorSource:
+            def fetch(self,page):raise worker.PNCPError('http_503')
+        with patch.object(worker,'write_summary') as summary,patch('builtins.print'):
+            worker.run(budget_seconds=120,receiver=receiver,source=ServerErrorSource())
+        self.assertFalse(summary.call_args.args[1]);self.assertEqual(receiver.store.cursor['error'],'source_5xx')
+
     def test_source_reuses_connection_and_decodes_gzip(self):
         original=json.dumps(payload(1,total=1)).encode()
         class Connection:
