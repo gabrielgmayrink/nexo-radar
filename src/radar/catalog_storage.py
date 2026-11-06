@@ -5,7 +5,7 @@ from datetime import datetime,timezone,timedelta
 from urllib.parse import urlparse
 from urllib.request import Request,urlopen
 from radar.canonical import to_card
-from radar.relevance import TZ,procurement_state
+from radar.relevance import TZ,procurement_state,VERSION
 from radar.learning import apply_examples
 from radar.company_access import visible_card,COMPANIES
 
@@ -92,7 +92,7 @@ def load_database_catalog(snapshot: dict, *, opener=urlopen,company=None) -> dic
     published=sync['collections'].get('publications',{})
     metrics={**snapshot.get('metrics',{}),**published.get('metrics',{}),'candidates':len(cards)}
     metrics['discarded']=max(0,metrics.get('unique',0)-len(cards))
-    return {**snapshot,'dataSource':'supabase','databaseCheckedAt':datetime.now(timezone.utc).isoformat(),
+    return {**snapshot,'rulesVersion':VERSION,'dataSource':'supabase','databaseCheckedAt':datetime.now(timezone.utc).isoformat(),
             'collectionDate':published.get('window',{}).get('end',snapshot.get('collectionDate')),
             'collectionCompletedAt':published.get('completedAt'),
             'historical':not bool(published) or published.get('source')=='historical-import','sync':sync,

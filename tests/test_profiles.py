@@ -25,7 +25,8 @@ class ProfileTests(unittest.TestCase):
         from radar.relevance import classify
         for obj in ('Solução de gestão municipal com licenciamento de uso de software, treinamento e capacitação dos usuários',
                     'Locação de software em ambiente web, com capacitação de servidores',
-                    'Desenvolvimento de sistemas, consultoria em gestão pública e treinamento profissional'):
+                    'Desenvolvimento de sistemas, consultoria em gestão pública e treinamento profissional',
+                    'Aquisição, instalação e configuração de painel eletrônico de LED com software de operação e treinamento dos servidores'):
             self.assertEqual(classify(obj)['score'],0,obj)
         self.assertEqual(classify('Curso de capacitação de servidores em gestão de contratos')['suggestedOffer'],'Public')
 
