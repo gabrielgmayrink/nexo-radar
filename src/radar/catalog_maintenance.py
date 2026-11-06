@@ -46,8 +46,8 @@ def cleanup(store,*,dry_run=False,now=None,run_key='manual'):
         previous=previous[0] if previous and previous[0].get('runId')==run_id else {}
         counts=Counter(previous.get('reasons',{}));removed=previous.get('removedFromActive',0)
         processed=0
-        # A large update rebuilt every active-row index and exceeded the database
-        # statement limit. Each small batch now has its own durable receipt.
+        # Keep index work bounded. Each small batch has its own durable receipt,
+        # so retries continue after the last committed archive operation.
         limited=targets[:CLEANUP_REQUEST_RECORDS]
         batches=[limited[i:i+CLEANUP_BATCH_SIZE] for i in range(0,len(limited),CLEANUP_BATCH_SIZE)] or [[]]
         result=None
