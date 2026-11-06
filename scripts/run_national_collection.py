@@ -16,6 +16,8 @@ from radar.national_collection import validate_payload
 from run_scheduled_collection import identity,NoRedirect,AUDIENCE
 
 SOURCE_PATH='/v1/contratacoes/proposta'
+SOURCE_CONCURRENCY=5
+SOURCE_START_INTERVAL=2.0
 
 
 class BufferedResponse(io.BytesIO):
@@ -87,7 +89,7 @@ class Source:
             raise
     def fetch(self,page):
         with self.lock:
-            delay=1.5-(time.monotonic()-self.last_started)
+            delay=SOURCE_START_INTERVAL-(time.monotonic()-self.last_started)
             if delay>0:time.sleep(delay)
             self.last_started=time.monotonic()
         metrics=CollectionMetrics()
@@ -117,7 +119,7 @@ def run(*,budget_seconds=3600,receiver=None,source=None):
     receiver=receiver or Receiver();source=source or Source()
     started=time.monotonic();progress=receiver.post({'action':'national_plan'})
     futures={};generation=None;last_log=0
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=SOURCE_CONCURRENCY) as pool:
         try:
             while time.monotonic()-started<budget_seconds-100:
                 if progress.get('done'):
@@ -131,7 +133,7 @@ def run(*,budget_seconds=3600,receiver=None,source=None):
                     futures={};generation=key
                 page=plan['page']
                 maximum=progress.get('expectedPages') or page
-                for candidate in range(page,min(page+2,max(page,maximum))+1):
+                for candidate in range(page,min(page+SOURCE_CONCURRENCY-1,max(page,maximum))+1):
                     if candidate not in futures:futures[candidate]=pool.submit(source.fetch,candidate)
                 payload=None;replanned=False
                 for attempt in range(5):
