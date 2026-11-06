@@ -27,7 +27,9 @@ class handler(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(length))
             if not isinstance(body, dict):raise ValueError('Invalid request')
             national=body.get('action') in ('national_plan','national_commit','national_failure','national_reconcile')
-            if 'action' in body and not national:raise ValueError('Invalid operation')
+            maintenance=body.get('action') in ('cleanup','weekly_summary')
+            if 'action' in body and not (national or maintenance):raise ValueError('Invalid operation')
+            if maintenance and type(body.get('dryRun',False)) is not bool:raise ValueError('Invalid preview')
             if not national and body.get('kind', 'incremental') not in ('incremental', 'open', 'backfill'):
                 raise ValueError('Invalid request')
             execution_id = body.get('executionId')
@@ -45,6 +47,12 @@ class handler(BaseHTTPRequestHandler):
         store = None
         try:
             store = PostgresStore()
+            if maintenance:
+                from radar.catalog_maintenance import cleanup,weekly_summary
+                if body['action']=='weekly_summary' and os.environ.get('RADAR_EMAIL_ENABLED')!='1':
+                    self.respond(503,{'error':'Resumos não habilitados.'});return
+                result=cleanup(store,dry_run=body.get('dryRun',False)) if body['action']=='cleanup' else weekly_summary(store,run_key,dry_run=body.get('dryRun',False))
+                self.respond(200,result);return
             result = handle_national(store,body['action'],body,run_key) if national else run_chunk(store, body.get('kind', 'incremental'), run_key=run_key,
                                                                                               execution_id=execution_id, budget_seconds=budget_seconds)
             if national and body['action']=='national_commit':

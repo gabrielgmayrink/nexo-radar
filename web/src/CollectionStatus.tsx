@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle2, Clock, RefreshCw } from 'lucide-react';
+import { hasCurrentWeeklyCollection } from './schedule';
 
 type Job = { kind: string; status: string; recordsReceived: number; expectedRecords?: number; expectedPages?: number; passPages?: number; passNumber?: number; coverageComplete?: boolean; completedPartitions?: number; totalPartitions?: number; lastActivityAt?: string; error?: string };
 type Status = { enabled: boolean; collections: { publications?: { completedAt?: string; source?: string }; open?: { completedAt?: string; coverageComplete?: boolean; metrics?: {unique?: number} } }; executions: Job[] };
@@ -56,7 +57,7 @@ export default function CollectionStatus({ collectionDate, totalScanned }: { col
   const active = !!pending && !partial && !!pending.lastActivityAt && Date.now()-Date.parse(pending.lastActivityAt) < 300000;
   const completedAt = status?.collections.open?.completedAt;
   const historical = !completedAt || !status?.collections.open?.coverageComplete;
-  const current = !historical && !!completedAt && Date.now()-Date.parse(completedAt) < 26*3600000;
+  const current = !historical && !!completedAt && hasCurrentWeeklyCollection(completedAt);
   const awaitingFirstCollection = totalScanned === 0 && !collectionDate && !pending;
   const lastDate = completedAt ? new Date(completedAt).toLocaleString('pt-BR',{ timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short' }) : collectionDate?.split('-').reverse().join('/') || '…';
   const Icon = partial || statusError ? AlertCircle : active ? RefreshCw : current && !pending ? CheckCircle2 : Clock;
@@ -69,6 +70,7 @@ export default function CollectionStatus({ collectionDate, totalScanned }: { col
         <p>{awaitingFirstCollection ? 'A consulta percorre todas as páginas do PNCP, sem filtro de empresa, estado ou modalidade.' : <>{completedAt ? `Última varredura concluída: ${lastDate}.` : 'A primeira varredura completa ainda está em andamento.'}{pending ? ` ${pending.recordsReceived.toLocaleString('pt-BR')} registros recebidos${pending.expectedPages ? ` · ${pending.passPages || 0}/${pending.expectedPages || '…'} páginas da varredura atual` : ''}.` : ' Confira sempre a situação no PNCP.'}</>}</p>
         {pending?.expectedPages && <div className="national-coverage"><label htmlFor="national-coverage-progress">{(pending.passPages || 0).toLocaleString('pt-BR')} de {pending.expectedPages.toLocaleString('pt-BR')} páginas · {pending.expectedRecords?.toLocaleString('pt-BR')} licitações informadas pelo PNCP</label><progress id="national-coverage-progress" max={pending.expectedPages} value={pending.passPages || 0}/><p>{(pending.passNumber || 1)>1 ? 'Conferência adicional: houve mudança ou divergência na paginação da fonte. ' : ''}A cobertura só será concluída após confirmar todas as páginas e os registros únicos.</p></div>}
         {completedAt && totalScanned !== undefined && <p>{totalScanned.toLocaleString('pt-BR')} contratações na base concluída.</p>}<p>A coleta considera todas as abertas do Brasil. Depois do recebimento, o painel mostra somente as compatíveis com os serviços da sua empresa. Recarregar o painel preserva o progresso da varredura.</p>
+        <p>Coleta semanal: segunda às 07h. Limpeza do catálogo ativo: domingo às 23h. Horários de Brasília.</p>
         {statusError && <p className="collection-error">{statusError}</p>}
       </div>
       <button className="refresh-catalog" disabled={refreshing || manual} onClick={() => refresh.current()} aria-label="Recarregar resultados"><RefreshCw size={15} className={refreshing || manual ? 'spinning' : ''}/><span>{manual ? 'Recarregando…' : 'Recarregar resultados'}</span></button>

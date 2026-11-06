@@ -90,7 +90,7 @@ def _notify_company(db,kind,company,recipients,*,now=None,sender=send_reserved,f
               and r.example_additional=coalesce(o.payload->>'informacaoComplementar','')
             where o.score>=40 and o.card is not null and coalesce((o.product_scores->>%s)::int,0)>=40
               and o.payload->>'situacaoCompraId'='1'
-              and o.payload->>'tipoInstrumentoConvocatorioCodigo' in ('1','2')
+              and o.payload->>'tipoInstrumentoConvocatorioCodigo' in ('1','2','4')
               and left(coalesce(o.payload->>'dataEncerramentoProposta',''),10)>=%s
             order by o.score desc limit 1001''',(company,COMPANIES[company],now.astimezone(TZ).date().isoformat())).fetchall()
         if len(rows)>1000:raise ValueError('Candidate budget exceeded')

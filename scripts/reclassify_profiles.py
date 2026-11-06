@@ -28,7 +28,7 @@ def run():
                 card=to_card(payload)
                 values.append((Jsonb(card['scores']),card['ruleVersion'],card['score'],Jsonb(card) if card['score']>=40 else None,identifier))
             with store.db.transaction(),store.db.cursor() as cursor:
-                cursor.executemany('update radar_opportunities set product_scores=%s,rule_version=%s,score=%s,card=%s,updated_at=now() where id=%s',values)
+                cursor.executemany('update radar_opportunities set product_scores=%s,rule_version=%s,score=%s,card=%s,updated_at=now(),catalog_archived_at=null,catalog_archive_reason=null where id=%s',values)
             updated+=len(rows);last=rows[-1][0]
         return {'reclassified':updated,'candidates':store.db.execute('select count(*) from radar_opportunities where score>=40').fetchone()[0]}
     finally:store.release();store.close()

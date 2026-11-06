@@ -118,7 +118,8 @@ class PostgresStore:
                     score integer,card jsonb,source_updated_at timestamptz,content_hash text)
                 on conflict(id) do update set payload=excluded.payload,
                 product_scores=excluded.product_scores,rule_version=excluded.rule_version,score=excluded.score,
-                card=excluded.card,source_updated_at=excluded.source_updated_at,content_hash=excluded.content_hash,updated_at=now()
+                card=excluded.card,source_updated_at=excluded.source_updated_at,content_hash=excluded.content_hash,updated_at=now(),
+                catalog_archived_at=null,catalog_archive_reason=null
                 where (radar_opportunities.source_updated_at is null
                    or excluded.source_updated_at >= radar_opportunities.source_updated_at)
                   and (radar_opportunities.content_hash is distinct from excluded.content_hash
@@ -140,7 +141,7 @@ class PostgresStore:
         if self.db.execute('select pg_database_size(current_database())').fetchone()[0]>450*1024*1024:raise ValueError('storage_guard')
         with self.db.transaction():
             self._write_records(records)
-            self.db.execute('update radar_opportunities set national_execution_id=%s,national_pass=%s where id=any(%s)',
+            self.db.execute('update radar_opportunities set national_execution_id=%s,national_pass=%s,catalog_archived_at=null,catalog_archive_reason=null where id=any(%s)',
                              (execution_id,cursor.get('passNumber',1),[row['numeroControlePNCP'] for row in records]))
             self.db.execute('insert into radar_national_pages(execution_id,pass_number,page_number,content_hash,record_count,source_total,source_pages) values(%s,%s,%s,%s,%s,%s,%s)',
                              (execution_id,cursor.get('passNumber',1),page,digest,len(records),total,pages))

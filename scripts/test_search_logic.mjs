@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
+import { hasCurrentWeeklyCollection } from '../web/src/schedule.ts';
 import { EMPTY_FILTERS, matchesFilters, matchesView, parseDate, procurementState } from '../web/src/opportunities.ts';
 const now = Date.parse('2026-11-05T15:00:00Z');
+assert.equal(hasCurrentWeeklyCollection('2026-11-06T22:26:00Z',Date.parse('2026-11-09T09:59:59Z')),true);
+assert.equal(hasCurrentWeeklyCollection('2026-11-06T22:26:00Z',Date.parse('2026-11-09T10:00:00Z')),false);
+assert.equal(hasCurrentWeeklyCollection('2026-11-09T11:00:00Z',Date.parse('2026-11-15T23:00:00Z')),true);
+assert.equal(hasCurrentWeeklyCollection('2026-11-09T11:00:00Z',Date.parse('2026-11-16T10:00:00Z')),false);
+assert.equal(hasCurrentWeeklyCollection('bad date',now),false);
 const row = { id:'12345678000100-1-000001/2026', object:'Assinatura de plataforma para pesquisa de preços públicos', additionalInfo:'Planejamento de compras', organization:'Prefeitura de Belo Horizonte', state:'MG', city:'Belo Horizonte', modality:'Pregão - Eletrônico', score:70, suggestedOffer:'Public', proposalDeadline:'2026-11-07T12:00:00', statusId:1, instrumentId:1 };
 assert.equal(+parseDate('2026-11-05T12:00:00'),now);
 assert.equal(+parseDate('2026-11-05T15:00:00Z'),now);

@@ -25,11 +25,19 @@ O GitHub consulta diretamente as páginas públicas, com até cinco leituras em 
 
 Cada página tem um recibo durável, hash e referência à execução. Repetir o envio após uma perda de resposta não duplica dados nem avança duas páginas. Uma resposta com paginação incompleta é rejeitada. A coleta só recebe `coverageComplete=true` após percorrer as páginas previstas e conferir os registros únicos. Depois de percorrer as páginas previstas, uma conferência adicional consulta novamente a fonte e incorpora publicações que surgiram durante a leitura. IDs já recebidos são preservados. Uma redução do número de páginas pode ser reconciliada sem prender o cursor em uma página que deixou de existir. A conclusão da última página pode ser retomada se houver interrupção antes da finalização.
 
-A leitura não possui o antigo limite de 10.000 páginas. Cada execução tem tempo operacional limitado, com retomada do cursor; atingir esse tempo não significa completar a busca. O primeiro preenchimento pode usar 90 minutos; o agendamento diário das 06h15 (Brasília) usa até 60 minutos. Timeouts e limites do PNCP continuam respeitados.
+A leitura não possui o antigo limite de 10.000 páginas. Cada execução tem tempo operacional limitado, com retomada do cursor; atingir esse tempo não significa completar a busca. A coleta semanal inicia segunda-feira às 07h de Brasília (10h UTC), com até 90 minutos por execução. Timeouts e limites do PNCP continuam respeitados. O início depende da fila do GitHub Actions.
 
 O painel mostra as páginas recebidas, o total nacional informado pela fonte e as candidatas da empresa. Contratações encerradas da antiga coleta por publicação não integram esse catálogo de abertas. Atualizações completas substituem a fotografia anterior; durante a leitura, os resultados já recebidos e a última fotografia concluída permanecem disponíveis.
 
 O instrumento 4 (Edital de Chamamento Público) também é elegível quando ativo e com prazo aberto, incluindo credenciamentos. O instrumento 3 (autorização de contratação direta) continua fora das oportunidades com propostas abertas. Identificadores originais com ano numérico fora de quatro dígitos são preservados na importação, sem inventar uma correção: foi observado um registro da própria fonte com ano `20226`.
+
+## Rotina semanal
+
+- Domingo às 23h de Brasília (segunda, 02h UTC): retira do catálogo ativo as vencidas, inativas e sem aderência aos perfis configurados. Usa a mesma trava da coleta e recusa operar enquanto há uma varredura incompleta.
+- A limpeza é um arquivamento do catálogo ativo: preserva os dados de origem, as avaliações, o aprendizado e os recibos da cobertura nacional. Não exclui uma decisão de uma empresa por causa da decisão de outra.
+- Uma nova leitura do registro remove o arquivamento. Assim, uma prorrogação de prazo ou uma mudança de perfil pode fazer a oportunidade voltar.
+- Segunda às 07h: começa a varredura nacional. O resumo semanal é uma etapa posterior da mesma execução; não tem mais disparo independente às 07h20. O servidor exige cobertura completa, coleta da segunda atual e identidade da execução que a concluiu. Uma coleta parcial não dispara o resumo semanal.
+- Os avisos diários de prazo permanecem às 08h20, com conferência individual no PNCP. Os destinatários são resolvidos por empresa. A rotina roda na nuvem sem depender do Codex ou do computador pessoal.
 
 ## Verificação
 

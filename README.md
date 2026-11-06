@@ -62,3 +62,5 @@ Os perfis em `tests/profile_fixtures.py` são exemplos sintéticos exclusivos do
 O painel exige autenticação. Public e Gerico têm contas, consultas, avaliações, exemplos e resumos separados no servidor. Apenas a administração tem vínculo com as duas empresas. Veja [isolamento e coleta](docs/isolamento-e-coleta.md).
 
 A coleta operacional percorre **todas as abertas do Brasil no PNCP**, sem filtro de modalidade, UF, empresa ou publicação. Só depois do recebimento os registros são classificados para cada empresa. A conclusão exige conferir páginas e registros únicos; o painel diferencia a cobertura nacional das candidatas por perfil.
+
+A rotina semanal começa segunda às **07h de Brasília**. Domingo às **23h**, a manutenção arquiva vencidas, inativas e registros fora dos perfis no catálogo ativo, preservando o histórico. O resumo semanal depende da conclusão da coleta dessa segunda-feira. Veja `docs/isolamento-e-coleta.md`.

@@ -34,14 +34,16 @@ def validate_plan(plan):
 
 
 class Receiver:
-    def __init__(self):self.opener=build_opener(NoRedirect())
+    def __init__(self,*,timeout_seconds=90):
+        if not 20<=timeout_seconds<=235:raise ValueError('Invalid receiver timeout')
+        self.opener=build_opener(NoRedirect());self.timeout_seconds=timeout_seconds
     def post(self,body):
         for attempt in range(4):
             token=identity(self.opener)
             request=Request(AUDIENCE,data=json.dumps(body,ensure_ascii=False).encode(),method='POST',
                             headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'})
             try:
-                with self.opener.open(request,timeout=90) as response:return json.load(response)
+                with self.opener.open(request,timeout=self.timeout_seconds) as response:return json.load(response)
             except HTTPError as exc:
                 if exc.code==409:return self.post({'action':'national_plan','executionId':body.get('executionId')})
                 if exc.code not in (429,500,502,503,504):raise

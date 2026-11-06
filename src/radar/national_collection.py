@@ -75,6 +75,7 @@ def handle_national(store,action,body,run_key):
         if requested is not None and (type(requested) is not int or requested<1):raise ValueError('Invalid execution')
         execution_id,cursor=store.start_or_resume(KIND,run_key,requested,datetime.now(TZ).date())
         cursor=upgrade_cursor(cursor)
+        cursor['last_run_key']=run_key
         cursor=finish_if_ready(store,cursor,execution_id)
         if action=='national_plan':return plan(cursor,execution_id)
         page=body.get('page');pass_number=body.get('passNumber')
