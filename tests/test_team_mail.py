@@ -64,7 +64,7 @@ class TeamMailTests(unittest.TestCase):
         db.execute.assert_not_called()
 
     def test_review_validation_rejects_forged_and_oversized_input(self):
-        data={'id':'12345678000100-1-000001/2026','offer':'Daltton','status':'Nova','reason':'Reason','version':0}
+        data={'id':'12345678000100-1-000001/2026','offer':'Public','status':'Nova','reason':'Reason','version':0}
         self.assertEqual(validate_review(data),data['id'])
         for field,value in [('id','bad'),('offer','All'),('status','Admin'),('reason','x'*2001),('version',True),('version',-1)]:
             with self.assertRaises(ValueError):validate_review({**data,field:value})
@@ -73,7 +73,7 @@ class TeamMailTests(unittest.TestCase):
         now=datetime(2026,11,5,tzinfo=timezone.utc)
         card={'statusId':1,'instrumentId':1,'proposalDeadline':(now+timedelta(hours=24)).isoformat(),
               'pncpUrl':'https://pncp.gov.br/app/editais/12345678000100/2026/1',
-              'suggestedOffer':'Daltton','score':70,'object':'<script>alert(1)</script>','organization':'A&B'}
+              'suggestedOffer':'Public','score':70,'object':'<script>alert(1)</script>','organization':'A&B'}
         good=(card,None,None)
         rows=[good,({**card,'statusId':2},None,None),({**card,'proposalDeadline':now.isoformat()},None,None),
               (card,'Nenhuma',None),(card,None,'Descartada'),({**card,'pncpUrl':'https://evil.example'},None,None)]

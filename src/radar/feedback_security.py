@@ -9,7 +9,7 @@ import time
 import uuid
 
 LABELS = {'relevante','irrelevante','vai_participar','ganhou','perdeu'}
-PRODUCTS = {'daltton','gerico'}
+PRODUCTS = {'public','gerico'}
 MAX_TTL = 30 * 24 * 60 * 60
 
 

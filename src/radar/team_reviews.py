@@ -3,7 +3,7 @@ import re
 from psycopg.types.json import Jsonb
 from radar.learning import REASONS,object_hash
 
-OFFERS=('', 'Daltton','Gerico','Ambas','Nenhuma','Revisar')
+OFFERS=('', 'Public','Gerico','Ambas','Nenhuma','Revisar')
 STATUSES=('Nova','Em avaliação','Vou participar','Descartada','Ganhou','Perdeu')
 
 

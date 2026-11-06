@@ -34,13 +34,13 @@ def apply_examples(cards,examples):
         same=indexed.get(signature,[])
         rejected=[e for e in same if e['offer']=='Nenhuma']
         object_rejections=[e for e in rejected if e.get('reason_code') in OBJECT_REASONS]
-        approved=[e for e in same if e['offer'] in ('Daltton','Gerico','Ambas')]
+        approved=[e for e in same if e['offer'] in ('Public','Gerico','Ambas')]
         direct=[e for e in same if e['opportunity_id']==card['id']]
         if direct:
             example=direct[0]
             if example['offer']=='Nenhuma':
                 card['learning']={'label':'irrelevante','match':'reviewed','reasonCode':example['reason_code'],'examples':1}
-            elif example['offer'] in ('Daltton','Gerico','Ambas'):
+            elif example['offer'] in ('Public','Gerico','Ambas'):
                 card['learning']={'label':'relevante','match':'reviewed','reasonCode':example['reason_code'],'examples':1,'offer':example['offer']}
             elif example['offer']=='Revisar':
                 card['learning']={'label':'revisar','match':'reviewed','reasonCode':example['reason_code'],'examples':1}

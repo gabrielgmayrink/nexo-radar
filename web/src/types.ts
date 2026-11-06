@@ -1,4 +1,4 @@
-export type Offer = "Daltton" | "Gerico" | "Ambas" | "Nenhuma" | "Revisar" | "";
+export type Offer = "Public" | "Gerico" | "Ambas" | "Nenhuma" | "Revisar" | "";
 
 export type Opportunity = {
   id: string;

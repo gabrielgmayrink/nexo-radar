@@ -53,7 +53,7 @@ export default function SignedFeedback() {
       <span className="overline">REVISÃO COMPARTILHADA</span>
       <h2 id="feedback-title">{saved ? 'Avaliação registrada' : 'Confirmar sua avaliação'}</h2>
       {saved ? <p className="feedback-saved"><CheckCircle2 size={20}/> A equipe poderá consultar esse feedback. Você pode fechar esta janela.</p> : feedback ? <>
-        <p>Produto: <strong>{feedback.productId === 'daltton' ? 'Daltton' : 'Gerico'}</strong></p>
+        <p>Produto: <strong>{feedback.productId === 'public' ? 'Public' : 'Gerico'}</strong></p>
         <p>PNCP: {feedback.opportunityId}</p>
         <p>Avaliação: <strong>{labels[feedback.label] || feedback.label}</strong></p>
         <button className="primary-button" disabled={busy} onClick={confirm}>{busy && <LoaderCircle className="spinning" size={16}/>}Confirmar avaliação</button>

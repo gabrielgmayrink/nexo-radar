@@ -7,7 +7,7 @@ export default function SearchFilters({ filters, rows, onChange, open, onToggle,
 }) {
   const active = (Object.keys(EMPTY_FILTERS) as (keyof Filters)[]).filter(key => filters[key] !== EMPTY_FILTERS[key]);
   const fields = [
-    { key: 'product', label: 'Empresa', aria: 'Filtrar empresa', options: [['Todos','Todas as empresas'],['Daltton','Daltton'],['Gerico','Gerico']] },
+    { key: 'product', label: 'Empresa', aria: 'Filtrar empresa', options: [['Todos','Todas as empresas'],['Public','Public'],['Gerico','Gerico']] },
     { key: 'uf', label: 'Estado', aria: 'Filtrar estado', options: [['Todas','Todos os estados'], ...[...new Set(rows.map(row => row.state).filter(Boolean))].sort().map(value => [value,value])] },
     { key: 'deadline', label: 'Encerramento', aria: 'Filtrar encerramento', options: Object.entries(DEADLINES) },
     { key: 'modality', label: 'Modalidade', aria: 'Filtrar modalidade', options: [['Todas','Todas as modalidades'], ...[...new Set(rows.map(row => row.modality).filter(Boolean))].sort().map(value => [value,value])] },

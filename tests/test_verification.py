@@ -30,7 +30,7 @@ class VerificationTests(unittest.TestCase):
         now=datetime.now(timezone.utc);old=to_card(self.record());writer=Mock()
         fresh,changed,failures=verify_shortlist([old],{},fetcher=lambda _:self.record(situacaoCompraId=2),writer=writer,now=now)
         self.assertEqual(select_cards(fresh,'weekly',now),[])
-        fresh,changed,failures=verify_shortlist([old],{old['id']:('Daltton','Vou participar')},
+        fresh,changed,failures=verify_shortlist([old],{old['id']:('Public','Vou participar')},
             fetcher=lambda _:self.record(objetoCompra='Aquisição de microscópio com sistema óptico'),writer=writer,now=now)
         self.assertIn(old['id'],changed);self.assertIsNone(fresh[0][1])
         self.assertEqual(select_cards(fresh,'weekly',now),[])

@@ -2,13 +2,13 @@
 
 ## Vercel e GitHub
 
-Destino: `gabrielgmayrink/radar-daltton-gerico`, privado. Crie um novo projeto `radar-daltton-gerico` na conta pessoal de Gabriel. Importe a raiz do repositório. A compilação e a saída estão em `vercel.json`.
+Destino: `gabrielgmayrink/nexo-radar`, privado. Crie um novo projeto `nexo-radar` na conta pessoal de Gabriel. Importe a raiz do repositório. A compilação e a saída estão em `vercel.json`.
 
 A publicação inicial serve o painel e um catálogo vazio. A configuração inicial pode manter todas as integrações desativadas. Não reutilize `.vercel`, `.env`, o banco, os membros da equipe ou as chaves do radar anterior.
 
 ## Informações a reunir
 
-Para Daltton e Gerico, separadamente: lista de serviços/produtos, exemplos de objetos que atendem, objetos a excluir, municípios e estados atendidos e restrições operacionais. Os perfis atuais suportam expressões de inclusão e exclusão; abrangência geográfica e modalidade podem ser filtradas no painel. Limites permanentes adicionais devem ser implementados depois de confirmados.
+A Public já tem os serviços informados cadastrados, incluindo desenvolvimento de sistemas e TI. Faltam os serviços da empresa do Gerico. Para ambas, ainda podem ser detalhados exemplos de objetos desejados, objetos a excluir, estados atendidos e restrições operacionais. Os perfis atuais suportam expressões de inclusão e exclusão; abrangência geográfica e modalidade podem ser filtradas no painel.
 
 ## Banco e equipe
 

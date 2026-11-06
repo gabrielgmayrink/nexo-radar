@@ -7,7 +7,7 @@ PROFILE_PATH = Path(__file__).with_name('companies.json')
 
 def load_profiles():
     companies = json.loads(PROFILE_PATH.read_text(encoding='utf-8'))['companies']
-    if [c.get('id') for c in companies] != ['daltton', 'gerico']:
+    if [c.get('id') for c in companies] != ['public', 'gerico']:
         raise ValueError('Invalid company profiles')
     for company in companies:
         if type(company.get('enabled')) is not bool:

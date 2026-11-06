@@ -9,3 +9,9 @@ web/dist
 **/.env*
 .npm-cache
 scripts/adapt_project.py
+.local
+scripts/finish_adaptation.py
+scripts/rebrand.py
+.local
+scripts/finish_adaptation.py
+scripts/rebrand.py

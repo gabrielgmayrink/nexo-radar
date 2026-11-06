@@ -5,13 +5,13 @@ from radar.settings import app_url
 
 ISSUER = 'https://token.actions.githubusercontent.com'
 AUDIENCE = app_url() + '/api/collect'
-REPOSITORY = 'gabrielgmayrink/radar-daltton-gerico'
+REPOSITORY = 'gabrielgmayrink/nexo-radar'
 REPOSITORY_ID = os.environ.get('RADAR_GITHUB_REPOSITORY_ID', '')
 OWNER_ID = '169843370'
 WORKFLOW = REPOSITORY + '/.github/workflows/collect.yml@refs/heads/main'
 SUBJECTS = {
     'repo:' + REPOSITORY + ':ref:refs/heads/main',
-    'repo:gabrielgmayrink@' + OWNER_ID + '/radar-daltton-gerico@' + REPOSITORY_ID + ':ref:refs/heads/main',
+    'repo:gabrielgmayrink@' + OWNER_ID + '/nexo-radar@' + REPOSITORY_ID + ':ref:refs/heads/main',
 }
 _keys = jwt.PyJWKClient(ISSUER + '/.well-known/jwks', cache_keys=True, lifespan=300, timeout=10)
 

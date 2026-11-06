@@ -36,10 +36,11 @@ class handler(BaseHTTPRequestHandler):
         from radar.postgres_store import PostgresStore
         from radar.team_auth import session_user,session_token,request_login,confirm_login,revoke_session,session_cookie
         from radar.team_reviews import list_reviews,save_review,ReviewConflict
+        from radar.password_auth import password_login,setup_password,AuthenticationFailed,TooManyAttempts
         if not session_token(self.headers.get('Cookie')):
             if self.command=='GET':
                 self.respond(200,{'enabled':True,'authenticated':False,'reviews':[]});return
-            if data.get('action') not in ('request_link','confirm_login'):
+            if data.get('action') not in ('request_link','confirm_login','password_login','setup_password'):
                 self.respond(401,{'error':'Entre com o e-mail da equipe para continuar.'});return
         store=None
         try:
@@ -49,6 +50,12 @@ class handler(BaseHTTPRequestHandler):
                 self.respond(200,{'enabled':True,'authenticated':bool(user),'email':user,
                                   'reviews':list_reviews(db) if user else []});return
             action=data.get('action')
+            if action=='password_login':
+                email,token=password_login(db,data.get('email'),data.get('password'))
+                self.respond(200,{'authenticated':True,'email':email},session_cookie(token));return
+            if action=='setup_password':
+                email,token=setup_password(db,data.get('token'),data.get('password'))
+                self.respond(200,{'authenticated':True,'email':email},session_cookie(token));return
             if action=='request_link':
                 email=data.get('email','')
                 if not isinstance(email,str) or len(email)>254:raise ValueError()
@@ -67,6 +74,10 @@ class handler(BaseHTTPRequestHandler):
                 result=save_review(db,data.get('review'),user)
                 self.respond(200,{'review':result});return
             raise ValueError()
+        except TooManyAttempts:
+            self.respond(429,{'error':'Muitas tentativas. Aguarde 15 minutos para tentar novamente.'})
+        except AuthenticationFailed:
+            self.respond(401,{'error':'Não foi possível entrar. Confira o e-mail e a senha, ou solicite um convite válido à administração.'})
         except ReviewConflict:
             self.respond(409,{'error':'A avaliação ou o objeto mudou. Recarregue a avaliação da equipe e atualize a situação no PNCP antes de publicar novamente.'})
         except ValueError:

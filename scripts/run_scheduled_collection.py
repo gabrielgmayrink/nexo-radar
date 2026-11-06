@@ -6,7 +6,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-BASE = os.environ.get('RADAR_APP_URL', 'https://radar-daltton-gerico.example.invalid').rstrip('/')
+BASE = os.environ.get('RADAR_APP_URL', 'https://nexo-radar.example.invalid').rstrip('/')
 AUDIENCE = BASE + '/api/collect'
 MIN_BATCH_SECONDS = 10
 REQUEST_MARGIN_SECONDS = 90

@@ -18,7 +18,7 @@ def digest(value):return hashlib.sha256(value.encode()).hexdigest()
 
 
 def auth_request(path,payload,*,opener=None,method='POST'):
-    if not (method=='POST' and path in ('admin/generate_link','verify') or method=='DELETE' and re.fullmatch(r'admin/users/[0-9a-f-]{36}',path)):
+    if not (method=='POST' and path in ('admin/generate_link','verify','token?grant_type=password','admin/users') or method in ('DELETE','PUT') and re.fullmatch(r'admin/users/[0-9a-f-]{36}',path)):
         raise ValueError('Unexpected Auth operation')
     base=os.environ.get('SUPABASE_URL','').rstrip('/')
     if not PROJECT_REF or base!='https://'+PROJECT_REF+'.supabase.co':raise ValueError('Unexpected Auth destination')
@@ -48,7 +48,7 @@ def request_login(db,email,*,provider=auth_request,sender=send_reserved):
         db.execute('insert into radar_login_requests(token_digest,email,verification_type,expires_at) values(%s,%s,%s,%s)',
                    (digest(token),email,kind,expires))
         link=APP_URL+'/#login='+token
-        body=f'<h1>Entrar no Radar de Licitações</h1><p>Você solicitou acesso à equipe Daltton.</p><p><a href="{html.escape(link,quote=True)}">Confirmar entrada no Radar</a></p><p>O link expira em 15 minutos e só pode ser usado uma vez. Se você não solicitou o acesso, ignore esta mensagem.</p>'
+        body=f'<h1>Entrar no Radar de Licitações</h1><p>Você solicitou acesso à equipe Public.</p><p><a href="{html.escape(link,quote=True)}">Confirmar entrada no Radar</a></p><p>O link expira em 15 minutos e só pode ser usado uma vez. Se você não solicitou o acesso, ignore esta mensagem.</p>'
         sender(db,identifier,email,'Seu acesso ao Radar de Licitações',body,
                'Confirme sua entrada no Radar: '+link+'\nO link expira em 15 minutos. Se não solicitou, ignore.')
     except Exception:

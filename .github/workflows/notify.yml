@@ -1,5 +1,8 @@
 name: Notify Radar
 on:
+  schedule:
+    - cron: '20 10 * * 1'
+    - cron: '20 11 * * *'
   workflow_dispatch:
     inputs:
       kind:
@@ -27,4 +30,4 @@ jobs:
       - run: python scripts/run_notifications.py
         env:
           RADAR_APP_URL: ${{ vars.RADAR_APP_URL }}
-          RADAR_NOTIFY_KIND: ${{ inputs.kind }}
+          RADAR_NOTIFY_KIND: ${{ github.event.schedule == '20 10 * * 1' && 'weekly' || github.event.schedule == '20 11 * * *' && 'urgent' || inputs.kind }}

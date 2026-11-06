@@ -19,18 +19,25 @@ class RelevanceTests(unittest.TestCase):
     def profiles(self):
         # Synthetic examples for testing, not services assigned to the companies.
         return [
-            {'name':'Daltton','enabled':True,'terms':['manutenção de bombas'],'excludeTerms':['peças avulsas']},
+            {'name':'Public','enabled':True,'terms':['manutenção de bombas'],'excludeTerms':['peças avulsas']},
             {'name':'Gerico','enabled':True,'terms':['locação de andaimes'],'excludeTerms':[]},
         ]
 
     def test_unconfigured_companies_never_reuse_previous_products(self):
         for text in ('Licença de plataforma de pesquisa de preços','Digitalização de documentos'):
-            result=classify(text)
+            result=classify(text,profiles=[])
             self.assertEqual(result['score'],0)
             self.assertTrue(result['configurationPending'])
 
+    def test_public_services_include_administrative_training_ead_and_it(self):
+        for text in ('Serviços de apoio administrativo','Palestras para desenvolvimento gerencial','Cursos técnicos por ensino a distância','Desenvolvimento de sistemas para o município'):
+            self.assertEqual(classify(text)['suggestedOffer'],'Public')
+
+    def test_gerico_is_not_suggested_before_services_are_known(self):
+        self.assertEqual(classify('Desenvolvimento de software')['scores']['Gerico'],0)
+
     def test_independent_and_overlapping_company_scopes(self):
-        self.assertEqual(classify('Serviços de MANUTENÇÃO de bombas',profiles=self.profiles())['suggestedOffer'],'Daltton')
+        self.assertEqual(classify('Serviços de MANUTENÇÃO de bombas',profiles=self.profiles())['suggestedOffer'],'Public')
         self.assertEqual(classify('Locação de andaimes',profiles=self.profiles())['suggestedOffer'],'Gerico')
         self.assertEqual(classify('Manutenção de bombas e locação de andaimes',profiles=self.profiles())['suggestedOffer'],'Ambas')
 

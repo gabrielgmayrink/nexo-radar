@@ -5,13 +5,16 @@ from radar.profiles import load_profiles
 
 
 class ProfileTests(unittest.TestCase):
-    def test_new_companies_have_no_assumed_services(self):
+    def test_public_uses_confirmed_services_and_gerico_remains_pending(self):
         companies=load_profiles()
-        self.assertEqual([company['name'] for company in companies],['Daltton','Gerico'])
-        self.assertTrue(all(not company['enabled'] and not company['terms'] and not company['services'] for company in companies))
+        self.assertEqual([company['name'] for company in companies],['Public','Gerico'])
+        self.assertTrue(companies[0]['enabled'])
+        self.assertIn('desenvolvimento de sistemas',companies[0]['terms'])
+        self.assertFalse(companies[1]['enabled'])
+        self.assertEqual(companies[1]['terms'],[])
 
     def test_enabling_incomplete_profile_is_rejected(self):
         companies=load_profiles()
-        companies[0]['enabled']=True
+        companies[1]['enabled']=True
         with patch('pathlib.Path.read_text',return_value=json.dumps({'companies':companies})):
             with self.assertRaises(ValueError):load_profiles()

@@ -17,7 +17,7 @@ class JobAuthTests(unittest.TestCase):
     def claims(self):
         now=int(time.time())
         return {'iss':ISSUER,'aud':AUDIENCE,'iat':now,'nbf':now-1,'exp':now+300,
-                'sub':next(iter(SUBJECTS)),'repository':'gabrielgmayrink/radar-daltton-gerico',
+                'sub':next(iter(SUBJECTS)),'repository':'gabrielgmayrink/nexo-radar',
                 'repository_id':'test-repository','repository_owner_id':'169843370',
                 'repository_visibility':'private','ref':'refs/heads/main','workflow_ref':WORKFLOW,
                 'event_name':'workflow_dispatch','run_id':'123','run_attempt':'1'}

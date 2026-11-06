@@ -50,7 +50,7 @@ export function productScore(row: Row, product = 'Todos') {
   return row.scores?.[product] ?? (row.suggestedOffer === product || row.suggestedOffer === 'Ambas' ? row.score : 0);
 }
 function approvedOffer(row: Row, review?: Review) {
-  if (review?.offer) return ['Daltton','Gerico','Ambas'].includes(review.offer) ? review.offer : undefined;
+  if (review?.offer) return ['Public','Gerico','Ambas'].includes(review.offer) ? review.offer : undefined;
   return row.learning?.label === 'relevante' ? row.learning.offer : undefined;
 }
 export function matchesView(row: Row, view: View, review?: Review, now = Date.now(), product = 'Todos') {

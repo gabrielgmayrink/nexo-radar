@@ -1,6 +1,32 @@
 {
   "companies": [
-    { "id": "daltton", "name": "Daltton", "enabled": false, "services": [], "terms": [], "excludeTerms": [] },
+    {
+      "id": "public",
+      "name": "Public",
+      "enabled": true,
+      "services": [
+        "Assessoria e preparação de documentos e apoio administrativo especializado",
+        "Assessoria em gestão empresarial pública e privada",
+        "Palestras e treinamento em desenvolvimento profissional e gerencial",
+        "Ensino a distância: cursos profissionalizantes, técnicos, graduação e pós-graduação",
+        "Desenvolvimento de sistemas, software e serviços de tecnologia da informação"
+      ],
+      "terms": [
+        "assessoria administrativa", "apoio administrativo", "preparação de documentos",
+        "assessoria em gestão empresarial", "assessoria em gestão pública", "assessoria em gestão privada",
+        "consultoria em gestão empresarial", "consultoria em gestão pública",
+        "palestras", "treinamento gerencial", "desenvolvimento profissional", "desenvolvimento gerencial",
+        "capacitação profissional", "capacitação gerencial", "capacitação de servidores", "treinamento de servidores",
+        "cursos profissionalizantes", "cursos técnicos", "ensino a distância", "educação a distância",
+        "cursos de graduação", "cursos de pós-graduação",
+        "desenvolvimento de sistemas", "desenvolvimento de software", "desenvolvimento de softwares",
+        "desenvolvimento de aplicativos", "fábrica de software", "manutenção de sistemas",
+        "sustentação de sistemas", "consultoria em tecnologia da informação",
+        "serviços de tecnologia da informação", "serviços de informática", "serviços de TI",
+        "consultoria de TI", "implantação de sistemas", "suporte técnico em informática"
+      ],
+      "excludeTerms": []
+    },
     { "id": "gerico", "name": "Gerico", "enabled": false, "services": [], "terms": [], "excludeTerms": [] }
   ]
 }

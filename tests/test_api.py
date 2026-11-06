@@ -14,7 +14,7 @@ class APITests(unittest.TestCase):
         return result[0]
 
     def test_catalog_pagination(self):
-        fixture={'metrics':{},'opportunities':[{'id':str(i),'object':'Fixture','organization':'Test','city':'Test','suggestedOffer':'Daltton'} for i in range(5)]}
+        fixture={'metrics':{},'opportunities':[{'id':str(i),'object':'Fixture','organization':'Test','city':'Test','suggestedOffer':'Public'} for i in range(5)]}
         with patch('pathlib.Path.read_text',return_value=json.dumps(fixture)):
             status,payload=self.invoke(handler,'/api/opportunities?limit=2')
         self.assertEqual(status,200)
@@ -25,7 +25,7 @@ class APITests(unittest.TestCase):
         status,payload=self.invoke(handler,'/api/opportunities')
         self.assertEqual(status,200)
         self.assertEqual(payload['opportunities'],[])
-        self.assertTrue(payload['setupPending'])
+        self.assertFalse(payload['setupPending'])
 
     def test_invalid_page(self):
         self.assertEqual(self.invoke(handler,'/api/opportunities?page=abc')[0],400)

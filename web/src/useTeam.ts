@@ -10,21 +10,29 @@ export async function teamRequest(data?: Record<string, unknown>) {
   } : { cache: 'no-store' });
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || 'Não foi possível acessar a equipe.');
+  if (['confirm_login','password_login','setup_password','logout'].includes(String(data?.action))) window.dispatchEvent(new Event('nexo:session'));
   return result;
 }
 
 export function useTeam() {
   const [session, setSession] = useState<Session>({ enabled: false, authenticated: false });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const reload = useCallback(async () => {
     try { setSession(await teamRequest()); setError(''); }
     catch { setError('Não foi possível carregar a equipe. Suas anotações locais estão disponíveis.'); }
+    finally { setLoading(false); }
   }, []);
-  useEffect(() => { void reload(); }, [reload]);
+  useEffect(() => {
+    void reload();
+    const changed = () => { void reload(); };
+    window.addEventListener('nexo:session',changed);
+    return () => window.removeEventListener('nexo:session',changed);
+  }, [reload]);
   const reviews = useMemo(() => Object.fromEntries((session.reviews || []).map(review => [review.id, review])), [session.reviews]);
   async function save(id: string, review: Review, source: { object: string; additionalInfo: string }) {
     const result = await teamRequest({ action: 'save_review', review: { id, ...review, version: reviews[id]?.version || 0, sourceObject: source.object, sourceAdditional: source.additionalInfo } });
     setSession(current => ({ ...current, reviews: [...(current.reviews || []).filter(r => r.id !== id), result.review] }));
   }
-  return { ...session, reviews, error, reload, save };
+  return { ...session, reviews, error, loading, reload, save };
 }

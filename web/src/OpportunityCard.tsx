@@ -9,7 +9,7 @@ export default function OpportunityCard({ row, review, product='Todos', onOpen }
   const offer = review?.offer || row.learning?.offer || row.suggestedOffer;
   const score=productScore(row,product);
   const label=product!=='Todos'?product:offer;
-  const tone=label==='Daltton'?'purple':label==='Gerico'?'mint':'neutral';
+  const tone=label==='Public'?'purple':label==='Gerico'?'mint':'neutral';
   return <article className="tender-card">
     <div className="card-top"><span className={'product-pill '+tone}>{label}{product!=='Todos'&&score<60?' · analisar':''}</span>
       <span className="rule-score" title="Pontuação das regras para o produto selecionado. Não é probabilidade de acerto."><small>Regra</small> {score}<small>/100</small><Info size={14}/></span></div>

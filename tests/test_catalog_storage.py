@@ -20,7 +20,7 @@ class StorageTests(unittest.TestCase):
             result=load_database_catalog({'collectionDate':'2026-11-03','metrics':{'unique':92965}},opener=opener)
         self.assertEqual(result['collectionDate'],'2026-11-03')
         self.assertEqual(result['dataSource'],'supabase')
-        self.assertEqual(result['opportunities'][0]['suggestedOffer'],'Daltton')
+        self.assertEqual(result['opportunities'][0]['suggestedOffer'],'Public')
         self.assertNotIn('unit-test-only',json.dumps(result))
         self.assertIn('offset=0',requests[0].full_url)
         self.assertIn('score=gte.40',requests[0].full_url)

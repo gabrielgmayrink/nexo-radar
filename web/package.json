@@ -10,10 +10,12 @@
   },
   "dependencies": {
     "lucide-react": "^1.68.0",
+    "motion": "^14.10.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^5.0.0",

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight, Download, Menu, RefreshCw, RotateCcw, SearchX } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Download, LogIn, Menu, RefreshCw, RotateCcw, SearchX } from 'lucide-react';
+import { motion } from 'motion/react';
 import Sidebar from './Sidebar';
 import CollectionStatus from './CollectionStatus';
 import TeamAccess from './TeamAccess';
@@ -15,7 +16,7 @@ import { EMPTY_FILTERS, VIEWS, matchesFilters, matchesView, parseDate, productSc
 
 type Catalog = { collectionDate: string; metrics: { unique: number; candidates: number; discarded: number }; opportunities: Row[]; fallback?: boolean };
 function saved(): Record<string,Review> {
-  try { const data = JSON.parse(localStorage.getItem('radar-daltton-gerico-feedback-v1') || '{}'); return data && typeof data === 'object' && !Array.isArray(data) ? data : {}; }
+  try { const data = JSON.parse(localStorage.getItem('nexo-radar-feedback-v1') || '{}'); return data && typeof data === 'object' && !Array.isArray(data) ? data : {}; }
   catch { return {}; }
 }
 async function fetchCatalog(signal: AbortSignal): Promise<Catalog> {
@@ -45,7 +46,7 @@ export default function Dashboard() {
   const [drafts,setDrafts] = useState(saved), [reviewMessage,setReviewMessage] = useState(''), [savingReview,setSavingReview] = useState(false);
   const [checking,setChecking] = useState(false), [checkError,setCheckError] = useState('');
   const [reviewIntent,setReviewIntent] = useState(false);
-  const [collapsed,setCollapsed] = useState(() => { try { return localStorage.getItem('radar-daltton-gerico-menu-v1') === 'true'; } catch { return false; } });
+  const [collapsed,setCollapsed] = useState(() => { try { return localStorage.getItem('nexo-radar-menu-v1') === 'true'; } catch { return false; } });
   const [mobileOpen,setMobileOpen] = useState(false), [filtersOpen,setFiltersOpen] = useState(false), [loadVersion,setLoadVersion] = useState(0);
   const [now,setNow] = useState(Date.now);
   const searchRef = useRef<HTMLInputElement>(null), detailTriggerRef = useRef<HTMLElement>(null), menuTriggerRef = useRef<HTMLButtonElement>(null);
@@ -64,16 +65,16 @@ export default function Dashboard() {
   useEffect(() => { const refresh = () => setLoadVersion(value => value+1); window.addEventListener('radar:refresh',refresh); return () => window.removeEventListener('radar:refresh',refresh); },[]);
   useEffect(() => { setError(''); const controller = new AbortController(); fetchCatalog(controller.signal).then(data => { if(controller.signal.aborted)return; setCatalog(data); window.dispatchEvent(new CustomEvent('radar:catalog-ready',{detail:{fallback:!!data.fallback,count:data.opportunities.length}})); }).catch(error => { if (error.name !== 'AbortError') {setError(error.message);window.dispatchEvent(new Event('radar:catalog-error'));} }); return () => controller.abort(); },[loadVersion]);
   useEffect(() => { setPage(1); },[filters,view,sort]);
-  useEffect(() => { try { localStorage.setItem('radar-daltton-gerico-feedback-v1',JSON.stringify(drafts)); } catch { setError('Não foi possível salvar o rascunho no navegador. Publique sua avaliação ou exporte a seleção.'); } },[drafts]);
+  useEffect(() => { try { localStorage.setItem('nexo-radar-feedback-v1',JSON.stringify(drafts)); } catch { setError('Não foi possível salvar o rascunho no navegador. Publique sua avaliação ou exporte a seleção.'); } },[drafts]);
 
   function changeFilters(change: Partial<Filters>) { setFilters(current => ({ ...current,...change })); }
   function focusResults() { requestAnimationFrame(() => { const results = document.getElementById('results'); results?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' }); results?.focus({ preventScroll: true }); }); }
   function selectView(next: View) { setView(next); focusResults(); }
-  function toggleCollapsed() { const next = !collapsed; setCollapsed(next); try { localStorage.setItem('radar-daltton-gerico-menu-v1',String(next)); } catch { /* Menu remains usable. */ } }
+  function toggleCollapsed() { const next = !collapsed; setCollapsed(next); try { localStorage.setItem('nexo-radar-menu-v1',String(next)); } catch { /* Menu remains usable. */ } }
   function update(id: string,change: Partial<Review>) { setDrafts(current => { const base = current[id] || feedback[id] || { offer: '',reason: '',status: 'Nova',reasonCode: '',expectedScope: '' }; return { ...current,[id]: { ...base,...change } }; }); }
   function openDetails(row: Row,trigger: HTMLElement,decision?: 'yes'|'no') {
     detailTriggerRef.current = trigger; setCheckError(''); setReviewMessage(''); setReviewIntent(!!decision); setSelected(row);
-    if (decision) update(row.id,decision === 'no' ? { offer: 'Nenhuma',status: 'Descartada',reasonCode: '' } : { offer: ['Daltton','Gerico','Ambas'].includes(row.suggestedOffer) ? row.suggestedOffer : 'Daltton',status: 'Em avaliação',reasonCode: 'aderente' });
+    if (decision) update(row.id,decision === 'no' ? { offer: 'Nenhuma',status: 'Descartada',reasonCode: '' } : { offer: ['Public','Gerico','Ambas'].includes(row.suggestedOffer) ? row.suggestedOffer : 'Public',status: 'Em avaliação',reasonCode: 'aderente' });
   }
   async function saveShared(row: Row) {
     const review = feedback[row.id]; if (!review) return;
@@ -102,8 +103,8 @@ export default function Dashboard() {
     <a className="skip-link" href="#results">Ir para oportunidades</a>
     <Sidebar triggerRef={menuTriggerRef} collapsed={collapsed} mobileOpen={mobileOpen} blocked={!!selected} view={view} product={filters.product} counts={counts} onCollapse={toggleCollapsed} onClose={() => setMobileOpen(false)} onView={setView} onProduct={product => changeFilters({ product })}/>
     <main className="workspace" inert={mobileOpen || !!selected}>
-      <header className="workspace-header"><div className="header-navigation"><button ref={menuTriggerRef} className="icon-button menu-trigger" aria-label="Abrir menu" aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={() => setMobileOpen(true)}><Menu size={22}/></button><span className="breadcrumb">Radar <b>/</b> Oportunidades</span></div><div><span className="snapshot-label">{configurationPending ? 'EM CONFIGURAÇÃO' : 'BASE DE ' + (catalog?.collectionDate?.split('-').reverse().join('/') || '…')}</span></div></header>
-      <section className="page-title"><div className="heading-row"><div><span className="overline">DALTTON + GERICO</span><h1>Encontre. Analise. <em>Decida.</em></h1><p>Filtre as licitações, confira o objeto e ensine o Radar com a avaliação da equipe.</p></div><button className="primary-button" disabled={!filtered.length} onClick={download}><Download size={16}/> Exportar seleção</button></div></section>
+      <header className="workspace-header"><div className="header-navigation"><button ref={menuTriggerRef} className="icon-button menu-trigger" aria-label="Abrir menu" aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={() => setMobileOpen(true)}><Menu size={22}/></button><span className="breadcrumb">Nexo Radar <b>/</b> Oportunidades</span></div><div><span className="snapshot-label">{configurationPending ? 'EM CONFIGURAÇÃO' : catalog?.collectionDate ? 'BASE DE ' + catalog.collectionDate.split('-').reverse().join('/') : 'FONTE OFICIAL · PNCP'}</span>{!team.authenticated && <button className="workspace-login" onClick={() => window.dispatchEvent(new Event('nexo:login'))}><LogIn size={15}/><span>Entrar na equipe</span></button>}</div></header>
+      <motion.section className="page-title" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{duration:.4}}><div className="heading-row"><div><span className="overline">INTELIGÊNCIA EM OPORTUNIDADES</span><h1>Encontre. Analise. <em>Decida.</em></h1><p>As oportunidades certas para sua empresa. O contexto que sua equipe precisa para avançar.</p></div><button className="primary-button" disabled={!filtered.length} onClick={download}><Download size={16}/> Exportar seleção</button></div></motion.section>
       <CompanySetup />
       {!configurationPending && <CollectionStatus collectionDate={catalog?.collectionDate} totalScanned={catalog?.metrics.unique}/>}
       {catalog?.fallback && !configurationPending && <p className="team-warning" role="status">A consulta ao servidor falhou. Exibindo a última cópia disponível. Atualize o painel para tentar novamente.</p>}
@@ -120,7 +121,7 @@ export default function Dashboard() {
           <nav className="pager" aria-label="Paginação de oportunidades"><span>{filtered.length ? `${(current-1)*12+1}–${Math.min(current*12,filtered.length)} de ${filtered.length}` : '0 resultados'} <span className="page-number">· Página {current} de {pages}</span></span><div><button disabled={current<=1} onClick={() => { setPage(current-1); focusResults(); }}><ChevronLeft size={14}/> Anterior</button><button disabled={current>=pages} onClick={() => { setPage(current+1); focusResults(); }}>Próxima <ChevronRight size={14}/></button></div></nav>
         </>}
       </section>
-      <footer className="workspace-footer"><span>RADAR · DALTTON + GERICO</span><span>IA desligada · Confira o edital oficial antes de participar.</span></footer>
+      <footer className="workspace-footer"><span>NEXO RADAR · INTELIGÊNCIA EM OPORTUNIDADES</span><span>Confira o edital oficial antes de participar.</span></footer>
     </main>
     {selected && <OpportunityDetails row={selected} checking={checking} checkError={checkError} reviewIntent={reviewIntent} onClose={() => setSelected(null)} onRefresh={() => void refresh(selected)} triggerRef={detailTriggerRef}>
       <ReviewForm row={selected} review={feedback[selected.id]} shared={team.reviews[selected.id]} draft={!!drafts[selected.id]} authenticated={team.authenticated} busy={savingReview} message={reviewMessage} onChange={change => update(selected.id,change)} onSave={() => void saveShared(selected)} onReload={() => void team.reload()} onUseShared={() => useShared(selected.id)}/>

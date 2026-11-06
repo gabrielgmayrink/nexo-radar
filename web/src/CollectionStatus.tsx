@@ -55,6 +55,7 @@ export default function CollectionStatus({ collectionDate, totalScanned }: { col
   const completedAt = status?.collections.publications?.completedAt;
   const historical = !completedAt || status?.collections.publications?.source === 'historical-import';
   const current = !historical && !!completedAt && Date.now()-Date.parse(completedAt) < 26*3600000;
+  const awaitingFirstCollection = totalScanned === 0 && !collectionDate && !pending;
   const lastDate = completedAt ? new Date(completedAt).toLocaleString('pt-BR',{ timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short' }) : collectionDate?.split('-').reverse().join('/') || '…';
   const Icon = partial || statusError ? AlertCircle : active ? RefreshCw : current && !pending ? CheckCircle2 : Clock;
   const pauseMessage=pending?.error==='http_429'?'O PNCP limitou as consultas. O Radar aguarda para retomar com o progresso salvo.':pending?.error==='timeout'?'O PNCP demorou para responder. O progresso está salvo para uma nova tentativa.':pending?.error==='storage_guard'?'A coleta atingiu a proteção de armazenamento. Os dados já coletados foram preservados.':'Atualização pausada, com progresso salvo.';
@@ -62,8 +63,8 @@ export default function CollectionStatus({ collectionDate, totalScanned }: { col
     <div className={'freshness collection-health'+(partial ? ' collection-warning' : current && !pending ? ' collection-current' : '')}>
       <span><Icon size={19} className={active ? 'spinning' : ''}/></span>
       <div className="collection-message">
-        <strong>{partial ? pauseMessage : active ? 'Coletando novas publicações do PNCP.' : pending ? 'Coleta parcial: faltam lotes do PNCP. A próxima execução continua de onde parou.' : current ? 'Coleta automática atualizada.' : historical ? 'Base histórica do PNCP.' : 'A base aguarda uma nova coleta completa.'}</strong>
-        <p>Última coleta concluída: {lastDate}.{pending ? ` ${pending.recordsReceived.toLocaleString('pt-BR')} registros recebidos${pending.totalPartitions ? ` · ${pending.completedPartitions || 0}/${pending.totalPartitions} etapas concluídas` : ''}.` : ' Confira sempre a situação no PNCP.'}</p>
+        <strong>{awaitingFirstCollection ? 'A primeira coleta de licitações ainda não foi executada.' : partial ? pauseMessage : active ? 'Coletando novas publicações do PNCP.' : pending ? 'Coleta parcial: faltam lotes do PNCP. A próxima execução continua de onde parou.' : current ? 'Coleta automática atualizada.' : historical ? 'Base histórica do PNCP.' : 'A base aguarda uma nova coleta completa.'}</strong>
+        <p>{awaitingFirstCollection ? 'Os critérios da Public estão preparados. As oportunidades aparecerão após a ativação da coleta.' : <>Última coleta concluída: {lastDate}.{pending ? ` ${pending.recordsReceived.toLocaleString('pt-BR')} registros recebidos${pending.totalPartitions ? ` · ${pending.completedPartitions || 0}/${pending.totalPartitions} etapas concluídas` : ''}.` : ' Confira sempre a situação no PNCP.'}</>}</p>
         {pending && <p>Cada lote contém até 50 licitações. Os resultados já encontrados estão disponíveis; recarregar o painel não inicia uma nova coleta.</p>}
         {totalScanned !== undefined && <p>{totalScanned.toLocaleString('pt-BR')} contratações na base concluída. Abaixo aparecem apenas as selecionadas para seus produtos.</p>}
         {statusError && <p className="collection-error">{statusError}</p>}

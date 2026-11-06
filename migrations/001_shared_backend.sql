@@ -2,14 +2,14 @@
 begin;
 create extension if not exists pg_trgm;
 create table public.radar_products (
-  id text primary key check(id in ('daltton','gerico')),
+  id text primary key check(id in ('public','gerico')),
   name text not null,
   profile text not null,
   active boolean not null default false
 );
-insert into public.radar_products(id,name,profile) values
- ('daltton','Daltton','Aguardando definição dos produtos e serviços.'),
- ('gerico','Gerico','Aguardando definição dos produtos e serviços.');
+insert into public.radar_products(id,name,profile,active) values
+ ('public','Public','Assessoria administrativa e de gestão; capacitação profissional e gerencial; ensino EAD; desenvolvimento de sistemas e serviços de TI.',true),
+ ('gerico','Gerico','Aguardando definição dos produtos e serviços.',false);
 create table public.radar_opportunities (
   id text primary key,
   payload jsonb not null,

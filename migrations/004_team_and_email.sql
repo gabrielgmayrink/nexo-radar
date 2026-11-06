@@ -28,7 +28,7 @@ create table public.radar_team_sessions (
 );
 create table public.radar_review_state (
  opportunity_id text primary key references public.radar_opportunities(id),
- offer text not null check(offer in ('','Daltton','Gerico','Ambas','Nenhuma','Revisar')),
+ offer text not null check(offer in ('','Public','Gerico','Ambas','Nenhuma','Revisar')),
  status text not null check(status in ('Nova','Em avaliação','Vou participar','Descartada','Ganhou','Perdeu')),
  reason text not null check(length(reason)<=2000),
  actor text not null,

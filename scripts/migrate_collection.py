@@ -6,7 +6,7 @@ from radar.postgres_store import connection_string,prepared_record,PROJECT_REF
 
 
 def migrate():
-    versions=('002_durable_collection','003_compact_derived_cards','004_team_and_email','005_review_learning','006_compressed_raw')
+    versions=('002_durable_collection','003_compact_derived_cards','004_team_and_email','005_review_learning','006_compressed_raw','007_password_access')
     with psycopg.connect(connection_string(),autocommit=True) as db:
         with db.transaction():
             db.execute('select pg_advisory_xact_lock(%s)',(739241663,))

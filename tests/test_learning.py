@@ -23,7 +23,7 @@ class LearningTests(unittest.TestCase):
         self.assertEqual(result['score'],70)
 
     def test_conflicting_examples_require_review_and_direct_decision_wins(self):
-        positive={**self.example,'opportunity_id':'positive','offer':'Daltton'}
+        positive={**self.example,'opportunity_id':'positive','offer':'Public'}
         result=apply_examples([self.card],[self.example,positive])[0]
         self.assertEqual(result['learning']['match'],'conflicting_examples')
         direct={**positive,'opportunity_id':'new'}
@@ -41,9 +41,9 @@ class LearningTests(unittest.TestCase):
         self.assertNotEqual(object_hash(self.obj),object_hash(self.obj,'Inclui licença do banco de preços'))
 
     def test_identical_positive_object_preserves_the_approved_product(self):
-        example={**self.example,'offer':'Daltton','reason_code':'aderente'}
+        example={**self.example,'offer':'Public','reason_code':'aderente'}
         learned=apply_examples([self.card],[example])[0]['learning']
-        self.assertEqual(learned['label'],'relevante');self.assertEqual(learned['offer'],'Daltton')
+        self.assertEqual(learned['label'],'relevante');self.assertEqual(learned['offer'],'Public')
 
     def test_contextual_rejection_does_not_discard_another_procurement(self):
         for reason in ('escopo_fora','edital_insuficiente','outro'):

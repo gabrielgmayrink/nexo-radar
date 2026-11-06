@@ -3,6 +3,9 @@ import json
 import os
 import re
 import uuid
+import smtplib
+import ssl
+from email.message import EmailMessage
 from email.utils import parseaddr
 from urllib.error import HTTPError,URLError
 from urllib.request import Request,build_opener,HTTPRedirectHandler
@@ -30,7 +33,8 @@ def email_list(name):
 
 
 def enabled():
-    return os.environ.get('RADAR_EMAIL_ENABLED')=='1' and bool(os.environ.get('RESEND_API_KEY'))
+    configured=bool(os.environ.get('SMTP_USERNAME') and os.environ.get('SMTP_APP_PASSWORD')) if os.environ.get('RADAR_EMAIL_PROVIDER')=='gmail' else bool(os.environ.get('RESEND_API_KEY'))
+    return os.environ.get('RADAR_EMAIL_ENABLED')=='1' and configured
 
 
 def reserve(db,recipient,kind,dedupe_key):
@@ -53,7 +57,7 @@ def reserve(db,recipient,kind,dedupe_key):
         return identifier
 
 
-def send_reserved(db,identifier,recipient,subject,html,text,*,opener=None):
+def send_reserved(db,identifier,recipient,subject,html,text,*,opener=None,smtp_factory=None):
     if not enabled() or recipient not in email_list('RADAR_TEAM_EMAILS'):
         raise MailUnavailable('Email is not configured')
     sender=os.environ.get('RADAR_EMAIL_FROM','')
@@ -64,6 +68,8 @@ def send_reserved(db,identifier,recipient,subject,html,text,*,opener=None):
         raise MailUnavailable('Sender domain is not configured')
     if not EMAIL_PATTERN.fullmatch(reply) or '\r' in subject or '\n' in subject:
         raise ValueError('Invalid email headers')
+    if os.environ.get('RADAR_EMAIL_PROVIDER')=='gmail':
+        return send_gmail(db,identifier,recipient,subject,html,text,sender,reply,address,factory=smtp_factory)
     payload={'from':sender,'to':[recipient],'reply_to':[reply],'subject':subject,'html':html,'text':text}
     request=Request('https://api.resend.com/emails',data=json.dumps(payload).encode(),method='POST',
                     headers={'Authorization':'Bearer '+os.environ['RESEND_API_KEY'],'Content-Type':'application/json',
@@ -90,3 +96,27 @@ def send_reserved(db,identifier,recipient,subject,html,text,*,opener=None):
         # An ambiguous response is never retried automatically: the provider may have delivered it.
         db.execute("update radar_mail_outbox set status='unknown' where id=%s",(identifier,))
         raise MailUnavailable('Email delivery could not be confirmed') from None
+
+
+def send_gmail(db,identifier,recipient,subject,html,text,sender,reply,address,*,factory=None):
+    username=os.environ.get('SMTP_USERNAME','').strip().lower()
+    if address.lower()!=username or not username.endswith('@gmail.com') or not EMAIL_PATTERN.fullmatch(username):
+        raise MailUnavailable('Unexpected Gmail sender')
+    message=EmailMessage()
+    message['From']=sender;message['To']=recipient;message['Reply-To']=reply;message['Subject']=subject
+    message['Message-ID']='<nexo.'+str(uuid.UUID(identifier))+'@gmail.com>'
+    message.set_content(text);message.add_alternative(html,subtype='html')
+    try:
+        with (factory or smtplib.SMTP_SSL)('smtp.gmail.com',465,timeout=20,context=ssl.create_default_context()) as smtp:
+            smtp.login(username,os.environ['SMTP_APP_PASSWORD'].replace(' ',''))
+            refused=smtp.send_message(message)
+            if refused:raise MailUnavailable('Gmail refused recipient')
+        provider_id=str(message['Message-ID'])
+        db.execute("update radar_mail_outbox set status='sent',provider_id=%s,sent_at=now() where id=%s",(provider_id,identifier))
+        return provider_id
+    except smtplib.SMTPAuthenticationError:
+        db.execute("update radar_mail_outbox set status='failed',error_code=535 where id=%s",(identifier,))
+        raise MailUnavailable('Gmail authentication failed') from None
+    except (smtplib.SMTPException,OSError,ValueError,MailUnavailable):
+        db.execute("update radar_mail_outbox set status='unknown' where id=%s",(identifier,))
+        raise MailUnavailable('Gmail delivery could not be confirmed') from None

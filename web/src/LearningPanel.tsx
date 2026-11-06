@@ -3,7 +3,7 @@ import { REASONS } from './opportunities';
 import type { SharedReview } from './useTeam';
 export default function LearningPanel({ authenticated, reviews }: { authenticated: boolean; reviews: Record<string,SharedReview> }) {
   const values = Object.values(reviews), negative = values.filter(row => row.sourceCurrent!==false && row.offer === 'Nenhuma');
-  const positive = values.filter(row => row.sourceCurrent!==false && ['Daltton','Gerico','Ambas'].includes(row.offer));
+  const positive = values.filter(row => row.sourceCurrent!==false && ['Public','Gerico','Ambas'].includes(row.offer));
   return <section className="learning-panel" aria-label="Base de exemplos da equipe">
     <div className="learning-explainer"><BookOpenCheck size={26}/><div><h3>Ensine com exemplos concretos</h3><p>Use “Não tem relação” para rejeitar um objeto e explicar o erro. Use “Faz sentido” para registrar o que queremos encontrar. Os exemplos ficam disponíveis aqui para a equipe.</p></div></div>
     {!authenticated ? <div className="zero-state"><h3>Entre para acompanhar os exemplos da equipe</h3><p>O acesso fica no topo da página. A busca de licitações continua pública.</p></div> : <>

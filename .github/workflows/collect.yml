@@ -1,5 +1,7 @@
 name: Collect Radar
 on:
+  schedule:
+    - cron: '15 9 * * *'
   workflow_dispatch:
     inputs:
       kind:
@@ -27,4 +29,4 @@ jobs:
       - run: python scripts/run_scheduled_collection.py
         env:
           RADAR_APP_URL: ${{ vars.RADAR_APP_URL }}
-          RADAR_SYNC_KIND: ${{ inputs.kind }}
+          RADAR_SYNC_KIND: ${{ inputs.kind || 'incremental' }}

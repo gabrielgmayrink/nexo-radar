@@ -21,7 +21,7 @@ def select_cards(rows,kind,now):
     selected=[]
     for card,offer,status in rows:
         if not card or offer in ('Nenhuma','Revisar') or status in ('Descartada','Ganhou','Perdeu') or card.get('learning',{}).get('label') in ('irrelevante','revisar'):continue
-        approved=offer in ('Daltton','Gerico','Ambas') or card.get('learning',{}).get('label')=='relevante'
+        approved=offer in ('Public','Gerico','Ambas') or card.get('learning',{}).get('label')=='relevante'
         if card.get('score',0)<60 and not approved:continue
         deadline=future_deadline(card,now)
         if not deadline or kind=='urgent' and deadline>now+timedelta(hours=48):continue
@@ -34,7 +34,7 @@ def select_cards(rows,kind,now):
 def render_onboarding():
     title='Conheça o Radar e ajude a melhorar as buscas'
     sections=[
-        ('O que o Radar faz','O Radar consulta o PNCP para encontrar licitações relacionadas às empresas Daltton e Gerico. Ele reduz o volume de pesquisa, mas cada oportunidade ainda precisa ser conferida no edital oficial.'),
+        ('O que o Radar faz','O Radar consulta o PNCP para encontrar licitações relacionadas às empresas Public e Gerico. Ele reduz o volume de pesquisa, mas cada oportunidade ainda precisa ser conferida no edital oficial.'),
         ('1. Abra a lista certa','No radar mostra as oportunidades selecionadas. Mais compatíveis reúne objetos com sinais de aderência. Precisam de análise indica casos em que o escopo ainda precisa ser confirmado. Com prazo futuro reúne contratações ativas com encerramento adiante. Clique no indicador para abrir sua lista.'),
         ('2. Refine e confira','Filtre por produto, estado, prazo, modalidade e situação da avaliação. Combine palavras na busca. Abra Ver detalhes para ler o objeto completo e use Abrir edital no PNCP para conferir documentos, requisitos, valores e datas antes de decidir participar.'),
         ('3. Entre na equipe','No painel, clique em Entrar na equipe e informe o mesmo e-mail que recebeu esta mensagem. Você receberá um link pessoal, sem precisar criar uma senha. Confirme a entrada para compartilhar suas avaliações.'),
@@ -44,7 +44,7 @@ def render_onboarding():
         ('Resumos e acompanhamento','Resumos e avisos dependem de configurar o envio e ativar o agendamento desta instalação. Avisos de oportunidades exigem uma coleta recente; o Radar evita enviar informações antigas. Usem Vou participar para acompanhar o que pretendem disputar.'),
     ]
     contents=''.join(f'<section style="margin-top:24px"><h2 style="font-size:17px;color:#315139;margin:0 0 8px">{html.escape(heading)}</h2><p style="margin:0;line-height:1.75;font-size:14px">{html.escape(text)}</p></section>' for heading,text in sections)
-    body=f'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"></head><body style="margin:0;background:#f3f6f0;font-family:Arial,sans-serif;color:#334a3b"><main style="max-width:640px;margin:24px auto;background:white;padding:28px;border-radius:16px"><p style="letter-spacing:2px;color:#64804c;font-size:12px;font-weight:bold">RADAR DE LICITAÇÕES</p><h1 style="font-size:26px;line-height:1.3">{title}</h1><p style="line-height:1.7">Olá! Este é o e-mail de apresentação e teste do Radar para a equipe Daltton e Gerico.</p><p><a href="{APP_URL}/" style="display:inline-block;background:#284d3c;color:white;padding:14px 22px;border-radius:9px;text-decoration:none">Abrir o Radar</a></p>{contents}<p style="margin-top:26px;padding-top:16px;border-top:1px solid #e1e8db;font-size:12px;line-height:1.7;color:#718067">A seleção usa regras e exemplos da equipe; não confirma elegibilidade nem substitui a leitura do edital. Este envio de apresentação é único. Para ajustar os avisos, responda este e-mail.</p></main></body></html>'
+    body=f'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"></head><body style="margin:0;background:#f3f6f0;font-family:Arial,sans-serif;color:#334a3b"><main style="max-width:640px;margin:24px auto;background:white;padding:28px;border-radius:16px"><p style="letter-spacing:2px;color:#64804c;font-size:12px;font-weight:bold">RADAR DE LICITAÇÕES</p><h1 style="font-size:26px;line-height:1.3">{title}</h1><p style="line-height:1.7">Olá! Este é o e-mail de apresentação e teste do Radar para a equipe Public e Gerico.</p><p><a href="{APP_URL}/" style="display:inline-block;background:#284d3c;color:white;padding:14px 22px;border-radius:9px;text-decoration:none">Abrir o Radar</a></p>{contents}<p style="margin-top:26px;padding-top:16px;border-top:1px solid #e1e8db;font-size:12px;line-height:1.7;color:#718067">A seleção usa regras e exemplos da equipe; não confirma elegibilidade nem substitui a leitura do edital. Este envio de apresentação é único. Para ajustar os avisos, responda este e-mail.</p></main></body></html>'
     text='Olá!\n\n'+title+'\n\nAbrir o Radar: '+APP_URL+'\n\n'+'\n\n'.join(heading+'\n'+content for heading,content in sections)
     return 'Radar de Licitações: como usar e melhorar as buscas',body,text
 
@@ -52,7 +52,7 @@ def render_onboarding():
 def render_digest(cards,kind,now):
     if kind=='test':return render_onboarding()
     title={'weekly':'Seu resumo semanal de oportunidades','urgent':'Prazos nos próximos dois dias','test':'O Radar está conectado ao seu e-mail'}[kind]
-    intro='Sugestões por regras e exemplos da equipe para Daltton e Gerico, com situação conferida individualmente no PNCP. A coleta geral pode acrescentar outras oportunidades. Confira o objeto, os documentos e os requisitos antes de decidir participar.'
+    intro='Sugestões por regras e exemplos da equipe para Public e Gerico, com situação conferida individualmente no PNCP. A coleta geral pode acrescentar outras oportunidades. Confira o objeto, os documentos e os requisitos antes de decidir participar.'
     if kind=='test':intro='A configuração de envio do Radar foi concluída. Você receberá resumos semanais e avisos de prazo das oportunidades selecionadas. Entre no painel com este e-mail para compartilhar avaliações com a equipe.'
     items=[];texts=[title,intro]
     for card in cards:

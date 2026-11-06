@@ -6,8 +6,8 @@
     "end": ""
   },
   "historical": false,
-  "setupPending": true,
-  "rulesVersion": "2026-11-06.1",
+  "setupPending": false,
+  "rulesVersion": "2026-11-06.2",
   "metrics": {
     "received": 0,
     "unique": 0,

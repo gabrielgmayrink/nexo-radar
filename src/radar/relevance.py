@@ -6,7 +6,7 @@ import unicodedata
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-VERSION = "2026-11-06.1"
+VERSION = "2026-11-06.2"
 TZ = ZoneInfo("America/Sao_Paulo")
 
 
@@ -20,7 +20,7 @@ def classify(obj: str, additional: str = "", *, profiles=None) -> dict:
     profiles = load_profiles() if profiles is None else profiles
     text = " " + normalize(obj) + " "
     extra = " " + normalize(additional) + " "
-    scores = {"Daltton": 0, "Gerico": 0}
+    scores = {"Public": 0, "Gerico": 0}
     reasons = []
     active = [company for company in profiles if company["enabled"] and company["terms"]]
     for company in active:

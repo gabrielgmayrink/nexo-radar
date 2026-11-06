@@ -47,13 +47,13 @@ export default function Sidebar({ triggerRef, collapsed, mobileOpen, blocked, vi
           aria-current={view === key ? 'page' : undefined} aria-label={VIEWS[key].label} title={collapsed ? VIEWS[key].label : undefined}
           onClick={() => { onView(key); onClose(); }}><span><Icon /></span><span className="nav-text">{VIEWS[key].label}</span>{key!=='learning'&&<span className="nav-count" aria-hidden="true">{counts[key]||0}</span>}</button>)}
         <p className="nav-caption">SUAS EMPRESAS</p>
-        {['Daltton', 'Gerico'].map(name => <button key={name} className={'rail-link ' + (product === name ? 'product-selected' : '')}
+        {['Public', 'Gerico'].map(name => <button key={name} className={'rail-link ' + (product === name ? 'product-selected' : '')}
           aria-label={name} aria-pressed={product === name} title={collapsed ? name : undefined}
           onClick={() => { onProduct(product === name ? 'Todos' : name); onClose(); }}>
-          <span className={'product-nav-icon ' + (name === 'Daltton' ? 'purple' : 'mint')}>{name === 'Daltton' ? <Layers /> : <Folders />}</span><span className="nav-text">{name}</span>
+          <span className={'product-nav-icon ' + (name === 'Public' ? 'purple' : 'mint')}>{name === 'Public' ? <Layers /> : <Folders />}</span><span className="nav-text">{name}</span>
         </button>)}
       </nav>
-      <div className="rail-footer"><b><ShieldCheck size={15} /> Fonte oficial · PNCP</b><p>Oportunidades para Daltton e Gerico, em um só radar.</p><a href="https://pncp.gov.br/app/editais" target="_blank" rel="noreferrer">Consultar portal <ArrowUpRight size={14} /></a></div>
+      <div className="rail-footer"><b><ShieldCheck size={15} /> Fonte oficial · PNCP</b><p>Oportunidades para Public e Gerico, em um só radar.</p><a href="https://pncp.gov.br/app/editais" target="_blank" rel="noreferrer">Consultar portal <ArrowUpRight size={14} /></a></div>
     </aside>
   </>;
 }

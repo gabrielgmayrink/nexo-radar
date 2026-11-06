@@ -1,14 +1,18 @@
-# Radar Daltton e Gerico
+# Nexo Radar
 
 Radar de licitações baseado no projeto GovPreços/iArquivo, com painel React/TypeScript, coletor Python para o PNCP e publicação na Vercel.
 
-Repositório privado: https://github.com/gabrielgmayrink/radar-daltton-gerico.
+Repositório privado: https://github.com/gabrielgmayrink/nexo-radar.
 
 ## Estado inicial
 
-O painel mantém listas, filtros, detalhes, exportação CSV, rascunhos locais e a estrutura de avaliação da equipe. Daltton e Gerico têm perfis separados, inicialmente desativados. O catálogo começa vazio: nenhum serviço foi presumido e a base, os exemplos e as credenciais anteriores não foram copiados.
+O painel mantém listas, filtros, detalhes, exportação CSV, rascunhos locais e a estrutura de avaliação da equipe. A Public já tem critérios configurados para assessoria administrativa e de gestão, capacitação, EAD e desenvolvimento de sistemas/TI. O perfil do Gerico continua desativado até receber seus serviços. O catálogo começa vazio, aguardando a primeira coleta; a base, os exemplos e as credenciais anteriores não foram copiados.
 
-Até receber os serviços de cada empresa, a classificação retorna pontuação zero. Banco compartilhado, coleta automática, login e e-mails precisam de configuração própria antes de serem ativados. A IA paga está desligada.
+Empresas desativadas não recebem sugestões. Banco compartilhado e login usam um projeto Supabase independente. O acesso principal usa e-mail e senha, com convite pessoal para o primeiro acesso. O Gmail da plataforma envia resumos aos destinatários autorizados quando o envio estiver habilitado. A IA paga está desligada.
+
+## Identidade visual
+
+Marca: **Nexo Radar**. Logo vetorial em `web/public/brand/nexo-logo.svg` e símbolo em `web/public/brand/nexo-symbol.svg`. O login utiliza a versão 3D `web/public/brand/nexo-symbol-3d.png`. Paleta: azul profundo `#0D1930`, azul `#286BED`, ciano `#42E8E0` e violeta `#8362FF`. Veja [identidade e interface](docs/identidade-e-interface.md) para os componentes React Bits e o prompt da imagem.
 
 ## Executar
 

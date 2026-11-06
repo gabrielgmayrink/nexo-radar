@@ -1,0 +1,28 @@
+{
+  "project": "React Bits",
+  "author": "David Haz",
+  "retrievedAt": "2026-11-06",
+  "usage": "Integrated UI components in Nexo Radar",
+  "resources": [
+    {
+      "source": "https://raw.githubusercontent.com/DavidHDev/react-bits/main/src/ts-default/Components/SpotlightCard/SpotlightCard.tsx",
+      "file": "SpotlightCard.tsx",
+      "sha256": "581d8859b8b780a61f3710b5d39b9e37a365742626cf30858a5fdbfbfb4d8807"
+    },
+    {
+      "source": "https://raw.githubusercontent.com/DavidHDev/react-bits/main/src/ts-default/Components/SpotlightCard/SpotlightCard.css",
+      "file": "SpotlightCard.css",
+      "sha256": "b646b7da4bb46f0a4d819d0af275804c49a845a5c2dc848700aaf9282db13a92"
+    },
+    {
+      "source": "https://raw.githubusercontent.com/DavidHDev/react-bits/main/src/ts-default/TextAnimations/BlurText/BlurText.tsx",
+      "file": "BlurText.tsx",
+      "sha256": "ff976389990b9f25376ad491dabd66262913cc574151d54f205fcd4ca05d7ed6"
+    },
+    {
+      "source": "https://raw.githubusercontent.com/DavidHDev/react-bits/main/LICENSE.md",
+      "file": "LICENSE.md",
+      "sha256": "4bdd1fa59a6b7d5954bc3b213dbc34e455c635a94bbcecf9293553797d0fad02"
+    }
+  ]
+}

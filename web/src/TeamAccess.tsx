@@ -1,26 +1,23 @@
 import { useState } from 'react';
-import { LogIn, LogOut, Mail, ShieldCheck } from 'lucide-react';
+import { LogIn, LogOut, ShieldCheck } from 'lucide-react';
 import { teamRequest } from './useTeam';
+import { getLoginToken, clearLoginToken } from './loginToken';
 
 // Remove the token from browser history before any request or other navigation.
-let pendingToken = '';
-if (window.location.hash.startsWith('#login=')) {
-  pendingToken = window.location.hash.slice(7);
-  window.history.replaceState(null, '', window.location.pathname + window.location.search);
-}
+let pendingToken = getLoginToken();
 
 export default function TeamAccess({ enabled, email, reload }: {
   enabled: boolean; email?: string; reload: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(!!pendingToken);
   const [token, setToken] = useState(pendingToken);
-  const [address, setAddress] = useState(''), [message, setMessage] = useState('');
+  const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   async function action(kind: string) {
     setBusy(true); setMessage('');
     try {
-      const result = await teamRequest({ action: kind, ...(kind === 'request_link' ? { email: address } : { token }) });
-      if (kind === 'confirm_login') { pendingToken = ''; setToken(''); setOpen(false); await reload(); }
+      const result = await teamRequest({ action: kind, token });
+      if (kind === 'confirm_login') { pendingToken = ''; clearLoginToken(); setToken(''); setOpen(false); await reload(); }
       else if (kind === 'logout') { await reload(); setOpen(false); }
       else setMessage(result.message);
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Tente novamente.'); }
@@ -38,11 +35,7 @@ export default function TeamAccess({ enabled, email, reload }: {
         : token ? <><p>Confirme para entrar no Radar. Este link é pessoal e só pode ser usado uma vez.</p>
           <button className="primary-button" disabled={busy} onClick={() => void action('confirm_login')}>{busy ? 'Confirmando…' : 'Confirmar entrada'}</button>
           <button className="secondary-button" disabled={busy} onClick={() => { pendingToken = ''; setToken(''); setMessage(''); }}>Solicitar outro link</button></>
-          : <form onSubmit={event => { event.preventDefault(); void action('request_link'); }}>
-            <p>Use o e-mail autorizado. Enviaremos um link de acesso, sem senha.</p>
-            <label htmlFor="team-email">Seu e-mail</label><div className="team-login-input"><input id="team-email" type="email" autoComplete="email" required maxLength={254} value={address} onChange={event => setAddress(event.target.value)}/>
-              <button className="primary-button" disabled={busy}><Mail size={15}/>{busy ? 'Enviando…' : 'Receber link'}</button></div>
-          </form>}
+          : <div><p>Entre com seu e-mail e sua senha para publicar avaliações e acompanhar a equipe.</p><button className="primary-button" onClick={() => window.dispatchEvent(new Event('nexo:login'))}><LogIn size={15}/> Ir para o acesso</button></div>}
       {message && <p role="status">{message}</p>}
     </div>}
   </section>;
