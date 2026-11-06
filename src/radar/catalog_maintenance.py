@@ -1,7 +1,11 @@
 """Remove expired/unrelated entries from the active catalog, retaining source and reviews."""
 from datetime import datetime,timezone
 from collections import Counter
+import time
 from radar.relevance import TZ
+
+CLEANUP_BATCH_SIZE=500
+CLEANUP_REQUEST_RECORDS=2500
 
 
 def archive_reason(status,deadline,score,now):
@@ -16,7 +20,8 @@ def archive_reason(status,deadline,score,now):
     return None
 
 
-def cleanup(store,*,dry_run=False,now=None):
+def cleanup(store,*,dry_run=False,now=None,run_key='manual'):
+    started=time.monotonic()
     now=now or datetime.now(timezone.utc)
     if not store.acquire():return {'done':False,'reason':'collection_busy'}
     try:
@@ -32,18 +37,35 @@ def cleanup(store,*,dry_run=False,now=None):
                 reason=archive_reason(1 if status=='1' else 0,deadline,score,now)
                 if reason:targets.append((identifier,reason))
             last=rows[-1][0]
-        counts=dict(Counter(reason for _,reason in targets))
-        result={'done':True,'dryRun':dry_run,'removedFromActive':len(targets),'reasons':counts,'historyPreserved':True}
-        if not dry_run:
-            from psycopg.types.json import Jsonb
+        if dry_run:
+            return {'done':True,'dryRun':True,'removedFromActive':len(targets),
+                    'reasons':dict(Counter(reason for _,reason in targets)),'historyPreserved':True}
+        from psycopg.types.json import Jsonb
+        run_id=run_key.split(':')[0]
+        previous=store.db.execute("select content from radar_catalog_state where id='maintenance'").fetchone()
+        previous=previous[0] if previous and previous[0].get('runId')==run_id else {}
+        counts=Counter(previous.get('reasons',{}));removed=previous.get('removedFromActive',0)
+        processed=0
+        # A large update rebuilt every active-row index and exceeded the database
+        # statement limit. Each small batch now has its own durable receipt.
+        limited=targets[:CLEANUP_REQUEST_RECORDS]
+        batches=[limited[i:i+CLEANUP_BATCH_SIZE] for i in range(0,len(limited),CLEANUP_BATCH_SIZE)] or [[]]
+        result=None
+        for batch in batches:
+            if processed and time.monotonic()-started>45:break
+            next_counts=counts+Counter(reason for _,reason in batch)
+            done=processed+len(batch)==len(targets)
+            result={'done':done,'continue':not done,'dryRun':False,'removedFromActive':removed+len(batch),
+                    'remaining':len(targets)-processed-len(batch),'reasons':dict(next_counts),'historyPreserved':True}
             with store.db.transaction():
-                if targets:
+                if batch:
                     store.db.execute('''update radar_opportunities o set catalog_archived_at=%s,catalog_archive_reason=t.reason
                         from unnest(%s::text[],%s::text[]) as t(id,reason) where o.id=t.id''',
-                        (now,[identifier for identifier,_ in targets],[reason for _,reason in targets]))
+                        (now,[identifier for identifier,_ in batch],[reason for _,reason in batch]))
                 store.db.execute('''insert into radar_catalog_state(id,content) values('maintenance',%s)
                     on conflict(id) do update set content=excluded.content,updated_at=now()''',
-                    (Jsonb({**result,'completedAt':now.isoformat()}),))
+                    (Jsonb({**result,'runId':run_id,**({'completedAt':now.isoformat()} if done else {})}),))
+            counts=next_counts;removed+=len(batch);processed+=len(batch)
         return result
     finally:store.release()
 

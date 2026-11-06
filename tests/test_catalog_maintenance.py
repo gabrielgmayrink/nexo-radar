@@ -1,10 +1,42 @@
 import unittest
 from datetime import datetime,timezone
 from unittest.mock import patch
+from contextlib import nullcontext
 from radar.catalog_maintenance import archive_reason,weekly_ready,weekly_summary,cleanup
 
 
 class MaintenanceTests(unittest.TestCase):
+    def test_partial_batches_resume_without_losing_counts_or_hiding_active_matches(self):
+        class Store:
+            def __init__(self):
+                self.archived=set();self.state=None;self.result=[]
+                self.rows=[('a','1','2099-01-01',0),('b','1','2020-01-01',70),('c','2','2099-01-01',70),('d','1','2099-01-01',70)]
+            def acquire(self):return True
+            def release(self):pass
+            @property
+            def db(self):return self
+            def transaction(self):return nullcontext()
+            def execute(self,query,params=None):
+                if query.startswith('select cursor'):self.result=[({'status':'ok'},)]
+                elif query.startswith('select content'):self.result=[(self.state,)] if self.state else []
+                elif query.startswith('select id,'):self.result=[row for row in self.rows if row[0]>params[0] and row[0] not in self.archived]
+                elif query.startswith('update radar_opportunities'):self.archived.update(params[1]);self.result=[]
+                elif query.startswith('insert into radar_catalog_state'):self.state=params[0].obj;self.result=[]
+                else:raise AssertionError('Unexpected statement')
+                return self
+            def fetchone(self):return self.result[0] if self.result else None
+            def fetchall(self):return self.result
+        store=Store()
+        with patch('radar.catalog_maintenance.CLEANUP_BATCH_SIZE',1),patch('radar.catalog_maintenance.CLEANUP_REQUEST_RECORDS',2):
+            first=cleanup(store,run_key='123:1')
+            self.assertFalse(first['done']);self.assertTrue(first['continue']);self.assertEqual(first['removedFromActive'],2)
+            final=cleanup(store,run_key='123:2')
+            self.assertTrue(final['done']);self.assertEqual(final['removedFromActive'],3)
+            self.assertEqual(final['reasons'],{'outside_profile':1,'expired':1,'inactive':1})
+            self.assertEqual(cleanup(store,run_key='123:2')['removedFromActive'],3)
+        self.assertEqual(store.archived,{'a','b','c'})
+        self.assertEqual(len(store.rows),4)
+
     def test_cleanup_uses_exact_deadline_and_preserves_unknown_dates(self):
         now=datetime(2026,11,8,12,tzinfo=timezone.utc)
         self.assertEqual(archive_reason(1,'2026-11-08T09:00:00',70,now),'expired')

@@ -35,6 +35,7 @@ O instrumento 4 (Edital de Chamamento Público) também é elegível quando ativ
 
 - Domingo às 23h de Brasília (segunda, 02h UTC): retira do catálogo ativo as vencidas, inativas e sem aderência aos perfis configurados. Usa a mesma trava da coleta e recusa operar enquanto há uma varredura incompleta.
 - A limpeza é um arquivamento do catálogo ativo: preserva os dados de origem, as avaliações, o aprendizado e os recibos da cobertura nacional. Não exclui uma decisão de uma empresa por causa da decisão de outra.
+- A gravação usa lotes de até 500 registros e até 2.500 por chamada. Cada lote salva o progresso na mesma transação. O job continua as chamadas enquanto houver pendências, sem repetir os registros já arquivados.
 - Uma nova leitura do registro remove o arquivamento. Assim, uma prorrogação de prazo ou uma mudança de perfil pode fazer a oportunidade voltar.
 - Segunda às 07h: começa a varredura nacional. O resumo semanal é uma etapa posterior da mesma execução; não tem mais disparo independente às 07h20. O servidor exige cobertura completa, coleta da segunda atual e identidade da execução que a concluiu. Uma coleta parcial não dispara o resumo semanal.
 - Os avisos diários de prazo permanecem às 08h20, com conferência individual no PNCP. Os destinatários são resolvidos por empresa. A rotina roda na nuvem sem depender do Codex ou do computador pessoal.

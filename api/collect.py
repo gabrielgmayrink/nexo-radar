@@ -51,7 +51,9 @@ class handler(BaseHTTPRequestHandler):
                 from radar.catalog_maintenance import cleanup,weekly_summary
                 if body['action']=='weekly_summary' and os.environ.get('RADAR_EMAIL_ENABLED')!='1':
                     self.respond(503,{'error':'Resumos não habilitados.'});return
-                result=cleanup(store,dry_run=body.get('dryRun',False)) if body['action']=='cleanup' else weekly_summary(store,run_key,dry_run=body.get('dryRun',False))
+                result=cleanup(store,dry_run=body.get('dryRun',False),run_key=run_key) if body['action']=='cleanup' else weekly_summary(store,run_key,dry_run=body.get('dryRun',False))
+                print(json.dumps({'event':'catalog_maintenance','task':body['action'],'done':result.get('done'),
+                                  'removedFromActive':result.get('removedFromActive'),'receiverMs':round((time.monotonic()-started)*1000)}))
                 self.respond(200,result);return
             result = handle_national(store,body['action'],body,run_key) if national else run_chunk(store, body.get('kind', 'incremental'), run_key=run_key,
                                                                                               execution_id=execution_id, budget_seconds=budget_seconds)
