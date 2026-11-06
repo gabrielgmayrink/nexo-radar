@@ -24,6 +24,8 @@ class StorageTests(unittest.TestCase):
         self.assertNotIn('unit-test-only',json.dumps(result))
         self.assertIn('offset=0',requests[0].full_url)
         self.assertIn('score=gte.40',requests[0].full_url)
+        self.assertIn('select=card&',requests[0].full_url)
+        self.assertNotIn('select=payload',requests[0].full_url)
 
     def test_only_completed_publication_run_advances_date(self):
         def opener(request,**kwargs):

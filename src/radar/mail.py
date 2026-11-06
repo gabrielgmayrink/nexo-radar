@@ -158,4 +158,4 @@ def verify_gmail(*,factory=None):
     except Exception as exc:
         print(json.dumps({'event':'smtp_check_failed','stage':stage,'errorType':type(exc).__name__}))
         raise
-    return {'smtpAuthenticated':True,'emailSent':False}
+    return {'smtpAuthenticated':True,'emailSent':False,'scheduledSendingEnabled':enabled()}

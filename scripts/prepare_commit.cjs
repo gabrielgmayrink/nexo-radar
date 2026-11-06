@@ -10,5 +10,5 @@ for(const file of files){
   if(sensitive.test(fs.readFileSync(file,'utf8')))throw Error('Potential secret detected; commit cancelled');
 }
 git(['diff','--cached','--check']);
-git(['commit','-m','Implementa marca Nexo Radar e perfil de serviços da Public']);
+git(['commit','-m','Melhora busca, rolagem e carregamento do catálogo']);
 console.log(JSON.stringify({committedFiles:files.length,secretScanPassed:true,commit:git(['rev-parse','HEAD']).trim()}));

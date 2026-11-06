@@ -1,3 +1,4 @@
+import { createSearchDocument, matchesSearch, parseSearchQuery, type SearchClause, type SearchDocument } from './search.ts';
 export type Review = { offer: string; reason: string; status: string; reasonCode?: string; expectedScope?: string };
 export type Row = { id: string; organization: string; state: string; city: string; modality: string; publishedAt: string; object: string; additionalInfo: string; estimatedValue: number | null; proposalDeadline: string; proposalStart?: string; statusId: number; instrumentId: number; pncpUrl: string; sourceUrl: string; suggestedOffer: string; score: number; scores?: Record<string,number>; evidence: string[]; checkedAt?: string; learning?: { label: string; match: string; reasonCode: string; examples: number; offer?: string } };
 export const VIEWS = {
@@ -65,15 +66,13 @@ export function matchesView(row: Row, view: View, review?: Review, now = Date.no
   const uncertain = review?.offer === 'Revisar' || !approved && (productScore(row,product) < 60 || row.learning?.label === 'revisar');
   return view === 'review' ? uncertain : view === 'matches' ? !uncertain : false;
 }
-export function matchesFilters(row: Row, filters: Filters, review?: Review, now = Date.now()) {
+export function matchesFilters(row: Row, filters: Filters, review?: Review, now = Date.now(), search?: { document: SearchDocument; clauses: SearchClause[] }) {
   const confirmed = approvedOffer(row,review);
   const offer = confirmed || row.suggestedOffer;
   if (filters.product !== 'Todos' && offer !== filters.product && offer !== 'Ambas' && (confirmed || productScore(row,filters.product) < 40)) return false;
   if (filters.uf !== 'Todas' && row.state !== filters.uf) return false;
   if (filters.modality !== 'Todas' && row.modality !== filters.modality) return false;
-  const words = normalize(filters.query.trim()).split(/\s+/).filter(Boolean);
-  const haystack = normalize([row.object, row.additionalInfo, row.organization, row.city, row.id].join(' '));
-  if (!words.every(word => haystack.includes(word))) return false;
+  if (filters.query.trim() && !matchesSearch(search?.document || createSearchDocument(row),search?.clauses || parseSearchQuery(filters.query))) return false;
   if (filters.deadline !== 'any') {
     if (filters.deadline === 'unknown') { if (parseDate(row.proposalDeadline)) return false; }
     else {

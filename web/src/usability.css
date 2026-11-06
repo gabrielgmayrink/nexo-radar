@@ -1,0 +1,205 @@
+/* Scrollbars retain native keyboard, touch and high-contrast behavior. */
+html {
+  scrollbar-gutter: stable;
+  scroll-padding-top: 22px
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #a6b6ce transparent
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px
+}
+::-webkit-scrollbar-track {
+  background: transparent
+}
+::-webkit-scrollbar-thumb {
+  background: #a6b6ce;
+  border: 2px solid transparent;
+  border-radius: 20px;
+  background-clip: padding-box
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #7e97bb
+}
+::-webkit-scrollbar-corner {
+  background: transparent
+}
+.radar-app .rail,.login-story {
+  scrollbar-color: #3c5479 transparent
+}
+.rail::-webkit-scrollbar-thumb,.login-story::-webkit-scrollbar-thumb {
+  background-color: #3c5479
+}
+.detail-panel {
+  scrollbar-gutter: stable;
+  overscroll-behavior-y: contain
+}
+.detail-panel p,.detail-panel li {
+  overflow-wrap: anywhere
+}
+.results-section {
+  scroll-margin-top: 24px
+}
+.workspace {
+  min-width: 0
+}
+.search-shortcut {
+  border: 1px solid #dce5f3;
+  border-radius: 5px;
+  background: #f5f8fd;
+  min-width: 24px;
+  text-align: center;
+  padding: 2px 6px;
+  font-size: 11px;
+  color: #93a4bd
+}
+.search-pending {
+  color: #4d82cd;
+  flex: none
+}
+.search-workbench .search-help {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #8093ae;
+  margin: 11px 0
+}
+.search-help b {
+  font-weight: 600;
+  color: #58769e
+}
+.search-suggestions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 10px 0 16px
+}
+.search-suggestions>span {
+  font-size: 10px;
+  color: #8c9eb8;
+  margin-right: 3px
+}
+.search-suggestions button {
+  border: 1px solid #dae5f5;
+  background: #f2f7ff;
+  color: #547cae;
+  border-radius: 20px;
+  padding: 6px 11px;
+  font-size: 10px;
+  min-height: 30px;
+  transition: background .16s,border-color .16s
+}
+.search-suggestions button:hover {
+  border-color: #9dbdeb;
+  background: #e8f1ff
+}
+.search-workbench .active-filters {
+  flex-wrap: wrap;
+  gap: 8px
+}
+.search-workbench .filter-chip {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+  line-height: 1.5
+}
+.empty-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px
+}
+.pager-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px
+}
+.page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  color: #7e92af;
+  margin-right: 6px
+}
+.page-size select {
+  min-height: 36px;
+  border: 1px solid #d9e4f3;
+  border-radius: 7px;
+  background: #fff;
+  color: #476c9d;
+  padding: 6px 8px;
+  font-size: 11px
+}
+.radar-app .pager-controls .back-to-search {
+  background: transparent;
+  border-color: transparent;
+  color: #6a8cba
+}
+.radar-app .pager-controls .back-to-search:hover {
+  background: #eaf2ff
+}
+.radar-app .search-workbench {
+  background: #f9fbff;
+  border-color: #dce6f4
+}
+.radar-app .search-workbench .select-surface {
+  border-color: #d8e3f2
+}
+.radar-app .search-workbench .filter-chip {
+  background: #edf4ff;
+  color: #4776af;
+  border-color: #d5e4f9
+}
+@media(max-width:700px) {
+  .search-suggestions {
+    gap: 6px
+  }
+  .search-suggestions button {
+    min-height: 34px;
+    font-size: 10px
+  }
+  .search-help {
+    font-size: 10px!important
+  }
+  .pager-controls {
+    width: 100%;
+    justify-content: space-between
+  }
+  .page-size {
+    margin: 0
+  }
+  .page-size select {
+    font-size: 16px;
+    min-height: 40px
+  }
+  .pager-controls button {
+    min-height: 40px
+  }
+  .radar-app .pager-controls .back-to-search {
+    flex-basis: 100%;
+    justify-content: center
+  }
+  .search-workbench .active-filters {
+    align-items: flex-start
+  }
+  .search-workbench .result-summary {
+    flex-basis: 100%;
+    margin-bottom: 3px
+  }
+}
+@media(pointer:coarse) {
+  .search-shortcut {
+    display: none
+  }
+}
+@media(forced-colors:active) {
+  * {
+    scrollbar-color: auto
+  }
+}

@@ -41,3 +41,4 @@ jobs:
       - run: npm run build --prefix web
       - run: node scripts/test_search_logic.mjs
       - run: node scripts/test_login_token.mjs
+      - run: node scripts/test_catalog_search.mjs

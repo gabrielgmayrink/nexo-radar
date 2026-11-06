@@ -10,10 +10,12 @@ export default function CollectionStatus({ collectionDate, totalScanned }: { col
   const [notice,setNotice] = useState(''), [statusError,setStatusError] = useState('');
   const [noticeError,setNoticeError] = useState(false);
   const requested = useRef(false), lastCompleted = useRef('');
+  const hasLoaded=useRef(false);
+  const lastProgress=useRef('');
   const refresh = useRef<() => void>(() => {});
   useEffect(() => {
     const controller = new AbortController();
-    const load = async () => {
+    const load = async (emitRefresh=true) => {
       setRefreshing(true);
       try {
         const response = await fetch('/api/status',{ signal: controller.signal,cache: 'no-store' });
@@ -23,23 +25,23 @@ export default function CollectionStatus({ collectionDate, totalScanned }: { col
         if (controller.signal.aborted) return;
         setStatus(next); setStatusError('');
         const completed = next.collections.publications?.completedAt || '';
-        if (completed && completed !== lastCompleted.current) {
-          lastCompleted.current = completed; window.dispatchEvent(new Event('radar:refresh'));
-        }
+        const progress=next.executions.map(job => job.kind+':'+job.recordsReceived).join('|');
+        if (emitRefresh && hasLoaded.current && ((completed && completed !== lastCompleted.current) || progress!==lastProgress.current)) window.dispatchEvent(new Event('radar:refresh'));
+        lastCompleted.current=completed;lastProgress.current=progress;hasLoaded.current=true;
       } catch { if (!controller.signal.aborted) setStatusError('Não foi possível consultar o andamento da coleta. A data abaixo é a última confirmada.'); }
       finally { if (!controller.signal.aborted) setRefreshing(false); }
     };
     refresh.current = () => {
       requested.current = true; setManual(true); setNoticeError(false); setNotice('Recarregando os resultados e a situação da coleta…');
-      void load(); window.dispatchEvent(new Event('radar:refresh'));
+      void load(false); window.dispatchEvent(new Event('radar:refresh'));
     };
     const ready = (event: Event) => {
       if (!requested.current) return;
       requested.current = false; setManual(false);
-      const detail = (event as CustomEvent<{ fallback: boolean; count: number }>).detail;
-      setNoticeError(detail.fallback);
+      const detail = (event as CustomEvent<{ fallback: boolean; stale?: boolean; count: number }>).detail;
+      setNoticeError(detail.fallback || !!detail.stale);
       const time = new Date().toLocaleTimeString('pt-BR',{ hour: '2-digit',minute: '2-digit',timeZone:'America/Sao_Paulo' });
-      setNotice(detail.fallback ? 'O banco não respondeu. Mantivemos uma cópia histórica; tente recarregar novamente em instantes.' : `Resultados recarregados às ${time}: ${detail.count.toLocaleString('pt-BR')} oportunidades na seleção por produto. A data da base muda quando a coleta termina.`);
+      setNotice(detail.stale ? 'A atualização não foi concluída. Mantivemos as oportunidades que você já havia carregado.' : detail.fallback ? 'O banco não respondeu. Mantivemos uma cópia histórica; tente recarregar novamente em instantes.' : `Resultados recarregados às ${time}: ${detail.count.toLocaleString('pt-BR')} oportunidades na seleção por produto. A data da base muda quando a coleta termina.`);
     };
     const failed = () => { if (!requested.current) return; requested.current = false; setManual(false); setNoticeError(true); setNotice('Não foi possível recarregar os resultados. Tente novamente em instantes.'); };
     window.addEventListener('radar:catalog-ready',ready); window.addEventListener('radar:catalog-error',failed);

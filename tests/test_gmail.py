@@ -48,6 +48,11 @@ class GmailTests(unittest.TestCase):
         self.assertTrue(verify_gmail(factory=self.factory)['smtpAuthenticated'])
         self.smtp.send_message.assert_not_called()
 
+    def test_transport_check_reports_sending_disabled_without_sending(self):
+        with patch.dict(os.environ,{'RADAR_EMAIL_ENABLED':'0'}):
+            self.assertFalse(verify_gmail(factory=self.factory)['scheduledSendingEnabled'])
+        self.smtp.send_message.assert_not_called()
+
     def test_submission_port_requires_tls_before_use(self):
         with patch.dict(os.environ,{'RADAR_SMTP_PORT':'587'}):
             gmail_client(factory=self.factory)

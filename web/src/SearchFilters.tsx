@@ -1,30 +1,46 @@
-import { ChevronDown, Search, SlidersHorizontal, X } from 'lucide-react';
-import { type RefObject } from 'react';
+import { ChevronDown, LoaderCircle, Search, SlidersHorizontal, X } from 'lucide-react';
+import { useEffect, useMemo, type RefObject } from 'react';
 import { EMPTY_FILTERS, type Filters, type Row } from './opportunities';
 const DEADLINES: Record<string, string> = { any: 'Qualquer prazo', '7': 'Próximos 7 dias', '15': 'Próximos 15 dias', '30': 'Próximos 30 dias', unknown: 'Prazo não informado' };
-export default function SearchFilters({ filters, rows, onChange, open, onToggle, searchRef, total }: {
-  filters: Filters; rows: Row[]; onChange: (change: Partial<Filters>) => void; open: boolean; onToggle: () => void; searchRef: RefObject<HTMLInputElement | null>; total: number;
+export default function SearchFilters({ filters, rows, onChange, open, onToggle, searchRef, total, pending=false }: {
+  filters: Filters; rows: Row[]; onChange: (change: Partial<Filters>) => void; open: boolean; onToggle: () => void; searchRef: RefObject<HTMLInputElement | null>; total: number; pending?: boolean;
 }) {
+  const states=useMemo(() => [...new Set(rows.map(row => row.state).filter(Boolean))].sort().map(value => [value,value]),[rows]);
+  const modalities=useMemo(() => [...new Set(rows.map(row => row.modality).filter(Boolean))].sort().map(value => [value,value]),[rows]);
+  useEffect(() => {
+    const shortcut=(event: KeyboardEvent) => {
+      if (event.defaultPrevented || searchRef.current?.closest('[inert]')) return;
+      const editing=event.target instanceof Element && !!event.target.closest('input,textarea,select,[contenteditable="true"]');
+      if ((event.key==='/' && !editing) || (event.key.toLowerCase()==='k' && (event.ctrlKey || event.metaKey))) {
+        event.preventDefault();searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown',shortcut);
+    return () => window.removeEventListener('keydown',shortcut);
+  },[searchRef]);
   const active = (Object.keys(EMPTY_FILTERS) as (keyof Filters)[]).filter(key => filters[key] !== EMPTY_FILTERS[key]);
   const fields = [
     { key: 'product', label: 'Empresa', aria: 'Filtrar empresa', options: [['Todos','Todas as empresas'],['Public','Public'],['Gerico','Gerico']] },
-    { key: 'uf', label: 'Estado', aria: 'Filtrar estado', options: [['Todas','Todos os estados'], ...[...new Set(rows.map(row => row.state).filter(Boolean))].sort().map(value => [value,value])] },
+    { key: 'uf', label: 'Estado', aria: 'Filtrar estado', options: [['Todas','Todos os estados'], ...states] },
     { key: 'deadline', label: 'Encerramento', aria: 'Filtrar encerramento', options: Object.entries(DEADLINES) },
-    { key: 'modality', label: 'Modalidade', aria: 'Filtrar modalidade', options: [['Todas','Todas as modalidades'], ...[...new Set(rows.map(row => row.modality).filter(Boolean))].sort().map(value => [value,value])] },
+    { key: 'modality', label: 'Modalidade', aria: 'Filtrar modalidade', options: [['Todas','Todas as modalidades'], ...modalities] },
     { key: 'assessment', label: 'Avaliação', aria: 'Filtrar avaliação', options: [['any','Todas as avaliações'],['unreviewed','Ainda não avaliadas'],['reviewed','Já avaliadas']] },
   ] as const;
   const chip = (key: keyof Filters) => key === 'query' ? `Busca: ${filters.query}` : key === 'deadline' ? DEADLINES[filters.deadline] : key === 'assessment' ? filters.assessment === 'reviewed' ? 'Já avaliadas' : 'Ainda não avaliadas' : filters[key];
   return <div className="search-workbench">
-    <div className="search-tools"><label className="search-field"><Search size={20}/><input ref={searchRef} type="search" aria-label="Buscar licitações" placeholder="Busque termos do objeto, órgão, cidade ou número PNCP" value={filters.query} onChange={event => onChange({ query: event.target.value })}/>
+    <div className="search-tools"><label className="search-field"><Search size={20}/><input ref={searchRef} type="search" aria-label="Buscar licitações" aria-describedby="search-guidance" autoComplete="off" spellCheck={false} maxLength={240} placeholder="Objeto, órgão, cidade, UF ou número PNCP" value={filters.query} onChange={event => onChange({ query: event.target.value })}/>
+      {pending && <LoaderCircle className="spinning search-pending" size={16} aria-label="Atualizando busca"/>}
+      {!filters.query && <kbd className="search-shortcut" title="Pressione / ou Ctrl+K para buscar">/</kbd>}
       {filters.query && <button type="button" className="clear-search" aria-label="Limpar busca" onClick={() => { onChange({ query: '' }); searchRef.current?.focus(); }}><X size={17}/></button>}
     </label><button className="filter-toggle secondary-button" onClick={onToggle} aria-expanded={open} aria-controls="advanced-filters"><SlidersHorizontal size={17}/> Refinar busca{active.length > 0 && <span className="filter-count">{active.length}</span>}</button></div>
-    <p className="search-help">Combine palavras em qualquer ordem. A busca inclui objeto, informações complementares e órgão.</p>
+    <p id="search-guidance" className="search-help">Combine palavras, use <b>"aspas"</b> para uma expressão exata e <b>-palavra</b> para excluir. Acentos não alteram a busca.</p>
+    <div className="search-suggestions" aria-label="Sugestões de busca"><span>Experimente</span>{['TI','EAD','"apoio administrativo"','capacitação'].map(query => <button key={query} type="button" onClick={() => { onChange({query});searchRef.current?.focus(); }}>{query.replaceAll('"','')}</button>)}</div>
     <div id="advanced-filters" className={'advanced-filters' + (open ? ' filters-open' : '')}>{fields.map(field => <label className="filter-field" key={field.key}>
       <span>{field.label}</span><span className="select-surface"><select aria-label={field.aria} value={filters[field.key]} onChange={event => onChange({ [field.key]: event.target.value })}>
         {field.options.map(([value,label]) => <option key={value} value={value}>{label}</option>)}
       </select><ChevronDown size={16} aria-hidden="true"/></span>
     </label>)}</div>
-    <div className="active-filters"><span className="result-summary" role="status" aria-live="polite">{total} {total === 1 ? 'licitação nesta lista' : 'licitações nesta lista'}</span>
+    <div className="active-filters"><span className="result-summary" role="status" aria-live="polite">{pending ? 'Atualizando resultados…' : `${total} ${total===1?'licitação nesta lista':'licitações nesta lista'}`}</span>
       {active.map(key => <button key={key} className="filter-chip" aria-label={'Remover filtro de ' + ({ product: 'empresa', uf: 'estado', query: 'busca', deadline: 'encerramento', modality: 'modalidade', assessment: 'avaliação' }[key])} onClick={() => onChange({ [key]: EMPTY_FILTERS[key] })}>{chip(key)}<X size={13}/></button>)}
       {!!active.length && <button className="reset-filters" onClick={() => onChange(EMPTY_FILTERS)}>Limpar filtros</button>}
     </div>

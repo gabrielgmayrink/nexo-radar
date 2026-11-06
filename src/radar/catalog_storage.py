@@ -59,13 +59,16 @@ def load_database_catalog(snapshot: dict, *, opener=urlopen) -> dict:
     cards=[]
     cutoff=(datetime.now(TZ).date()-timedelta(days=29)).isoformat()
     for offset in range(0,10000,500):
-        data=database_get('radar_opportunities?select=payload,card&score=gte.40&order=id.asc&offset='+str(offset)+'&limit=500',opener=opener)
+        data=database_get('radar_opportunities?select=card&score=gte.40&order=id.asc&offset='+str(offset)+'&limit=500',opener=opener)
         for item in data:
-            if not isinstance(item,dict) or not isinstance(item.get('payload'),dict) or not item['payload'].get('numeroControlePNCP'):
+            if not isinstance(item,dict):raise ValueError('Invalid procurement record')
+            card=item.get('card')
+            if not card and isinstance(item.get('payload'),dict):card=to_card(item['payload'])
+            if not isinstance(card,dict) or not card.get('id'):
                 raise ValueError('Invalid procurement record')
-            card=item.get('card') or to_card(item['payload'])
             in_window=not card.get('publishedAt') or card['publishedAt'][:10]>=cutoff
-            still_open=procurement_state(item['payload']) in ('Recebendo propostas','A receber propostas')
+            still_open=procurement_state({'situacaoCompraId':card.get('statusId'),'tipoInstrumentoConvocatorioCodigo':card.get('instrumentId'),
+                                         'dataEncerramentoProposta':card.get('proposalDeadline'),'dataAberturaProposta':card.get('proposalStart')}) in ('Recebendo propostas','A receber propostas')
             if card['score']>=40 and (in_window or still_open):cards.append(card)
         if len(data)<500:break
     else:raise ValueError('Database page budget exceeded')

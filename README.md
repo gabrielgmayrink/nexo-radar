@@ -46,6 +46,8 @@ Veja [docs/instalacao.md](docs/instalacao.md) para configurar banco, autenticaç
 
 ## Verificação
 
+Busca por frases e exclusões, atalhos, paginação e detalhes de desempenho estão em [busca e desempenho](docs/busca-e-desempenho.md).
+
 ```powershell
 $env:PYTHONPATH='src'
 python -m unittest discover -s tests -v
