@@ -10,6 +10,20 @@ async function api(path,options={}){return fetch('https://api.github.com'+path,{
 (async()=>{
   const identity=await api('/user');if(!identity.ok||(await identity.json()).login.toLowerCase()!==owner)throw Error('Unexpected GitHub identity');
   const mode=process.argv[2]||'configure';
+  if(mode==='status'){
+    const response=await api(base+'/actions/runs?per_page=8');if(!response.ok)throw Error('Cannot read job status');
+    const runs=(await response.json()).workflow_runs;
+    console.log(JSON.stringify({runs:runs.map(run=>({id:run.id,name:run.name,event:run.event,status:run.status,conclusion:run.conclusion,commit:run.head_sha,url:run.html_url}))}));
+    const verification=runs.find(run=>run.name==='Notify Radar'&&run.event==='workflow_dispatch');
+    if(verification&&verification.status==='completed'){
+      const jobs=await api(base+'/actions/runs/'+verification.id+'/jobs');
+      if(jobs.ok)for(const job of (await jobs.json()).jobs){
+        const logs=await api(base+'/actions/jobs/'+job.id+'/logs');
+        if(logs.ok){const selected=(await logs.text()).split('\n').filter(line=>/smtpAuthenticated|emailSent|notification_failed|Process completed/.test(line));console.log(JSON.stringify({verificationLog:selected}));}
+      }
+    }
+    return;
+  }
   if(mode==='configure'){
     for(const [name,value] of Object.entries({RADAR_APP_URL:'https://nexo-radar-taupe.vercel.app',RADAR_COLLECTION_ENABLED:'1',RADAR_EMAIL_ENABLED:'0'})){
       const current=await api(base+'/actions/variables/'+name);

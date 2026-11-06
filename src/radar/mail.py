@@ -138,6 +138,13 @@ def verify_gmail(*,factory=None):
     username=os.environ.get('SMTP_USERNAME','').strip().lower()
     if not EMAIL_PATTERN.fullmatch(username) or not username.endswith('@gmail.com') or not os.environ.get('SMTP_APP_PASSWORD'):
         raise MailUnavailable('Gmail is not configured')
-    with gmail_client(factory=factory) as smtp:
-        smtp.login(username,os.environ['SMTP_APP_PASSWORD'].replace(' ',''))
+    stage='connecting'
+    try:
+        with gmail_client(factory=factory) as smtp:
+            stage='authenticating'
+            smtp.login(username,os.environ['SMTP_APP_PASSWORD'].replace(' ',''))
+            stage='disconnecting'
+    except Exception as exc:
+        print(json.dumps({'event':'smtp_check_failed','stage':stage,'errorType':type(exc).__name__}))
+        raise
     return {'smtpAuthenticated':True,'emailSent':False}
