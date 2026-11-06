@@ -129,13 +129,27 @@ class SyncTests(unittest.TestCase):
         self.assertGreater(second['retryAfterSeconds'],0)
 
     def test_repeated_origin_failures_increase_wait_and_success_resets_it(self):
-        store=MemoryStore()
+        store=MemoryStore();store.cursor=upgrade_cursor(initial_cursor('open',date(2026,11,5)))
+        store.cursor['pending_tasks']=store.cursor['pending_tasks'][:1]
         first=run_chunk(store,run_key='1',client=Client([PNCPError('timeout')]))
         self.assertGreaterEqual(first['retryAfterSeconds'],13)
         store.cursor.pop('next_attempt_at',None)
+        store.cursor['pending_tasks'][0].pop('next_attempt_at',None)
         second=run_chunk(store,run_key='2',client=Client([PNCPError('timeout')]))
         self.assertGreaterEqual(second['retryAfterSeconds'],28)
         self.assertEqual(store.cursor['consecutive_errors'],2)
         store.cursor.pop('next_attempt_at',None)
+        store.cursor['pending_tasks'][0].pop('next_attempt_at',None)
         run_chunk(store,run_key='3',client=Client([{'data':[]}]),max_pages=1)
         self.assertEqual(store.cursor['consecutive_errors'],0)
+
+    def test_timeout_preserves_failed_page_and_allows_other_modalities(self):
+        store=MemoryStore()
+        first=run_chunk(store,'open',run_key='1',client=Client([PNCPError('timeout')]))
+        self.assertEqual(first['status'],'running')
+        self.assertEqual(first['retryAfterSeconds'],0)
+        self.assertEqual(store.cursor['pending_tasks'][-1]['modality'],9)
+        self.assertEqual(store.cursor['pending_tasks'][-1]['page'],1)
+        healthy=Client([{'data':[]}])
+        run_chunk(store,'open',run_key='2',client=healthy,max_pages=1)
+        self.assertEqual(healthy.queries[0][1]['codigoModalidadeContratacao'],6)

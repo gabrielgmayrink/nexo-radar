@@ -55,3 +55,9 @@ class NotificationFlowTests(unittest.TestCase):
             result=notify(self.database(),'weekly',now=self.now,fetcher=lambda _:self.raw,writer=Mock(),sender=sender,dry_run=True)
         self.assertTrue(result['dryRun']);self.assertEqual(result['sent'],0);self.assertEqual(result['verified'],1)
         sender.assert_not_called();reserve.assert_not_called()
+
+    def test_each_digest_is_built_for_only_its_recipient_company(self):
+        with patch.dict('os.environ',{'RADAR_TEAM_EMAILS':'public@example.com,gerico@example.com','RADAR_NOTIFY_EMAILS':'public@example.com,gerico@example.com'}),patch('radar.notifications.memberships',side_effect=lambda db,email:[email.split('@')[0]]),patch('radar.notifications.load_profiles',return_value=[{'id':'public','enabled':True},{'id':'gerico','enabled':True}]),patch('radar.notifications._notify_company',return_value={'sent':1}) as scoped:
+            result=notify(self.database(),'weekly',now=self.now,sender=Mock())
+        self.assertEqual(result['sent'],2)
+        self.assertEqual({call.args[2]:call.args[3] for call in scoped.call_args_list},{'public':{'public@example.com'},'gerico':{'gerico@example.com'}})

@@ -16,6 +16,7 @@ def run():
     try:
         if '--wait' in sys.argv:
             store.db.execute("set statement_timeout='220s'")
+            store.db.execute("set lock_timeout='210s'")
             store.db.execute('select pg_advisory_lock(%s)',(LOCK_ID,))
         elif not store.acquire():return {'busy':True}
         updated=0;last=''

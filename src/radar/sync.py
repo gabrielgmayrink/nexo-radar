@@ -52,6 +52,19 @@ def upgrade_cursor(cursor):
             'fingerprints': tasks[0]['fingerprints'] if tasks else []}
 
 
+def ready_cursor(cursor):
+    """A timeout in one modality must not block all other sources."""
+    now=datetime.now(timezone.utc)
+    ready=[];waiting=[]
+    for task in pending_tasks(cursor):
+        retry=task.get('next_attempt_at')
+        (waiting if retry and datetime.fromisoformat(retry)>now else ready).append(task)
+    cursor=upgrade_cursor({**cursor,'pending_tasks':ready+waiting})
+    if ready:cursor.pop('next_attempt_at',None)
+    elif waiting:cursor['next_attempt_at']=min(task['next_attempt_at'] for task in waiting)
+    return cursor
+
+
 def page_query(cursor):
     task = pending_tasks(cursor)[0]
     mode, modality = task['mode'], task['modality']
@@ -131,6 +144,9 @@ def run_chunk(store, kind='incremental', *, run_key, execution_id=None, client=N
                 break
             if cursor['partition'] >= len(partitions(kind)):
                 break
+            cursor=ready_cursor(cursor)
+            if public_progress(cursor,execution_id)['retryAfterSeconds']>0:
+                break
             mode, modality, params = page_query(cursor)
             metrics = CollectionMetrics()
             try:
@@ -153,6 +169,11 @@ def run_chunk(store, kind='incremental', *, run_key, execution_id=None, client=N
                 delay=max(base,min(base*2**min(cursor['consecutive_errors']-1,6),1800))
                 if label=='storage_guard':delay=21600
                 cursor['next_attempt_at']=(datetime.now(timezone.utc)+timedelta(seconds=delay)).isoformat()
+                if label in ('timeout','erro_transporte'):
+                    tasks=pending_tasks(cursor)
+                    failed={**tasks[0],'next_attempt_at':cursor['next_attempt_at']}
+                    cursor=ready_cursor({**cursor,'pending_tasks':tasks[1:]+[failed]})
+                    if not cursor.get('next_attempt_at'):cursor['status']='running'
                 store.save_failure(execution_id, kind, cursor)
                 return public_progress(cursor, execution_id)
         if cursor['partition'] >= len(partitions(kind)):

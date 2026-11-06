@@ -124,8 +124,8 @@ class PostgresStore:
     def save_failure(self, execution_id, kind, cursor):
         with self.db.transaction():
             self._checkpoint(kind, cursor)
-            self.db.execute("update radar_executions set status='partial',metrics=%s where id=%s",
-                            (Jsonb(public_progress(cursor, execution_id)), execution_id))
+            self.db.execute("update radar_executions set status=%s,metrics=%s where id=%s",
+                            (cursor['status'],Jsonb(public_progress(cursor, execution_id)), execution_id))
 
     def complete(self, execution_id, kind, cursor):
         with self.db.transaction():
