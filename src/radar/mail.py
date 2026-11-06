@@ -108,7 +108,7 @@ def send_gmail(db,identifier,recipient,subject,html,text,sender,reply,address,*,
     message.set_content(text);message.add_alternative(html,subtype='html')
     try:
         with gmail_client(factory=factory) as smtp:
-            smtp.login(username,os.environ['SMTP_APP_PASSWORD'].replace(' ',''))
+            gmail_authenticate(smtp,username,os.environ['SMTP_APP_PASSWORD'])
             refused=smtp.send_message(message)
             if refused:raise MailUnavailable('Gmail refused recipient')
         provider_id=str(message['Message-ID'])
@@ -134,6 +134,18 @@ def gmail_client(*,factory=None):
         smtp.close();raise
 
 
+def gmail_authenticate(smtp,username,password):
+    # Use the advertised LOGIN challenge rather than sending an initial SASL
+    # response. Some Google gateways close the latter without a reply.
+    password=password.replace(' ','').strip()
+    smtp.ehlo_or_helo_if_needed()
+    methods=str(smtp.esmtp_features.get('auth','')).upper().split()
+    if 'LOGIN' in methods:
+        smtp.user=username;smtp.password=password
+        return smtp.auth('LOGIN',smtp.auth_login,initial_response_ok=False)
+    return smtp.login(username,password,initial_response_ok=False)
+
+
 def verify_gmail(*,factory=None):
     username=os.environ.get('SMTP_USERNAME','').strip().lower()
     if not EMAIL_PATTERN.fullmatch(username) or not username.endswith('@gmail.com') or not os.environ.get('SMTP_APP_PASSWORD'):
@@ -142,7 +154,7 @@ def verify_gmail(*,factory=None):
     try:
         with gmail_client(factory=factory) as smtp:
             stage='authenticating'
-            smtp.login(username,os.environ['SMTP_APP_PASSWORD'].replace(' ',''))
+            gmail_authenticate(smtp,username,os.environ['SMTP_APP_PASSWORD'])
             stage='disconnecting'
     except Exception as exc:
         print(json.dumps({'event':'smtp_check_failed','stage':stage,'errorType':type(exc).__name__}))

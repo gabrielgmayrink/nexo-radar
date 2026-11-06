@@ -3,7 +3,7 @@ import smtplib
 import unittest
 import uuid
 from unittest.mock import MagicMock,patch
-from radar.mail import send_reserved,verify_gmail,gmail_client,MailUnavailable
+from radar.mail import send_reserved,verify_gmail,gmail_client,gmail_authenticate,MailUnavailable
 
 
 class GmailTests(unittest.TestCase):
@@ -55,3 +55,9 @@ class GmailTests(unittest.TestCase):
         self.assertEqual(self.factory.call_args.args,('smtp.gmail.com',587))
         self.assertTrue(client.starttls.call_args.kwargs['context'].check_hostname)
         self.assertEqual(client.ehlo.call_count,2)
+
+    def test_advertised_login_challenge_avoids_initial_response(self):
+        smtp=MagicMock();smtp.esmtp_features={'auth':'LOGIN PLAIN'}
+        gmail_authenticate(smtp,'sender@gmail.com','test-only')
+        smtp.auth.assert_called_once_with('LOGIN',smtp.auth_login,initial_response_ok=False)
+        smtp.login.assert_not_called()
