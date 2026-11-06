@@ -18,7 +18,7 @@ export default function TeamAccess({ enabled, email, reload }: {
     try {
       const result = await teamRequest({ action: kind, token });
       if (kind === 'confirm_login') { pendingToken = ''; clearLoginToken(); setToken(''); setOpen(false); await reload(); }
-      else if (kind === 'logout') { await reload(); setOpen(false); }
+      else if (kind === 'logout') { Object.keys(sessionStorage).filter(key=>key.startsWith('nexo-radar-drafts:')).forEach(key=>sessionStorage.removeItem(key)); await reload(); setOpen(false); }
       else setMessage(result.message);
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Tente novamente.'); }
     finally { setBusy(false); }

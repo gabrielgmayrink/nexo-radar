@@ -23,6 +23,7 @@ class NotificationFlowTests(unittest.TestCase):
 
     def database(self,handled=0):
         def execute(sql,*args):
+            if 'radar_memberships' in sql:return SimpleNamespace(fetchall=lambda:[('public',)])
             if 'radar_mail_outbox' in sql:return SimpleNamespace(fetchone=lambda:(handled,))
             if 'radar_catalog_state' in sql:return SimpleNamespace(fetchone=lambda:({'completedAt':(self.now-timedelta(days=10)).isoformat()},))
             if 'radar_opportunities o' in sql:return SimpleNamespace(fetchall=lambda:[(to_card(self.raw),None,None)])

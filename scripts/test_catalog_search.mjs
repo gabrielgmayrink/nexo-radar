@@ -13,7 +13,7 @@ const fixture={collectionDate:'2026-11-06',metrics:{unique:125,candidates:125,di
 let calls=0,time=0,offline=false;
 const load=createCatalogLoader(async url=>{
   calls++;
-  assert.equal(url,'/api/opportunities?bulk=1');
+  assert.equal(url,'/api/opportunities?bulk=1&company=public');
   return new Response(JSON.stringify(offline?{error:'offline'}:fixture),{status:offline?503:200});
 },()=>time);
 assert.equal((await load(new AbortController().signal)).opportunities.length,125);
@@ -30,8 +30,14 @@ const fallback=createCatalogLoader(async url=>{
   fallbackCalls++;
   return new Response(JSON.stringify(url.startsWith('/api/')?{...fixture,total:999}:{...fixture,total:125}));
 });
-assert.equal((await fallback(new AbortController().signal)).fallback,true);
-assert.equal(fallbackCalls,2);
+await assert.rejects(fallback(new AbortController().signal),/não foi recebido por completo/);
+assert.equal(fallbackCalls,1);
+let deny=false;
+const privateLoader=createCatalogLoader(async()=>new Response(JSON.stringify(fixture),{status:deny?403:200}));
+await privateLoader(new AbortController().signal,false,'public');
+deny=true;
+await assert.rejects(privateLoader(new AbortController().signal,true,'public'),/conta autorizada/);
+await assert.rejects(privateLoader(new AbortController().signal,false,'gerico'),/conta autorizada/);
 console.log(JSON.stringify({searchPhrases:true,exclusions:true,acronyms:true,oneCatalogRequest:true,memoryCache:true,failedRefreshKeepsResults:true,abortDoesNotFetch:true,incompleteCatalogDetected:true}));
 
 if (process.argv.includes('--benchmark')) {

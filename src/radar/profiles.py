@@ -18,4 +18,10 @@ def load_profiles():
                 raise ValueError('Invalid company criteria')
         if company['enabled'] and (not company['services'] or not company['terms']):
             raise ValueError('Enabled companies require services and search phrases')
+        for group in company.get('reviewGroups',[]):
+            if not isinstance(group,dict) or not isinstance(group.get('label'),str) or not group['label'].strip():
+                raise ValueError('Invalid review group')
+            for field in ('subjects','contexts'):
+                if not isinstance(group.get(field),list) or not group[field] or any(not isinstance(term,str) or not term.strip() for term in group[field]):
+                    raise ValueError('Invalid review group criteria')
     return companies

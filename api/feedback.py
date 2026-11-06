@@ -7,6 +7,7 @@ from urllib.parse import parse_qs,urlparse
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError,URLError
 from radar.feedback_security import verify_feedback, InvalidFeedbackToken
+from radar.company_access import request_access,AccessDenied
 
 
 def configured():
@@ -55,9 +56,13 @@ class handler(BaseHTTPRequestHandler):
         except InvalidFeedbackToken:
             self.respond(403,{'error':'Link inválido ou expirado'});return
         try:
+            _,company,_=request_access(self.headers.get('Cookie'))
+            if claims['product_id']!=company:raise AccessDenied()
             if write:save_feedback(claims)
             self.respond(200,{'saved':write,'opportunityId':claims['opportunity_id'],'productId':claims['product_id'],'label':claims['label']})
-        except (HTTPError,URLError,OSError,ValueError):
+        except AccessDenied as exc:
+            self.respond(exc.status,{'error':str(exc)})
+        except Exception:
             self.respond(502,{'error':'Não foi possível salvar. Tente novamente.'})
 
     def respond(self,status,payload):

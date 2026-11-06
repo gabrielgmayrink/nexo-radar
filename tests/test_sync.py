@@ -2,7 +2,7 @@ import copy
 import unittest
 from datetime import date,datetime,timedelta,timezone
 from radar.pncp import PNCPError,RequestMetric
-from radar.sync import initial_cursor,page_query,run_chunk,partitions
+from radar.sync import initial_cursor,page_query,run_chunk,partitions,upgrade_cursor
 
 
 class MemoryStore:
@@ -35,7 +35,9 @@ class SyncTests(unittest.TestCase):
     def test_backfill_covers_thirty_days_and_open_uses_future_horizon(self):
         cursor=initial_cursor('backfill',date(2026,11,5))
         self.assertEqual(cursor['start'],'2026-10-07')
-        self.assertEqual(len(partitions('backfill')),20)
+        self.assertEqual(len(partitions('backfill')),33)
+        self.assertIn(('publicacao',9),partitions('backfill'))
+        self.assertIn(('proposta',9),partitions('backfill'))
         self.assertEqual(page_query(cursor)[2]['dataFinal'],'20261105')
         query=page_query(initial_cursor('open',date(2026,11,5)))[2]
         self.assertEqual(query['dataFinal'],'20271105')
@@ -46,18 +48,22 @@ class SyncTests(unittest.TestCase):
         store=MemoryStore()
         first=run_chunk(store,run_key='1',today=date(2026,11,5),client=Client([
             {'data':records,'totalPaginas':2},PNCPError('http_503')]),max_pages=2)
-        self.assertEqual(first['status'],'partial');self.assertEqual(store.cursor['page'],2)
+        self.assertEqual(first['status'],'partial')
+        self.assertEqual(store.cursor['pending_tasks'][-1]['page'],2)
         store.cursor.pop('next_attempt_at',None)
         client=Client([{'data':[{'numeroControlePNCP':'final'}],'totalPaginas':2}])
         result=run_chunk(store,run_key='2',execution_id=1,client=client,max_pages=1)
-        self.assertEqual(client.queries[0][1]['pagina'],2)
+        self.assertEqual(client.queries[0][1]['codigoModalidadeContratacao'],6)
+        self.assertEqual(client.queries[0][1]['pagina'],1)
         self.assertEqual(result['recordsReceived'],51)
-        self.assertEqual(len(store.rows),51);self.assertEqual(store.cursor['partition'],1)
+        self.assertEqual(len(store.rows),51)
 
     def test_repeated_page_does_not_advance_cursor(self):
         data={'data':[{'numeroControlePNCP':str(i)} for i in range(50)],'totalPaginas':3}
         store=MemoryStore()
-        result=run_chunk(store,run_key='1',client=Client([data,data]),max_pages=2)
+        store.cursor=upgrade_cursor(initial_cursor('open',date(2026,11,5)))
+        store.cursor['pending_tasks']=store.cursor['pending_tasks'][:1]
+        result=run_chunk(store,'open',run_key='1',client=Client([data,data]),max_pages=2)
         self.assertEqual(result['status'],'partial')
         self.assertEqual(store.cursor['page'],2);self.assertEqual(len(store.rows),50)
 
@@ -81,8 +87,28 @@ class SyncTests(unittest.TestCase):
 
     def test_all_partitions_complete_before_success(self):
         store=MemoryStore()
-        result=run_chunk(store,'open',run_key='1',client=Client([{'data':[]}]*10))
-        self.assertTrue(result['done']);self.assertEqual(store.cursor['partition'],10)
+        total=len(partitions('open'))
+        result=run_chunk(store,'open',run_key='1',client=Client([{'data':[]}]*total))
+        self.assertTrue(result['done']);self.assertEqual(store.cursor['partition'],total)
+
+    def test_round_robin_reaches_each_modality_before_a_second_page(self):
+        store=MemoryStore()
+        total=len(partitions('open'))
+        data={'data':[{'numeroControlePNCP':'sample'}],'totalPaginas':3}
+        client=Client([data]*(total+1))
+        run_chunk(store,'open',run_key='1',client=client,max_pages=total+1)
+        self.assertEqual([q[1]['codigoModalidadeContratacao'] for q in client.queries[:total]], [m for _,m in partitions('open')])
+        self.assertEqual(client.queries[-1][1]['pagina'],2)
+
+    def test_legacy_checkpoint_retains_page_and_fingerprint_after_upgrade(self):
+        cursor=initial_cursor('incremental',date(2026,11,5))
+        cursor.update(partition=0,page=29,fingerprints=['saved'],pages=28,received=1400)
+        updated=upgrade_cursor(cursor)
+        task=next(t for t in updated['pending_tasks'] if t['mode']=='publicacao' and t['modality']==6)
+        self.assertEqual(task['page'],29)
+        self.assertEqual(task['fingerprints'],['saved'])
+        self.assertEqual(updated['received'],1400)
+        self.assertEqual(page_query(updated)[1],9)
 
     def test_concurrent_batch_is_rejected_without_accessing_provider(self):
         store=MemoryStore();store.locked=True

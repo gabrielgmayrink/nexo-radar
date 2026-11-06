@@ -11,6 +11,9 @@ IDENTIFIER = '48031918000124-1-002720/2026'
 
 
 class FeedbackTests(unittest.TestCase):
+    def setUp(self):
+        item=patch('api.feedback.request_access',return_value=('member@example.com','public',['public']));item.start();self.addCleanup(item.stop)
+
     def test_signature_expiry_and_tampering(self):
         token=sign_feedback(IDENTIFIER,'public','irrelevante',SECRET,now=100,ttl=60)
         self.assertEqual(verify_feedback(token,SECRET,now=159)['label'],'irrelevante')
@@ -26,7 +29,8 @@ class FeedbackTests(unittest.TestCase):
 
     def test_get_validates_without_writing(self):
         token=sign_feedback(IDENTIFIER,'public','irrelevante',SECRET)
-        instance=object.__new__(handler); instance.path='/api/feedback?token='+token
+        instance=object.__new__(handler); instance.headers={}
+        instance.path='/api/feedback?token='+token
         result=[];instance.respond=lambda code,body:result.append((code,body))
         with patch.dict(os.environ,{'RADAR_SHARED_FEEDBACK_ENABLED':'1','SUPABASE_URL':'https://unit-test.supabase.co','SUPABASE_SECRET_KEY':'unit-test-only','FEEDBACK_SIGNING_SECRET':SECRET}),patch('api.feedback.save_feedback') as save:
             instance.do_GET()
@@ -42,13 +46,15 @@ class FeedbackTests(unittest.TestCase):
             instance.do_POST();save.assert_not_called();self.assertEqual(result[0][0],403)
 
     def test_no_configuration_makes_no_external_request(self):
-        instance=object.__new__(handler);instance.path='/api/feedback?token=anything'
+        instance=object.__new__(handler);instance.headers={}
+        instance.path='/api/feedback?token=anything'
         result=[];instance.respond=lambda code,body:result.append(code)
         with patch.dict(os.environ,{},clear=True),patch('api.feedback.save_feedback') as save:
             instance.do_GET();save.assert_not_called();self.assertEqual(result,[503])
 
     def test_credentials_alone_do_not_enable_feedback(self):
-        instance=object.__new__(handler);instance.path='/api/feedback?token=anything'
+        instance=object.__new__(handler);instance.headers={}
+        instance.path='/api/feedback?token=anything'
         result=[];instance.respond=lambda code,body:result.append(code)
         with patch.dict(os.environ,{'SUPABASE_URL':'https://unit-test.supabase.co','SUPABASE_SECRET_KEY':'unit-test-only','FEEDBACK_SIGNING_SECRET':SECRET},clear=True),patch('api.feedback.save_feedback') as save:
             instance.do_GET();save.assert_not_called();self.assertEqual(result,[503])

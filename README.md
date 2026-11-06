@@ -6,13 +6,13 @@ Repositório privado: https://github.com/gabrielgmayrink/nexo-radar.
 
 ## Estado inicial
 
-O painel mantém listas, filtros, detalhes, exportação CSV, rascunhos locais e a estrutura de avaliação da equipe. A Public já tem critérios configurados para assessoria administrativa e de gestão, capacitação, EAD e desenvolvimento de sistemas/TI. O perfil do Gerico continua desativado até receber seus serviços. O catálogo começa vazio, aguardando a primeira coleta; a base, os exemplos e as credenciais anteriores não foram copiados.
+O painel mantém listas, filtros, detalhes, exportação CSV, rascunhos locais e a estrutura de avaliação da equipe. A Public já tem critérios configurados para assessoria administrativa e de gestão, capacitação e EAD. O perfil do Gerico continua desativado até receber seus serviços. O catálogo começa vazio, aguardando a primeira coleta; a base, os exemplos e as credenciais anteriores não foram copiados.
 
 Empresas desativadas não recebem sugestões. Banco compartilhado e login usam um projeto Supabase independente. O acesso principal usa e-mail e senha, com convite pessoal para o primeiro acesso. O Gmail da plataforma envia resumos aos destinatários autorizados quando o envio estiver habilitado. A IA paga está desligada.
 
 ## Identidade visual
 
-Marca: **Nexo Radar**. Logo vetorial em `web/public/brand/nexo-logo.svg` e símbolo em `web/public/brand/nexo-symbol.svg`. O login utiliza a versão 3D `web/public/brand/nexo-symbol-3d.png`. Paleta: azul profundo `#0D1930`, azul `#286BED`, ciano `#42E8E0` e violeta `#8362FF`. Veja [identidade e interface](docs/identidade-e-interface.md) para os componentes React Bits e o prompt da imagem.
+Marca: **Nexo Radar**. Logo vetorial em `web/public/brand/nexo-logo.svg` e símbolo em `web/public/brand/nexo-symbol.svg`. O login utiliza a versão 3D `web/public/brand/nexo-symbol-3d.png`. Paleta: grafite `#202823`, verde fechado `#315C43`, fundos neutros `#F5F5F2` e texto `#202923`. As cores são centralizadas em `web/src/theme.css`. Veja [identidade e interface](docs/identidade-e-interface.md) para os componentes React Bits e o prompt da imagem.
 
 ## Executar
 
@@ -56,3 +56,7 @@ node scripts/test_search_logic.mjs
 ```
 
 Os perfis em `tests/profile_fixtures.py` são exemplos sintéticos exclusivos dos testes. Não descrevem os serviços reais das empresas.
+
+## Acesso por empresa e cobertura
+
+O painel exige autenticação. Public e Gerico têm contas, consultas, avaliações, exemplos e resumos separados no servidor. Apenas a administração tem vínculo com as duas empresas. Veja [isolamento e coleta](docs/isolamento-e-coleta.md).

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <defs><linearGradient id="nexo" x1="14" y1="16" x2="50" y2="49" gradientUnits="userSpaceOnUse"><stop stop-color="#42E8E0"/><stop offset=".48" stop-color="#3A9DFF"/><stop offset="1" stop-color="#8362FF"/></linearGradient></defs>
-  <rect width="64" height="64" rx="18" fill="#0D1930"/>
+  <defs><linearGradient id="nexo" x1="14" y1="16" x2="50" y2="49" gradientUnits="userSpaceOnUse"><stop stop-color="#C2D1AE"/><stop offset=".48" stop-color="#90A77B"/><stop offset="1" stop-color="#607F5F"/></linearGradient></defs>
+  <rect width="64" height="64" rx="18" fill="#202823"/>
   <path d="M16 46V18h8l16 19V18h8v28h-8L24 27v19z" fill="url(#nexo)"/>
-  <circle cx="49" cy="15" r="5" fill="#42E8E0" stroke="#0D1930" stroke-width="3"/>
+  <circle cx="49" cy="15" r="5" fill="#C2D1AE" stroke="#202823" stroke-width="3"/>
 </svg>

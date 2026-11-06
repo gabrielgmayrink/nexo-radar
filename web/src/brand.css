@@ -1,10 +1,118 @@
-/* Nexo Radar identity: midnight blue, electric blue, cyan and violet. */
-:root{color:#243550;background:#f4f7fc;--nexo-navy:#0d1930;--nexo-blue:#286bed;--nexo-cyan:#42e8e0;--nexo-violet:#8362ff}
-body{background:#f4f7fc}.radar-app .rail{background:#0d1930;border-color:#1c2d48;color:#a8b9d3}.rail .brand-wordmark{color:#f4f8ff}.rail .brand-wordmark small{color:#829dbd;letter-spacing:4px}.rail .brand-period{color:#42e8e0}.radar-app .rail .nav-caption{color:#8297b5}.radar-app .rail-link{color:#b0bfd6}.radar-app .rail-link>span{color:inherit}.radar-app .rail-link.chosen,.radar-app .rail-link.product-selected{background:#193052;color:#73dbef}.radar-app .rail-link.chosen:before{background:#42e8e0}.radar-app .rail-link:hover{background:#172941;color:#e7f2ff}.radar-app .nav-count{background:#233b5c;color:#b9cbe4}.radar-app .collapse-button,.radar-app .mobile-close{color:#9bb2d1;border-color:#263b59}.radar-app .rail-footer{background:#12223b;border-color:#203754;color:#a7bbd7}.radar-app .rail-footer b,.radar-app .rail-footer a{color:#6fdce4}.radar-app .rail-footer p{color:#9eb0c9}.radar-app .product-nav-icon.purple{background:#233e66;color:#70beff}.radar-app .product-nav-icon.mint{background:#302d5c;color:#b6a5ff}
-.radar-app .workspace-header{border-color:#dce4f1}.radar-app .snapshot-label{background:#edf3ff;color:#476991;border-color:#d7e3f7}.radar-app .heading-row h1,.radar-app .results-title h2,.radar-app .stat>strong{color:#172c4f}.radar-app .heading-row h1 em{font-family:inherit;font-style:normal;color:#286bed}.radar-app .overline{color:#5272a1}.radar-app .heading-row p,.radar-app .view-description{color:#667a98}.radar-app .primary-button{background:#286bed;border-color:#286bed;color:#fff;box-shadow:0 5px 13px #286bed16}.radar-app .primary-button:hover{background:#1956c7;border-color:#1956c7}.radar-app .secondary-button{color:#365984;border-color:#d4dff0;background:#fff}.radar-app .company-setup{background:linear-gradient(120deg,#edf4ff,#fff 75%);border-color:#d6e2f6}.radar-app .company-setup-heading{color:#286bed}.radar-app .company-setup h2{color:#1b355b}.radar-app .company-setup p{color:#617493}.radar-app .company-profile{border-color:#dbe5f4;background:#fff}.radar-app .company-profile h3{color:#203858}.radar-app .company-next-step{border-color:#dce5f3}.radar-app .profile-ready{background:#e7f5fb;color:#24728d}.radar-app .profile-pending{background:#f0edff;color:#715ba3}.radar-app .stat{border-color:#dfe7f2}.radar-app .stat-top i{color:#4778c0;background:#edf3ff}.radar-app .stat.is-selected{border-color:#9ebeed;background:#f3f7ff}.radar-app .tender-card{border-color:#dfe7f3}.radar-app .tender-card:hover{border-color:#a7c2eb}.radar-app .tender-object{color:#243d62}.radar-app .tender-object:hover{color:#286bed}.radar-app .product-pill.purple{background:#eaf3ff;color:#2e74bf}.radar-app .product-pill.mint{background:#f0ecff;color:#7b5ec4}.radar-app .signal-box{background:#f4f7fc;border-color:#e7edf7;color:#607c9f}.radar-app .rule-score,.radar-app .tender-bottom button{color:#3d72b8}.radar-app .search-field,.radar-app .filter-field .select-surface{border-color:#d8e3f2}.radar-app .zero-state{color:#7385a1}.radar-app .zero-state h3{color:#2b456a}.radar-app .workspace-footer{border-color:#dce5f1;color:#7b8eab}.detail-panel h2,.detail-panel h3{color:#213c63}.detail-panel p,.detail-panel li{color:#617797}.review-form{background:#f4f7fd;border-color:#e0e8f6}.review-form label{color:#587193}.review-form select,.review-form textarea{border-color:#d7e3f2;color:#2b4466}.review-form .primary-button{background:#286bed;border-color:#286bed}.brand-lockup .brand-icon{border-radius:14px}
-/* Refined application surfaces and responsive controls. */
-.radar-app{background:#f4f7fc}.radar-app .workspace{padding-left:clamp(20px,3.1vw,52px);padding-right:clamp(20px,3.1vw,52px)}.radar-app .workspace-header{height:76px}.radar-app .breadcrumb{font-size:11px;color:#6c83a3}.radar-app .page-title{padding:34px 0 26px}.radar-app .heading-row h1{font-size:clamp(28px,3.05vw,42px);letter-spacing:-1.65px;font-weight:570}.radar-app .heading-row p{font-size:12px;max-width:540px;line-height:1.8}.workspace-login{min-height:36px;display:inline-flex;gap:7px;align-items:center;background:#fff;border:1px solid #dce5f2;border-radius:9px;padding:8px 12px;color:#547398;font-size:11px}.workspace-login:hover{background:#edf4ff;border-color:#b8cfed}.radar-app .company-setup{padding:24px;border-radius:16px;box-shadow:0 3px 12px #193d7b03}.radar-app .company-profile{padding:18px;border-radius:12px;box-shadow:none}.radar-app .company-profile-grid{gap:16px}.radar-app .stat{border-radius:14px;padding:20px;box-shadow:0 2px 8px #20365a03;transition:border-color .18s,box-shadow .18s}.radar-app .stat:hover{border-color:#b7cfee;box-shadow:0 7px 20px #24477807}.radar-app .stat.stat-selected{border-color:#89b1ec;background:linear-gradient(130deg,#edf4ff,#fff);box-shadow:0 4px 16px #2661b008}.radar-app .stat-top i{height:34px;width:34px;display:grid;place-items:center;padding:0;border-radius:10px}.radar-app .stat>strong{font-size:31px;font-weight:580;letter-spacing:-1px;margin:10px 0 4px}.radar-app .stat-action{color:#6082b0;font-size:10px}.radar-app .stat-selected .stat-action{color:#286bed}.radar-app .search-workbench{border-radius:14px}.radar-app .search-field{border-radius:10px;min-height:45px}.radar-app .search-field:focus-within{border-color:#93b8ed;box-shadow:0 0 0 3px #286bed0a}.radar-app .select-surface{border-radius:9px}.radar-app .tender-card{border-radius:15px;padding:22px;box-shadow:0 2px 8px #213b5d02;transition:border-color .18s,box-shadow .18s}.radar-app .tender-card:hover{box-shadow:0 8px 24px #244c8108}.radar-app .cards-grid{gap:17px}.radar-app .primary-button,.radar-app .secondary-button{border-radius:9px;min-height:40px}.radar-app .rail-link{position:relative;min-height:45px;transition:color .16s,background .16s}.radar-app .collapse-button{min-height:40px}.radar-app .product-nav-icon{border-radius:9px}.radar-app .company-profile p{position:relative;z-index:2}.radar-app .company-profile>div{position:relative;z-index:2}.radar-app .results-section{outline:none}.radar-app .zero-state{padding:55px 25px;background:#ffffffb3;border:1px dashed #ccdbee;border-radius:15px}.radar-app .zero-state h3{font-size:17px;font-weight:550}.radar-app .zero-state p{font-size:12px;line-height:1.7;max-width:420px;margin:5px auto 18px}.radar-app .workspace-footer{margin-top:18px}.radar-app .rail-link:focus-visible,.radar-app .collapse-button:focus-visible{outline-color:#6bcfdc}.radar-app .filter-toggle{min-height:44px}.radar-app .results-title h2{font-size:23px;font-weight:570}.radar-app .view-description{font-size:12px;line-height:1.8;max-width:620px}
-@media(max-width:1100px){.radar-app .stat{padding:16px}.radar-app .stat-top{font-size:10px}.radar-app .company-profile{padding:15px}.radar-app .heading-row p{max-width:430px}}
-@media(max-width:700px){.radar-app .workspace{padding-left:17px;padding-right:17px}.radar-app .workspace-header{height:62px;gap:8px}.radar-app .breadcrumb{font-size:10px}.radar-app .workspace-header>div{gap:8px}.workspace-login{min-height:36px;padding:8px}.workspace-login>span{display:none}.radar-app .snapshot-label{font-size:6px;padding:6px}.radar-app .page-title{padding:27px 0 21px}.radar-app .heading-row{align-items:flex-start}.radar-app .heading-row h1{font-size:32px}.radar-app .heading-row p{font-size:11px}.radar-app .company-setup{padding:18px}.radar-app .company-setup h2{font-size:18px}.radar-app .stat{padding:15px;border-radius:12px}.radar-app .stat>strong{font-size:28px}.radar-app .stat>small{font-size:9px;line-height:1.6}.radar-app .stat-top i{height:27px;width:27px;border-radius:8px}.radar-app .results-title h2{font-size:21px}.radar-app .tender-card{padding:18px}.radar-app .pager{gap:10px;flex-wrap:wrap}.radar-app .pager button{min-height:38px}.radar-app .search-field input,.radar-app .filter-field select{font-size:16px}.radar-app .view-description{font-size:11px}.radar-app .workspace-footer{font-size:8px;gap:10px}}
-@media(max-width:375px){.radar-app .workspace{padding-left:13px;padding-right:13px}.radar-app .heading-row h1{font-size:28px}.radar-app .stat{padding:12px}.radar-app .stat-top{font-size:9px}.radar-app .stat-action{font-size:9px}.radar-app .company-setup{padding:14px}.radar-app .company-profile{padding:13px}.radar-app .sort-label{font-size:9px}.radar-app .snapshot-label{display:none}}
-@media(prefers-reduced-motion:reduce){.radar-app *{scroll-behavior:auto!important;transition:none!important}}
+/* Product identity uses shared color roles from theme.css. */
+body,.radar-app { background:var(--canvas); color:var(--ink); }
+.radar-app .workspace { padding-inline:clamp(20px,3vw,48px); }
+.radar-app .rail { background:var(--rail); border-color:var(--rail-hover); color:var(--on-dark-muted); }
+.rail .brand-wordmark { color:var(--on-dark); }
+.rail .brand-wordmark small,.radar-app .nav-caption { color:var(--on-dark-subtle); }
+.brand-period { color:var(--accent); }
+.rail .brand-period,.login-story .brand-period { color:#b4c99d; }
+.radar-app .rail-link { color:var(--on-dark-muted); min-height:46px; gap:11px; border:0; border-radius:8px; position:relative; }
+.radar-app .rail-link>span { color:inherit; }
+.radar-app .rail-link svg { width:20px; height:20px; stroke-width:1.8; }
+.radar-app .rail-link.chosen,.radar-app .rail-link.product-selected { background:var(--rail-selected); color:var(--on-dark); }
+.radar-app .rail-link.chosen:before { display:none; }
+.radar-app .rail-link:hover { background:var(--rail-hover); color:var(--on-dark); }
+.radar-app .nav-count { background:var(--rail-hover); color:var(--on-dark-muted); font-size:11px; min-width:23px; border-radius:5px; }
+.radar-app .chosen .nav-count { background:#d6e0ce; color:#293d2d; }
+.radar-app .product-nav-icon { border-radius:6px; background:transparent; color:inherit; }
+.radar-app .collapse-button,.radar-app .mobile-close { border-color:#435247; color:var(--on-dark-muted); }
+.radar-app .rail-footer { background:var(--rail-hover); border-color:#3a4a3e; color:var(--on-dark-muted); }
+.radar-app .rail-footer b,.radar-app .rail-footer a { color:#cfdbc4; }
+.radar-app .rail-footer p { color:var(--on-dark-muted); }
+.radar-app .workspace-header { height:72px; border-color:var(--border); }
+.radar-app .breadcrumb { color:var(--muted); font-size:12px; }
+.radar-app .page-title { padding:32px 0 24px; }
+.radar-app .heading-row h1 { color:var(--ink); font-size:clamp(28px,3vw,40px); font-weight:650; letter-spacing:-1.5px; }
+.radar-app .heading-row h1 em { color:var(--accent); font-family:inherit; font-style:normal; }
+.radar-app .heading-row p { color:var(--muted); font-size:13px; line-height:1.7; max-width:560px; }
+.radar-app .overline { color:var(--muted); letter-spacing:1.6px; font-size:10px; font-weight:650; }
+.radar-app .primary-button,.review-form .primary-button { background:var(--accent); color:var(--on-dark); border-color:var(--accent); box-shadow:none; border-radius:8px; min-height:42px; }
+.radar-app .primary-button:hover,.review-form .primary-button:hover { background:var(--accent-hover); border-color:var(--accent-hover); }
+.radar-app .secondary-button,.workspace-login { background:var(--surface); color:var(--ink); border:1px solid var(--border); border-radius:8px; min-height:40px; }
+.workspace-login { display:inline-flex; align-items:center; gap:7px; padding:8px 12px; font-size:12px; }
+.radar-app .secondary-button:hover { background:var(--surface-soft); border-color:var(--border-strong); }
+.radar-app .snapshot-label { background:var(--surface-soft); color:var(--muted); border-color:var(--border); }
+.radar-app .company-setup { padding:24px; background:var(--surface); border-color:var(--border); border-radius:12px; box-shadow:var(--shadow); }
+.company-setup-heading { align-items:center; }
+.company-heading { display:flex; align-items:center; gap:14px; }
+.company-avatar { width:48px; height:48px; display:grid; place-items:center; background:var(--accent-soft); color:var(--accent); border:1px solid var(--border); border-radius:10px; flex:none; }
+.radar-app .company-setup h2 { margin:4px 0 0; font-size:23px; color:var(--ink); font-weight:650; letter-spacing:-.6px; }
+.radar-app .company-intro { margin:20px 0 12px; color:var(--muted); font-size:12px; }
+.profile-ready,.profile-pending { display:inline-flex; align-items:center; gap:6px; padding:6px 9px; border-radius:6px; font-size:11px; white-space:nowrap; }
+.profile-ready { color:var(--success); background:var(--success-soft); }
+.profile-pending { color:var(--muted); background:var(--surface-soft); }
+.company-services { list-style:none; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 24px; padding:0; margin:0 0 18px; }
+.company-services li { display:flex; gap:10px; align-items:flex-start; padding:12px 0; min-width:0; border-top:1px solid var(--border); }
+.company-services li>span { color:var(--muted); flex:none; padding-top:2px; }
+.radar-app .company-services p { margin:0; color:var(--ink); font-size:12px; line-height:1.7; }
+.radar-app .company-privacy { display:flex; align-items:center; gap:6px; color:var(--muted); font-size:11px; border-top:1px solid var(--border); padding-top:14px; }
+.company-pending { display:flex; align-items:flex-start; gap:14px; margin:24px 0; color:var(--muted); }
+.company-pending h3 { color:var(--ink); font-size:17px; margin:0 0 8px; }
+.radar-app .stat { border:1px solid var(--border); border-radius:10px; padding:20px; background:var(--surface); box-shadow:var(--shadow); }
+.radar-app .stat:hover { border-color:var(--border-strong); }
+.radar-app .stat.stat-selected { border-color:#7b967d; background:var(--accent-soft); box-shadow:inset 0 0 0 1px #7b967d; }
+.radar-app .stat>strong { color:var(--ink); font-size:32px; font-weight:650; letter-spacing:-1px; margin:10px 0 4px; }
+.radar-app .stat-top { color:var(--muted); font-size:12px; }
+.radar-app .stat-top i { background:var(--surface-soft); color:var(--accent); width:34px; height:34px; border-radius:8px; display:grid; place-items:center; padding:0; }
+.radar-app .stat-selected .stat-top i { background:#d8e5d7; }
+.radar-app .stat>small,.radar-app .stat-action { color:var(--muted); font-size:11px; }
+.radar-app .stat-selected .stat-action { color:var(--accent-ink); font-weight:600; }
+.radar-app .results-title h2 { color:var(--ink); font-size:24px; font-weight:650; }
+.radar-app .search-workbench { border-radius:10px; background:var(--surface); border-color:var(--border); }
+.radar-app .search-field:focus-within,.radar-app .select-surface:focus-within { border-color:var(--accent); box-shadow:var(--focus); }
+.radar-app .tender-card { border-radius:10px; border-color:var(--border); background:var(--surface); box-shadow:var(--shadow); padding:22px; }
+.radar-app .tender-card:hover { border-color:var(--border-strong); }
+.radar-app .tender-object { color:var(--ink); font-weight:600; }
+.radar-app .product-pill.purple,.radar-app .product-pill.mint { background:var(--accent-soft); color:var(--accent-ink); }
+.radar-app .signal-box { background:var(--surface-soft); border-color:var(--border); }
+.radar-app .zero-state { border:1px dashed var(--border-strong); border-radius:12px; background:var(--surface); }
+.radar-app .zero-state p { max-width:470px; margin:8px auto 18px; line-height:1.8; color:var(--muted); }
+.radar-app .collection-health { background:var(--surface); border-color:var(--border); color:var(--muted); }
+.radar-app .collection-health strong { color:var(--ink); }
+.radar-app .collection-warning { background:var(--warning-soft); border-color:#e5d8bb; }
+.radar-app .collection-warning strong { color:var(--warning); }
+.radar-app .refresh-notice { background:var(--success-soft); color:var(--success); border-color:var(--border); }
+.radar-app .notice-error { background:var(--danger-soft); color:var(--danger); }
+.radar-app .team-access { background:var(--surface); border-color:var(--border); border-radius:10px; }
+.radar-app .view-description,.radar-app .summary-instruction { color:var(--muted); }
+.detail-panel { color:var(--ink); background:var(--surface); }
+.detail-panel h2,.detail-panel h3,.detail-panel .full-object { color:var(--ink); }
+.detail-panel p,.detail-panel li { color:var(--muted); }
+.review-form { background:var(--surface-soft); border-color:var(--border); }
+.radar-app .workspace-footer { color:var(--muted); border-color:var(--border); margin-top:24px; }
+.radar-app :focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.radar-app .rail :focus-visible { outline-color:#b4c99d; }
+.radar-app .results-section { outline:none; }
+.login-page { background:var(--canvas); color:var(--ink); }
+.login-page .login-story { background:var(--rail); color:var(--on-dark); }
+.login-grid,.logo-halo,.logo-orbit { display:none; }
+.login-story .login-logo-3d { filter:grayscale(1) brightness(.94) drop-shadow(0 28px 32px rgb(0 0 0 / 20%)); animation-duration:12s; }
+.login-page .login-access { background:var(--canvas); }
+.login-page .login-submit { background:var(--accent); border-color:var(--accent); box-shadow:none; }
+.login-page .login-submit:hover:not(:disabled) { background:var(--accent-hover); box-shadow:none; }
+.login-page .login-access-icon { color:var(--accent); background:var(--accent-soft); border-color:var(--border); box-shadow:none; }
+.login-page .login-form-wrap h1 { color:var(--ink); }
+.login-page .login-form-wrap h1>span { color:var(--muted); }
+.login-page .login-input-wrap:focus-within { border-color:var(--accent); box-shadow:var(--focus); }
+.login-page .signal-label { background:var(--rail-hover); border-color:#435247; color:var(--on-dark-muted); backdrop-filter:none; box-shadow:none; }
+.login-page .login-trust-card { margin-top:24px; padding:16px; display:flex; gap:12px; border-radius:8px; background:var(--surface-soft); border:1px solid var(--border); color:var(--accent); }
+.login-page .login-trust-card b { color:var(--ink); font-size:12px; }
+.login-page .login-trust-card p { color:var(--muted); font-size:11px; }
+.login-page .login-product-tag>span,.login-page .login-eyebrow>span { background:#b4c99d; box-shadow:none; }
+@media(max-width:700px) {
+ .radar-app .workspace { padding-inline:17px; }
+ .radar-app .workspace-header { height:62px; }
+ .radar-app .page-title { padding:24px 0 20px; }
+ .radar-app .company-setup { padding:18px; }
+ .company-services { grid-template-columns:1fr; gap:0; }
+ .company-setup-heading { align-items:flex-start; flex-wrap:wrap; gap:12px; }
+ .company-services li { padding:11px 0; }
+ .radar-app .stat { padding:15px; }
+ .radar-app .stat>strong { font-size:28px; }
+ .radar-app .stat-top { font-size:11px; }
+ .radar-app .stat-top i { width:28px; height:28px; }
+ .radar-app .stat>small { font-size:11px; }
+ .radar-app .tender-card { padding:18px; }
+ .radar-app .heading-row h1 { font-size:31px; }
+}
+@media(prefers-reduced-motion:reduce) { .radar-app * { scroll-behavior:auto!important; transition:none!important; } }

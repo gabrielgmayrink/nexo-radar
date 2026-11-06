@@ -1,15 +1,14 @@
 import { useState, type FormEvent } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { ArrowRight, ArrowUpRight, CheckCheck, Eye, EyeOff, Fingerprint, LoaderCircle, LockKeyhole, Mail, Radar, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, CheckCheck, Eye, EyeOff, Fingerprint, LoaderCircle, LockKeyhole, Mail, Radar, ShieldCheck } from 'lucide-react';
 import BlurText from './components/reactbits/BlurText';
-import SpotlightCard from './components/reactbits/SpotlightCard';
 import { Brand } from './Brand';
 import { getLoginToken, clearLoginToken, getSetupToken, clearSetupToken } from './loginToken';
 import { teamRequest } from './useTeam';
 
-type Props = { enabled: boolean; loading: boolean; onAuthenticated: () => Promise<void>; onExplore: () => void };
+type Props = { enabled: boolean; loading: boolean; onAuthenticated: () => Promise<void> };
 
-export default function LoginPage({ enabled, loading, onAuthenticated, onExplore }: Props) {
+export default function LoginPage({ enabled, loading, onAuthenticated }: Props) {
   const [email,setEmail] = useState('');
   const [token,setToken] = useState(getLoginToken);
   const [setup,setSetup] = useState(getSetupToken);
@@ -77,14 +76,12 @@ export default function LoginPage({ enabled, loading, onAuthenticated, onExplore
             {token && <p className="login-confirm-copy">Seu link de acesso está pronto. Confirme abaixo para entrar com segurança.</p>}
             {error && <p className="login-error" role="alert">{error}</p>}
             <button className="login-submit" type="submit" disabled={busy || loading} aria-busy={busy}>{busy || loading ? <><LoaderCircle size={18} className="spinning"/>{busy ? 'Só um instante…' : 'Preparando seu acesso…'}</> : <>{setup ? 'Definir senha e entrar' : token ? 'Confirmar meu acesso' : 'Entrar no meu radar'}<ArrowRight size={18}/></>}</button>
-            {!loading && !enabled && !token && <p className="login-pending-note">O acesso da equipe está em preparação. O painel público já pode ser explorado.</p>}
+            {!loading && !enabled && !token && <p className="login-pending-note">O acesso está indisponível neste momento. Tente novamente em instantes.</p>}
           </form>
 
-        <div className="login-divider"><span />OU EXPLORE PRIMEIRO<span /></div>
-        <button className="login-explore" onClick={onExplore}>Conhecer o painel de oportunidades <ArrowUpRight size={16}/></button>
-        <SpotlightCard className="login-trust-card" theme="light" spotlightColor="#4390ff" intensity={.12} borderGlow={.3} flare={false} proximity={0}>
-          <Sparkles size={19}/><div><b>Mais contexto. Melhores decisões.</b><p>Busca por empresa, filtros inteligentes e análise colaborativa em um só lugar.</p></div>
-        </SpotlightCard>
+        <div className="login-trust-card">
+          <ShieldCheck size={19}/><div><b>Um espaço exclusivo para sua empresa.</b><p>Use seu e-mail autorizado. Oportunidades e avaliações ficam restritas à sua equipe.</p></div>
+        </div>
       </motion.div>
       <footer className="login-access-footer"><span>© {new Date().getFullYear()} Nexo Radar</span><span><ShieldCheck size={13}/> Acesso exclusivo da equipe</span></footer>
     </section>

@@ -41,7 +41,7 @@ export default function CollectionStatus({ collectionDate, totalScanned }: { col
       const detail = (event as CustomEvent<{ fallback: boolean; stale?: boolean; count: number }>).detail;
       setNoticeError(detail.fallback || !!detail.stale);
       const time = new Date().toLocaleTimeString('pt-BR',{ hour: '2-digit',minute: '2-digit',timeZone:'America/Sao_Paulo' });
-      setNotice(detail.stale ? 'A atualização não foi concluída. Mantivemos as oportunidades que você já havia carregado.' : detail.fallback ? 'O banco não respondeu. Mantivemos uma cópia histórica; tente recarregar novamente em instantes.' : `Resultados recarregados às ${time}: ${detail.count.toLocaleString('pt-BR')} oportunidades na seleção por produto. A data da base muda quando a coleta termina.`);
+      setNotice(detail.stale ? 'A atualização não foi concluída. Mantivemos as oportunidades que você já havia carregado.' : detail.fallback ? 'O banco não respondeu. Mantivemos uma cópia histórica; tente recarregar novamente em instantes.' : `Resultados recarregados às ${time}: ${detail.count.toLocaleString('pt-BR')} oportunidades no perfil da empresa. A data da base muda quando a coleta termina.`);
     };
     const failed = () => { if (!requested.current) return; requested.current = false; setManual(false); setNoticeError(true); setNotice('Não foi possível recarregar os resultados. Tente novamente em instantes.'); };
     window.addEventListener('radar:catalog-ready',ready); window.addEventListener('radar:catalog-error',failed);
@@ -66,9 +66,9 @@ export default function CollectionStatus({ collectionDate, totalScanned }: { col
       <span><Icon size={19} className={active ? 'spinning' : ''}/></span>
       <div className="collection-message">
         <strong>{awaitingFirstCollection ? 'A primeira coleta de licitações ainda não foi executada.' : partial ? pauseMessage : active ? 'Coletando novas publicações do PNCP.' : pending ? 'Coleta parcial: faltam lotes do PNCP. A próxima execução continua de onde parou.' : current ? 'Coleta automática atualizada.' : historical ? 'Base histórica do PNCP.' : 'A base aguarda uma nova coleta completa.'}</strong>
-        <p>{awaitingFirstCollection ? 'Os critérios da Public estão preparados. As oportunidades aparecerão após a ativação da coleta.' : <>Última coleta concluída: {lastDate}.{pending ? ` ${pending.recordsReceived.toLocaleString('pt-BR')} registros recebidos${pending.totalPartitions ? ` · ${pending.completedPartitions || 0}/${pending.totalPartitions} etapas concluídas` : ''}.` : ' Confira sempre a situação no PNCP.'}</>}</p>
+        <p>{awaitingFirstCollection ? 'Os critérios da Public estão preparados. As oportunidades aparecerão após a ativação da coleta.' : <>{completedAt ? `Última varredura concluída: ${lastDate}.` : 'A primeira varredura completa ainda está em andamento.'}{pending ? ` ${pending.recordsReceived.toLocaleString('pt-BR')} registros recebidos${pending.totalPartitions ? ` · ${pending.completedPartitions || 0}/${pending.totalPartitions} etapas concluídas` : ''}.` : ' Confira sempre a situação no PNCP.'}</>}</p>
         {pending && <p>Cada lote contém até 50 licitações. Os resultados já encontrados estão disponíveis; recarregar o painel não inicia uma nova coleta.</p>}
-        {totalScanned !== undefined && <p>{totalScanned.toLocaleString('pt-BR')} contratações na base concluída. Abaixo aparecem apenas as selecionadas para seus produtos.</p>}
+        {completedAt && totalScanned !== undefined && <p>{totalScanned.toLocaleString('pt-BR')} contratações na base concluída.</p>}<p>O Radar mostra as contratações compatíveis com os serviços da empresa. A lista com prazo futuro é uma seleção dentro desse total; contratações encerradas servem para consulta e referência.</p>
         {statusError && <p className="collection-error">{statusError}</p>}
       </div>
       <button className="refresh-catalog" disabled={refreshing || manual} onClick={() => refresh.current()} aria-label="Recarregar resultados"><RefreshCw size={15} className={refreshing || manual ? 'spinning' : ''}/><span>{manual ? 'Recarregando…' : 'Recarregar resultados'}</span></button>

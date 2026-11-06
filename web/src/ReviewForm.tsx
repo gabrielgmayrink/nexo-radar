@@ -2,8 +2,8 @@ import { Check, HelpCircle, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { REASONS, type Review, type Row } from './opportunities';
 import type { SharedReview } from './useTeam';
 
-export default function ReviewForm({ row, review, shared, draft, authenticated, busy, message, onChange, onSave, onReload, onUseShared }: {
-  row: Row; review?: Review; shared?: SharedReview; draft: boolean; authenticated: boolean; busy: boolean; message: string;
+export default function ReviewForm({ companyName, review, shared, draft, authenticated, busy, message, onChange, onSave, onReload, onUseShared }: {
+  companyName: string; row: Row; review?: Review; shared?: SharedReview; draft: boolean; authenticated: boolean; busy: boolean; message: string;
   onChange: (change: Partial<Review>) => void; onSave: () => void; onReload: () => void; onUseShared: () => void;
 }) {
   const assessment = review?.offer === 'Nenhuma' ? 'no' : review?.offer === 'Revisar' ? 'unsure' : review?.offer ? 'yes' : '';
@@ -12,12 +12,12 @@ export default function ReviewForm({ row, review, shared, draft, authenticated, 
     <div className="review-intro"><h3 id="review-title">Essa licitação faz sentido para vocês?</h3><p>Sua decisão ajuda a separar oportunidades de ruído. Registre o motivo para a equipe aprender com o exemplo.</p></div>
     {shared?.sourceCurrent===false&&<p role="status">O objeto mudou desde a última avaliação. A decisão anterior foi preservada no histórico e precisa ser revista.</p>}
     <div className="assessment-options" role="group" aria-label="Avaliar relevância">
-      <button type="button" aria-pressed={assessment === 'yes'} onClick={() => onChange({ offer: ['Public','Gerico','Ambas'].includes(row.suggestedOffer) ? row.suggestedOffer : 'Public', status: 'Em avaliação', reasonCode: 'aderente' })}><ThumbsUp size={16}/> Faz sentido</button>
+      <button type="button" aria-pressed={assessment === 'yes'} onClick={() => onChange({ offer: companyName, status: 'Em avaliação', reasonCode: 'aderente' })}><ThumbsUp size={16}/> Faz sentido</button>
       <button type="button" aria-pressed={negative} onClick={() => onChange({ offer: 'Nenhuma', status: 'Descartada', reasonCode: '' })}><ThumbsDown size={16}/> Não tem relação</button>
       <button type="button" aria-pressed={assessment === 'unsure'} onClick={() => onChange({ offer: 'Revisar', status: 'Em avaliação', reasonCode: 'edital_insuficiente' })}><HelpCircle size={16}/> Preciso analisar</button>
     </div>
     <label>Empresa relacionada<select value={review?.offer || ''} onChange={event => onChange({ offer: event.target.value,...(event.target.value==='Nenhuma'?{reasonCode:'',status:'Descartada'}:{}) })}>
-      <option value="">Selecione uma decisão</option>{['Public','Gerico','Ambas','Nenhuma','Revisar'].map(value => <option key={value}>{value}</option>)}
+      <option value="">Selecione uma decisão</option>{[companyName,'Nenhuma','Revisar'].map(value => <option key={value}>{value}</option>)}
     </select></label>
     <label>{negative ? 'Por que não serve? *' : 'Motivo da avaliação'}<select aria-label="Motivo da avaliação" value={review?.reasonCode || ''} onChange={event => onChange({ reasonCode: event.target.value })}>
       <option value="">Selecione o motivo</option>{Object.entries(REASONS).filter(([key]) => !negative || key !== 'aderente').map(([key,label]) => <option value={key} key={key}>{label}</option>)}

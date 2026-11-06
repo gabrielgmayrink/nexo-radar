@@ -5,6 +5,8 @@ from datetime import datetime,timedelta,timezone
 from radar.mail import APP_URL,email_list,reserve,send_reserved
 from radar.relevance import TZ
 from radar.learning import apply_examples
+from radar.company_access import memberships,visible_card,COMPANIES
+from radar.profiles import load_profiles
 from radar.verification import verify_shortlist,fetch_record
 
 
@@ -34,7 +36,7 @@ def select_cards(rows,kind,now):
 def render_onboarding():
     title='Conheça o Radar e ajude a melhorar as buscas'
     sections=[
-        ('O que o Radar faz','O Radar consulta o PNCP para encontrar licitações relacionadas às empresas Public e Gerico. Ele reduz o volume de pesquisa, mas cada oportunidade ainda precisa ser conferida no edital oficial.'),
+        ('O que o Radar faz','O Radar consulta o PNCP para encontrar licitações relacionadas às sua empresa. Ele reduz o volume de pesquisa, mas cada oportunidade ainda precisa ser conferida no edital oficial.'),
         ('1. Abra a lista certa','No radar mostra as oportunidades selecionadas. Mais compatíveis reúne objetos com sinais de aderência. Precisam de análise indica casos em que o escopo ainda precisa ser confirmado. Com prazo futuro reúne contratações ativas com encerramento adiante. Clique no indicador para abrir sua lista.'),
         ('2. Refine e confira','Filtre por produto, estado, prazo, modalidade e situação da avaliação. Combine palavras na busca. Abra Ver detalhes para ler o objeto completo e use Abrir edital no PNCP para conferir documentos, requisitos, valores e datas antes de decidir participar.'),
         ('3. Entre na equipe','No painel, clique em Entrar na equipe e use seu e-mail autorizado e sua senha. No primeiro acesso, solicite à administração um convite pessoal para definir sua senha. Depois de entrar, você poderá compartilhar avaliações com a equipe.'),
@@ -44,7 +46,7 @@ def render_onboarding():
         ('Resumos e acompanhamento','Resumos e avisos dependem de configurar o envio e ativar o agendamento desta instalação. Avisos de oportunidades exigem uma coleta recente; o Radar evita enviar informações antigas. Usem Vou participar para acompanhar o que pretendem disputar.'),
     ]
     contents=''.join(f'<section style="margin-top:24px"><h2 style="font-size:17px;color:#315139;margin:0 0 8px">{html.escape(heading)}</h2><p style="margin:0;line-height:1.75;font-size:14px">{html.escape(text)}</p></section>' for heading,text in sections)
-    body=f'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"></head><body style="margin:0;background:#f3f6f0;font-family:Arial,sans-serif;color:#334a3b"><main style="max-width:640px;margin:24px auto;background:white;padding:28px;border-radius:16px"><p style="letter-spacing:2px;color:#64804c;font-size:12px;font-weight:bold">RADAR DE LICITAÇÕES</p><h1 style="font-size:26px;line-height:1.3">{title}</h1><p style="line-height:1.7">Olá! Este é o e-mail de apresentação e teste do Radar para a equipe Public e Gerico.</p><p><a href="{APP_URL}/" style="display:inline-block;background:#284d3c;color:white;padding:14px 22px;border-radius:9px;text-decoration:none">Abrir o Radar</a></p>{contents}<p style="margin-top:26px;padding-top:16px;border-top:1px solid #e1e8db;font-size:12px;line-height:1.7;color:#718067">A seleção usa regras e exemplos da equipe; não confirma elegibilidade nem substitui a leitura do edital. Este envio de apresentação é único. Para ajustar os avisos, responda este e-mail.</p></main></body></html>'
+    body=f'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"></head><body style="margin:0;background:#f3f6f0;font-family:Arial,sans-serif;color:#334a3b"><main style="max-width:640px;margin:24px auto;background:white;padding:28px;border-radius:16px"><p style="letter-spacing:2px;color:#64804c;font-size:12px;font-weight:bold">RADAR DE LICITAÇÕES</p><h1 style="font-size:26px;line-height:1.3">{title}</h1><p style="line-height:1.7">Olá! Este é o e-mail de apresentação e teste do Radar para sua equipe.</p><p><a href="{APP_URL}/" style="display:inline-block;background:#284d3c;color:white;padding:14px 22px;border-radius:9px;text-decoration:none">Abrir o Radar</a></p>{contents}<p style="margin-top:26px;padding-top:16px;border-top:1px solid #e1e8db;font-size:12px;line-height:1.7;color:#718067">A seleção usa regras e exemplos da equipe; não confirma elegibilidade nem substitui a leitura do edital. Este envio de apresentação é único. Para ajustar os avisos, responda este e-mail.</p></main></body></html>'
     text='Olá!\n\n'+title+'\n\nAbrir o Radar: '+APP_URL+'\n\n'+'\n\n'.join(heading+'\n'+content for heading,content in sections)
     return 'Radar de Licitações: como usar e melhorar as buscas',body,text
 
@@ -52,7 +54,7 @@ def render_onboarding():
 def render_digest(cards,kind,now):
     if kind=='test':return render_onboarding()
     title={'weekly':'Seu resumo semanal de oportunidades','urgent':'Prazos nos próximos dois dias','test':'O Radar está conectado ao seu e-mail'}[kind]
-    intro='Sugestões por regras e exemplos da equipe para Public e Gerico, com situação conferida individualmente no PNCP. A coleta geral pode acrescentar outras oportunidades. Confira o objeto, os documentos e os requisitos antes de decidir participar.'
+    intro='Sugestões por regras e exemplos da equipe para sua empresa, com situação conferida individualmente no PNCP. A coleta geral pode acrescentar outras oportunidades. Confira o objeto, os documentos e os requisitos antes de decidir participar.'
     if kind=='test':intro='A configuração de envio do Radar foi concluída. Você receberá resumos semanais e avisos de prazo das oportunidades selecionadas. Entre no painel com este e-mail para compartilhar avaliações com a equipe.'
     items=[];texts=[title,intro]
     for card in cards:
@@ -67,12 +69,10 @@ def render_digest(cards,kind,now):
     return 'Radar · '+title,body,'\n\n'.join(texts)+'\n\nAbrir Radar: '+APP_URL
 
 
-def notify(db,kind,*,now=None,sender=send_reserved,fetcher=fetch_record,writer=None,dry_run=False):
+def _notify_company(db,kind,company,recipients,*,now=None,sender=send_reserved,fetcher=fetch_record,writer=None,dry_run=False):
     if kind not in ('weekly','urgent','test'):raise ValueError('Invalid notification')
     live_clock=now is None
     now=now or datetime.now(timezone.utc)
-    recipients=email_list('RADAR_NOTIFY_EMAILS')
-    if not recipients or not recipients<=email_list('RADAR_TEAM_EMAILS'):raise ValueError('Invalid team configuration')
     period=now.astimezone(TZ).strftime('%G-W%V') if kind=='weekly' else 'onboarding-v2' if kind=='test' else now.astimezone(TZ).date().isoformat()
     keys=[f'{kind}:{period}:{recipient}' for recipient in recipients]
     handled=db.execute('select count(*) from radar_mail_outbox where dedupe_key=any(%s)',(keys,)).fetchone()[0]
@@ -84,18 +84,19 @@ def notify(db,kind,*,now=None,sender=send_reserved,fetcher=fetch_record,writer=N
         if completed and completed.tzinfo is None:completed=completed.replace(tzinfo=TZ)
         stale=not completed or now-completed>timedelta(hours=72)
         rows=db.execute('''select o.card,r.offer,r.status from radar_opportunities o
-            left join radar_review_state r on r.opportunity_id=o.id
+            left join radar_review_state r on r.opportunity_id=o.id and r.company_id=%s
               and r.example_object=o.payload->>'objetoCompra'
               and r.example_additional=coalesce(o.payload->>'informacaoComplementar','')
-            where o.score>=40 and o.card is not null
+            where o.score>=40 and o.card is not null and coalesce((o.product_scores->>%s)::int,0)>=40
               and o.payload->>'situacaoCompraId'='1'
               and o.payload->>'tipoInstrumentoConvocatorioCodigo' in ('1','2')
               and left(coalesce(o.payload->>'dataEncerramentoProposta',''),10)>=%s
-            order by o.score desc limit 1001''',(now.astimezone(TZ).date().isoformat(),)).fetchall()
+            order by o.score desc limit 1001''',(company,COMPANIES[company],now.astimezone(TZ).date().isoformat())).fetchall()
         if len(rows)>1000:raise ValueError('Candidate budget exceeded')
-        examples=db.execute('select opportunity_id,offer,reason_code,object_hash,example_object,example_additional from radar_learning_examples').fetchall()
+        examples=db.execute('select opportunity_id,offer,reason_code,object_hash,example_object,example_additional from radar_learning_examples where company_id=%s',(company,)).fetchall()
         if len(examples)>1000:raise ValueError('Learning example budget exceeded')
         examples=[dict(zip(('opportunity_id','offer','reason_code','object_hash','example_object','example_additional'),row)) for row in examples]
+        rows=[(scoped,row[1],row[2]) for row in rows if (scoped:=visible_card(row[0],company)) is not None]
         learned=apply_examples([row[0] for row in rows],examples)
         rows=[(card,row[1],row[2]) for card,row in zip(learned,rows)]
         cards=select_cards(rows,kind,now)
@@ -105,6 +106,7 @@ def notify(db,kind,*,now=None,sender=send_reserved,fetcher=fetch_record,writer=N
             fresh,changed,check_errors=verify_shortlist(cards,reviews,fetcher=fetcher,writer=writer,now=now)
             verified=len(fresh)
             usable=[example for example in examples if example['opportunity_id'] not in changed]
+            fresh=[(scoped,row[1],row[2]) for row in fresh if (scoped:=visible_card(row[0],company)) is not None]
             learned=apply_examples([row[0] for row in fresh],usable)
             decision_time=datetime.now(timezone.utc) if live_clock else now
             cards=select_cards([(card,row[1],row[2]) for card,row in zip(learned,fresh)],kind,decision_time)
@@ -121,3 +123,22 @@ def notify(db,kind,*,now=None,sender=send_reserved,fetcher=fetch_record,writer=N
         if not identifier:skipped+=1;continue
         sender(db,identifier,recipient,subject,body,text);sent+=1
     return {'sent':sent,'skipped':skipped,'candidates':len(cards),'kind':kind,'verified':verified,'verificationErrors':check_errors}
+
+
+def notify(db,kind,*,now=None,sender=send_reserved,fetcher=fetch_record,writer=None,dry_run=False):
+    recipients=email_list('RADAR_NOTIFY_EMAILS')
+    if not recipients or not recipients<=email_list('RADAR_TEAM_EMAILS'):raise ValueError('Invalid team configuration')
+    groups={}
+    for recipient in sorted(recipients):
+        allowed=memberships(db,recipient)
+        # A digest recipient must belong to exactly one company: never mix data.
+        if len(allowed)!=1:raise ValueError('Digest recipient needs one company')
+        groups.setdefault(allowed[0],set()).add(recipient)
+    enabled={company['id'] for company in load_profiles() if company['enabled']}
+    results=[]
+    for company,addresses in groups.items():
+        if company not in enabled:
+            results.append({'sent':0,'skipped':len(addresses),'candidates':0,'verified':0,'reason':'company_profile_pending'})
+            continue
+        results.append(_notify_company(db,kind,company,addresses,now=now,sender=sender,fetcher=fetcher,writer=writer,dry_run=dry_run))
+    return {**{key:sum(item.get(key,0) for item in results) for key in ('sent','skipped','candidates','verified','verificationErrors')},'kind':kind,**({'dryRun':True} if dry_run else {})}

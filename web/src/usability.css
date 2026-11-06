@@ -5,7 +5,7 @@ html {
 }
 * {
   scrollbar-width: thin;
-  scrollbar-color: #a6b6ce transparent
+  scrollbar-color: var(--border-strong) transparent
 }
 ::-webkit-scrollbar {
   width: 10px;
@@ -15,22 +15,22 @@ html {
   background: transparent
 }
 ::-webkit-scrollbar-thumb {
-  background: #a6b6ce;
+  background: var(--border-strong);
   border: 2px solid transparent;
   border-radius: 20px;
   background-clip: padding-box
 }
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #7e97bb
+  background-color: var(--border-strong)
 }
 ::-webkit-scrollbar-corner {
   background: transparent
 }
 .radar-app .rail,.login-story {
-  scrollbar-color: #3c5479 transparent
+  scrollbar-color: var(--rail-hover) transparent
 }
 .rail::-webkit-scrollbar-thumb,.login-story::-webkit-scrollbar-thumb {
-  background-color: #3c5479
+  background-color: var(--rail-hover)
 }
 .detail-panel {
   scrollbar-gutter: stable;
@@ -46,28 +46,28 @@ html {
   min-width: 0
 }
 .search-shortcut {
-  border: 1px solid #dce5f3;
+  border: 1px solid var(--border);
   border-radius: 5px;
-  background: #f5f8fd;
+  background: var(--surface);
   min-width: 24px;
   text-align: center;
   padding: 2px 6px;
   font-size: 11px;
-  color: #93a4bd
+  color: var(--muted)
 }
 .search-pending {
-  color: #4d82cd;
+  color: var(--muted);
   flex: none
 }
 .search-workbench .search-help {
   font-size: 11px;
   line-height: 1.7;
-  color: #8093ae;
+  color: var(--muted);
   margin: 11px 0
 }
 .search-help b {
   font-weight: 600;
-  color: #58769e
+  color: var(--ink)
 }
 .search-suggestions {
   display: flex;
@@ -78,13 +78,13 @@ html {
 }
 .search-suggestions>span {
   font-size: 10px;
-  color: #8c9eb8;
+  color: var(--muted);
   margin-right: 3px
 }
 .search-suggestions button {
-  border: 1px solid #dae5f5;
-  background: #f2f7ff;
-  color: #547cae;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
   border-radius: 20px;
   padding: 6px 11px;
   font-size: 10px;
@@ -92,8 +92,8 @@ html {
   transition: background .16s,border-color .16s
 }
 .search-suggestions button:hover {
-  border-color: #9dbdeb;
-  background: #e8f1ff
+  border-color: var(--border);
+  background: var(--surface-soft)
 }
 .search-workbench .active-filters {
   flex-wrap: wrap;
@@ -124,82 +124,82 @@ html {
   align-items: center;
   gap: 7px;
   font-size: 10px;
-  color: #7e92af;
+  color: var(--muted);
   margin-right: 6px
 }
 .page-size select {
   min-height: 36px;
-  border: 1px solid #d9e4f3;
+  border: 1px solid var(--border);
   border-radius: 7px;
-  background: #fff;
-  color: #476c9d;
+  background: var(--surface);
+  color: var(--ink);
   padding: 6px 8px;
   font-size: 11px
 }
 .radar-app .pager-controls .back-to-search {
   background: transparent;
   border-color: transparent;
-  color: #6a8cba
+  color: var(--muted)
 }
 .radar-app .pager-controls .back-to-search:hover {
-  background: #eaf2ff
+  background: var(--surface-soft)
 }
 .radar-app .search-workbench {
-  background: #f9fbff;
-  border-color: #dce6f4
+  background: var(--surface);
+  border-color: var(--border)
 }
 .radar-app .search-workbench .select-surface {
-  border-color: #d8e3f2
+  border-color: var(--border)
 }
 .radar-app .search-workbench .filter-chip {
-  background: #edf4ff;
-  color: #4776af;
-  border-color: #d5e4f9
+  background: var(--surface-soft);
+  color: var(--accent);
+  border-color: var(--border-strong)
 }
 @media(max-width:700px) {
-  .search-suggestions {
-    gap: 6px
-  }
-  .search-suggestions button {
-    min-height: 34px;
-    font-size: 10px
-  }
-  .search-help {
-    font-size: 10px!important
-  }
-  .pager-controls {
-    width: 100%;
-    justify-content: space-between
-  }
-  .page-size {
-    margin: 0
-  }
-  .page-size select {
-    font-size: 16px;
-    min-height: 40px
-  }
-  .pager-controls button {
-    min-height: 40px
-  }
-  .radar-app .pager-controls .back-to-search {
-    flex-basis: 100%;
-    justify-content: center
-  }
-  .search-workbench .active-filters {
-    align-items: flex-start
-  }
-  .search-workbench .result-summary {
-    flex-basis: 100%;
-    margin-bottom: 3px
-  }
+.search-suggestions {
+  gap: 6px
+}
+.search-suggestions button {
+  min-height: 34px;
+  font-size: 10px
+}
+.search-help {
+  font-size: 10px!important
+}
+.pager-controls {
+  width: 100%;
+  justify-content: space-between
+}
+.page-size {
+  margin: 0
+}
+.page-size select {
+  font-size: 16px;
+  min-height: 40px
+}
+.pager-controls button {
+  min-height: 40px
+}
+.radar-app .pager-controls .back-to-search {
+  flex-basis: 100%;
+  justify-content: center
+}
+.search-workbench .active-filters {
+  align-items: flex-start
+}
+.search-workbench .result-summary {
+  flex-basis: 100%;
+  margin-bottom: 3px
+}
 }
 @media(pointer:coarse) {
-  .search-shortcut {
-    display: none
-  }
+.search-shortcut {
+  display: none
+}
 }
 @media(forced-colors:active) {
-  * {
-    scrollbar-color: auto
-  }
+* {
+  scrollbar-color: auto
+}
 }

@@ -3,6 +3,7 @@ import json
 import os
 from http.server import BaseHTTPRequestHandler
 from radar.mail import APP_URL
+from urllib.parse import urlparse,parse_qs
 
 
 class handler(BaseHTTPRequestHandler):
@@ -37,6 +38,7 @@ class handler(BaseHTTPRequestHandler):
         from radar.team_auth import session_user,session_token,request_login,confirm_login,revoke_session,session_cookie
         from radar.team_reviews import list_reviews,save_review,ReviewConflict
         from radar.password_auth import password_login,setup_password,AuthenticationFailed,TooManyAttempts
+        from radar.company_access import resolve_access,memberships,AccessDenied
         if not session_token(self.headers.get('Cookie')):
             if self.command=='GET':
                 self.respond(200,{'enabled':True,'authenticated':False,'reviews':[]});return
@@ -47,8 +49,12 @@ class handler(BaseHTTPRequestHandler):
             store=PostgresStore();db=store.db
             if self.command=='GET':
                 user=session_user(db,self.headers.get('Cookie'))
+                requested=parse_qs(urlparse(self.path).query).get('company',[None])[0]
+                company=None;allowed=[]
+                if user:_,company,allowed=resolve_access(db,self.headers.get('Cookie'),requested)
                 self.respond(200,{'enabled':True,'authenticated':bool(user),'email':user,
-                                  'reviews':list_reviews(db) if user else []});return
+                                  'company':company,'companies':allowed,
+                                  'reviews':list_reviews(db,company) if user else []});return
             action=data.get('action')
             if action=='password_login':
                 email,token=password_login(db,data.get('email'),data.get('password'))
@@ -71,9 +77,12 @@ class handler(BaseHTTPRequestHandler):
                 revoke_session(db,self.headers.get('Cookie'))
                 self.respond(200,{'authenticated':False},session_cookie('',clear=True));return
             if action=='save_review':
-                result=save_review(db,data.get('review'),user)
+                _,company,_=resolve_access(db,self.headers.get('Cookie'),data.get('company'))
+                result=save_review(db,data.get('review'),user,company)
                 self.respond(200,{'review':result});return
             raise ValueError()
+        except AccessDenied as exc:
+            self.respond(exc.status,{'error':str(exc)})
         except TooManyAttempts:
             self.respond(429,{'error':'Muitas tentativas. Aguarde 15 minutos para tentar novamente.'})
         except AuthenticationFailed:

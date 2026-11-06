@@ -9,16 +9,16 @@ const SignedFeedback = lazy(() => import('./SignedFeedback'));
 
 export default function Portal() {
   const team = useTeam();
-  const [exploring,setExploring] = useState(false);
+  const [company,setCompany] = useState('');
   const [hasToken,setHasToken] = useState(() => !!getLoginToken() || !!getSetupToken());
   useEffect(() => {
-    const open = () => setExploring(false);
+    const open = () => setHasToken(false);
     window.addEventListener('nexo:login',open);
     return () => window.removeEventListener('nexo:login',open);
   },[]);
   async function authenticated() { await team.reload();setHasToken(false); }
   return <MotionConfig reducedMotion="user">
-    {(team.authenticated && !hasToken) || exploring ? <Suspense fallback={<div className="portal-loading" role="status">Preparando seu radar…</div>}><Dashboard /></Suspense> : <LoginPage enabled={team.enabled} loading={team.loading} onAuthenticated={authenticated} onExplore={() => setExploring(true)}/>}
+    {team.authenticated && !hasToken && team.company ? <Suspense fallback={<div className="portal-loading" role="status">Preparando seu radar…</div>}><Dashboard key={((team.companies || []).includes(company)?company:team.company)+team.email} email={team.email || ''} company={(team.companies || []).includes(company)?company:team.company} companies={team.companies || [team.company]} onCompany={setCompany}/></Suspense> : <LoginPage enabled={team.enabled} loading={team.loading} onAuthenticated={authenticated}/>}
     <Suspense fallback={null}><SignedFeedback /></Suspense>
   </MotionConfig>;
 }

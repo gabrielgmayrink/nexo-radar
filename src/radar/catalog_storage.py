@@ -7,6 +7,7 @@ from urllib.request import Request,urlopen
 from radar.canonical import to_card
 from radar.relevance import TZ,procurement_state
 from radar.learning import apply_examples
+from radar.company_access import visible_card,COMPANIES
 
 
 def database_headers():
@@ -55,17 +56,22 @@ def load_collection_status(*, opener=urlopen):
             'collections':collections,'executions':jobs}
 
 
-def load_database_catalog(snapshot: dict, *, opener=urlopen) -> dict:
+def load_database_catalog(snapshot: dict, *, opener=urlopen,company=None) -> dict:
+    if company is not None and company not in COMPANIES:raise ValueError('Invalid company')
     cards=[]
     cutoff=(datetime.now(TZ).date()-timedelta(days=29)).isoformat()
     for offset in range(0,10000,500):
-        data=database_get('radar_opportunities?select=card&score=gte.40&order=id.asc&offset='+str(offset)+'&limit=500',opener=opener)
+        scope='&product_scores->>'+COMPANIES[company]+'=gte.40' if company else ''
+        data=database_get('radar_opportunities?select=card&score=gte.40'+scope+'&order=id.asc&offset='+str(offset)+'&limit=500',opener=opener)
         for item in data:
             if not isinstance(item,dict):raise ValueError('Invalid procurement record')
             card=item.get('card')
             if not card and isinstance(item.get('payload'),dict):card=to_card(item['payload'])
             if not isinstance(card,dict) or not card.get('id'):
                 raise ValueError('Invalid procurement record')
+            if company:
+                card=visible_card(card,company)
+                if card is None:continue
             in_window=not card.get('publishedAt') or card['publishedAt'][:10]>=cutoff
             still_open=procurement_state({'situacaoCompraId':card.get('statusId'),'tipoInstrumentoConvocatorioCodigo':card.get('instrumentId'),
                                          'dataEncerramentoProposta':card.get('proposalDeadline'),'dataAberturaProposta':card.get('proposalStart')}) in ('Recebendo propostas','A receber propostas')
@@ -73,7 +79,7 @@ def load_database_catalog(snapshot: dict, *, opener=urlopen) -> dict:
         if len(data)<500:break
     else:raise ValueError('Database page budget exceeded')
     if os.environ.get('RADAR_TEAM_ENABLED')=='1':
-        examples=database_get('radar_learning_examples?select=opportunity_id,offer,reason_code,object_hash,example_object,example_additional&order=opportunity_id.asc&limit=1001',opener=opener)
+        examples=database_get('radar_learning_examples?select=opportunity_id,offer,reason_code,object_hash,example_object,example_additional'+('&company_id=eq.'+company if company else '')+'&order=opportunity_id.asc&limit=1001',opener=opener)
         if len(examples)>1000:raise ValueError('Learning example budget exceeded')
         cards=apply_examples(cards,examples)
     cards.sort(key=lambda r:(-r['score'],r['proposalDeadline']))

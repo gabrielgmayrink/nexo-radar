@@ -2,8 +2,8 @@ import { ChevronDown, LoaderCircle, Search, SlidersHorizontal, X } from 'lucide-
 import { useEffect, useMemo, type RefObject } from 'react';
 import { EMPTY_FILTERS, type Filters, type Row } from './opportunities';
 const DEADLINES: Record<string, string> = { any: 'Qualquer prazo', '7': 'Próximos 7 dias', '15': 'Próximos 15 dias', '30': 'Próximos 30 dias', unknown: 'Prazo não informado' };
-export default function SearchFilters({ filters, rows, onChange, open, onToggle, searchRef, total, pending=false }: {
-  filters: Filters; rows: Row[]; onChange: (change: Partial<Filters>) => void; open: boolean; onToggle: () => void; searchRef: RefObject<HTMLInputElement | null>; total: number; pending?: boolean;
+export default function SearchFilters({ companyName, filters, rows, onChange, open, onToggle, searchRef, total, pending=false }: {
+  companyName: string; filters: Filters; rows: Row[]; onChange: (change: Partial<Filters>) => void; open: boolean; onToggle: () => void; searchRef: RefObject<HTMLInputElement | null>; total: number; pending?: boolean;
 }) {
   const states=useMemo(() => [...new Set(rows.map(row => row.state).filter(Boolean))].sort().map(value => [value,value]),[rows]);
   const modalities=useMemo(() => [...new Set(rows.map(row => row.modality).filter(Boolean))].sort().map(value => [value,value]),[rows]);
@@ -20,7 +20,7 @@ export default function SearchFilters({ filters, rows, onChange, open, onToggle,
   },[searchRef]);
   const active = (Object.keys(EMPTY_FILTERS) as (keyof Filters)[]).filter(key => filters[key] !== EMPTY_FILTERS[key]);
   const fields = [
-    { key: 'product', label: 'Empresa', aria: 'Filtrar empresa', options: [['Todos','Todas as empresas'],['Public','Public'],['Gerico','Gerico']] },
+    { key: 'product', label: 'Empresa', aria: 'Filtrar empresa', options: [['Todos',companyName]] },
     { key: 'uf', label: 'Estado', aria: 'Filtrar estado', options: [['Todas','Todos os estados'], ...states] },
     { key: 'deadline', label: 'Encerramento', aria: 'Filtrar encerramento', options: Object.entries(DEADLINES) },
     { key: 'modality', label: 'Modalidade', aria: 'Filtrar modalidade', options: [['Todas','Todas as modalidades'], ...modalities] },
@@ -34,7 +34,7 @@ export default function SearchFilters({ filters, rows, onChange, open, onToggle,
       {filters.query && <button type="button" className="clear-search" aria-label="Limpar busca" onClick={() => { onChange({ query: '' }); searchRef.current?.focus(); }}><X size={17}/></button>}
     </label><button className="filter-toggle secondary-button" onClick={onToggle} aria-expanded={open} aria-controls="advanced-filters"><SlidersHorizontal size={17}/> Refinar busca{active.length > 0 && <span className="filter-count">{active.length}</span>}</button></div>
     <p id="search-guidance" className="search-help">Combine palavras, use <b>"aspas"</b> para uma expressão exata e <b>-palavra</b> para excluir. Acentos não alteram a busca.</p>
-    <div className="search-suggestions" aria-label="Sugestões de busca"><span>Experimente</span>{['TI','EAD','"apoio administrativo"','capacitação'].map(query => <button key={query} type="button" onClick={() => { onChange({query});searchRef.current?.focus(); }}>{query.replaceAll('"','')}</button>)}</div>
+    <div className="search-suggestions" aria-label="Sugestões de busca"><span>Experimente</span>{['"apoio administrativo"','gestão pública','capacitação','EAD'].map(query => <button key={query} type="button" onClick={() => { onChange({query});searchRef.current?.focus(); }}>{query.replaceAll('"','')}</button>)}</div>
     <div id="advanced-filters" className={'advanced-filters' + (open ? ' filters-open' : '')}>{fields.map(field => <label className="filter-field" key={field.key}>
       <span>{field.label}</span><span className="select-surface"><select aria-label={field.aria} value={filters[field.key]} onChange={event => onChange({ [field.key]: event.target.value })}>
         {field.options.map(([value,label]) => <option key={value} value={value}>{label}</option>)}

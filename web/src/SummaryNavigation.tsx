@@ -1,11 +1,11 @@
-import { ArrowDownRight, Clock, FileCheck, HelpCircle, Layers } from 'lucide-react';
+import { ArrowDownRight, CalendarClock, ListChecks, CircleHelp, LayoutGrid } from 'lucide-react';
 import { VIEWS, type View } from './opportunities';
 import { motion } from 'motion/react';
 const items = [
-  { view: 'all', Icon: Layers, hint: 'Resultados selecionados para seus produtos' },
-  { view: 'matches', Icon: FileCheck, hint: 'Indícios no objeto ou aprovação da equipe' },
-  { view: 'review', Icon: HelpCircle, hint: 'Confirme se a contratação atende ao produto' },
-  { view: 'open', Icon: Clock, hint: 'Ativas, com encerramento adiante' },
+  { view: 'all', Icon: LayoutGrid, hint: 'Resultados selecionados para sua empresa' },
+  { view: 'matches', Icon: ListChecks, hint: 'Indícios no objeto ou aprovação da equipe' },
+  { view: 'review', Icon: CircleHelp, hint: 'Confirme se a contratação atende aos serviços' },
+  { view: 'open', Icon: CalendarClock, hint: 'Ativas, com encerramento adiante' },
 ] as const;
 export default function SummaryNavigation({ counts, view, onSelect, loading }: {
   counts: Record<string, number>; view: View; onSelect: (view: View) => void; loading: boolean;

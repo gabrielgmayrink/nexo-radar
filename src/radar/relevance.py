@@ -6,7 +6,7 @@ import unicodedata
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-VERSION = "2026-11-06.2"
+VERSION = "2026-11-06.4"
 TZ = ZoneInfo("America/Sao_Paulo")
 
 
@@ -28,8 +28,12 @@ def classify(obj: str, additional: str = "", *, profiles=None) -> dict:
             continue
         evidence = [term for term in company["terms"] if " " + normalize(term) + " " in text]
         incidental = [term for term in company["terms"] if " " + normalize(term) + " " in extra]
-        scores[company["name"]] = min(90, 60 + 10 * len(evidence)) if evidence else 20 if incidental else 0
+        review_groups = [group['label'] for group in company.get('reviewGroups',[]) if
+                         any(' '+normalize(term)+' ' in text for term in group['subjects']) and
+                         any(' '+normalize(term)+' ' in text for term in group['contexts'])]
+        scores[company["name"]] = min(90, 60 + 10 * len(evidence)) if evidence else 45 if review_groups else 20 if incidental else 0
         reasons.extend(company["name"] + ": " + term for term in evidence)
+        if not evidence:reasons.extend(company['name']+': '+label for label in review_groups)
     matches = [name for name, score in scores.items() if score >= 60]
     offer = "Ambas" if len(matches) > 1 else matches[0] if matches else "Revisar" if max(scores.values()) else "Nenhuma"
     return {"suggestedOffer": offer, "score": max(scores.values()), "scores": scores,

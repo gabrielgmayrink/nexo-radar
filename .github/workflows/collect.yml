@@ -1,7 +1,7 @@
 name: Collect Radar
 on:
   schedule:
-    - cron: '15 9 * * *'
+    - cron: '15 3,9,15,21 * * *'
   workflow_dispatch:
     inputs:
       kind:

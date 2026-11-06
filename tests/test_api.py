@@ -5,9 +5,16 @@ from api.index import handler
 from api.detail import handler as DetailHandler
 
 class APITests(unittest.TestCase):
+    def setUp(self):
+        for target in ('api.index.request_access','api.detail.request_access'):
+            item=patch(target,return_value=('member@example.com','public',['public']));item.start();self.addCleanup(item.stop)
+        env=patch.dict('os.environ',{'RADAR_CATALOG_STORE':'supabase'});env.start();self.addCleanup(env.stop)
+        load=patch('api.index.load_database_catalog',side_effect=lambda snapshot,**kwargs:snapshot);load.start();self.addCleanup(load.stop)
+
     def invoke(self, cls, path):
         instance=object.__new__(cls)
         instance.path=path
+        instance.headers={}
         result=[]
         instance.respond=lambda status,payload:result.append((status,payload))
         instance.do_GET()

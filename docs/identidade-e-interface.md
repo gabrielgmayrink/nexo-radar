@@ -1,6 +1,6 @@
 # Nexo Radar — identidade e interface
 
-O produto tem marca própria, independente das empresas atendidas. A identidade usa azul profundo `#0D1930`, azul `#286BED`, ciano `#42E8E0` e violeta `#8362FF`.
+O produto tem marca própria, independente das empresas atendidas. A identidade atual usa grafite `#202823`, verde fechado `#315C43`, fundos neutros `#F5F5F2` e texto `#202923`, com papéis de cor centralizados em `web/src/theme.css`. A aplicação não usa brilhos nos cartões; o símbolo 3D é apresentado com acabamento metálico neutro por CSS.
 
 ## Arquivos da marca
 
@@ -17,7 +17,7 @@ Prompt final utilizado:
 
 ## Componentes e movimento
 
-`BlurText` e `SpotlightCard` foram importados do projeto oficial [React Bits](https://github.com/DavidHDev/react-bits). A licença e o manifesto com origem e hashes ficam em `web/src/components/reactbits/`. O uso é integrado ao aplicativo, sem redistribuir uma biblioteca de componentes.
+`BlurText` é usado no login. `SpotlightCard` foi retirado das superfícies da aplicação; sua origem foi preservada. Ambos foram importados do projeto oficial [React Bits](https://github.com/DavidHDev/react-bits). A licença e o manifesto com origem e hashes ficam em `web/src/components/reactbits/`. O uso é integrado ao aplicativo, sem redistribuir uma biblioteca de componentes.
 
 Motion controla as transições curtas de entrada e dos indicadores. O sistema respeita `prefers-reduced-motion`, mantém o menu operável por teclado e usa rótulos acessíveis nos campos. O layout do login muda de duas colunas para um cabeçalho compacto em telas menores. O painel mantém seus filtros, listas, detalhes e avaliações responsivos.
 
@@ -25,4 +25,4 @@ Motion controla as transições curtas de entrada e dos indicadores. O sistema r
 
 O login principal usa e-mail e senha, verificados pelo Supabase. Senhas não são armazenadas no banco da aplicação. Sessões usam cookies HttpOnly, Secure e SameSite=Strict. Convites de primeiro acesso expiram em 24 horas e só podem ser usados uma vez.
 
-O painel público mostra apenas informações públicas de licitações. As avaliações e os exemplos da equipe exigem autenticação no servidor. A senha de app do Gmail é uma configuração exclusiva do servidor e nunca faz parte do frontend.
+O painel, as avaliações e os exemplos exigem autenticação e vínculo com a empresa no servidor. A conta de uma empresa não consulta o catálogo nem as avaliações da outra. A senha de app do Gmail é uma configuração exclusiva do servidor e nunca faz parte do frontend.

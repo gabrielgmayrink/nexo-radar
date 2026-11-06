@@ -10,6 +10,7 @@ from radar.pncp import CollectionMetrics, PAGE_SIZE, PUBLICATION_MODALITIES, PNC
 from radar.relevance import TZ
 
 KINDS = ('incremental', 'backfill', 'open')
+LEGACY_MODALITIES = (6, 7, 8, 4, 5, 12, 2, 10, 11, 15)
 
 
 def initial_cursor(kind, today, last_completed=None):
@@ -26,13 +27,35 @@ def initial_cursor(kind, today, last_completed=None):
 
 
 def partitions(kind):
-    modes = ('proposta',) if kind == 'open' else ('publicacao', 'atualizacao')
+    modes = ('proposta',) if kind == 'open' else ('publicacao', 'atualizacao', 'proposta')
     return [(mode, modality) for mode in modes for modality in PUBLICATION_MODALITIES]
 
 
+def pending_tasks(cursor):
+    """Upgrade old sequential checkpoints without dropping any saved page."""
+    if 'pending_tasks' in cursor:
+        return cursor['pending_tasks']
+    modes = ('proposta',) if cursor['kind'] == 'open' else ('publicacao', 'atualizacao')
+    legacy = [(mode, modality) for mode in modes for modality in LEGACY_MODALITIES]
+    completed = set(legacy[:cursor['partition']])
+    current = legacy[cursor['partition']] if cursor['partition'] < len(legacy) else None
+    return [{'mode': mode, 'modality': modality,
+             'page': cursor['page'] if (mode, modality) == current else 1,
+             'fingerprints': cursor['fingerprints'] if (mode, modality) == current else []}
+            for mode, modality in partitions(cursor['kind']) if (mode, modality) not in completed]
+
+
+def upgrade_cursor(cursor):
+    tasks = pending_tasks(cursor)
+    return {**cursor, 'pending_tasks': tasks, 'partition': len(partitions(cursor['kind']))-len(tasks),
+            'page': tasks[0]['page'] if tasks else 1,
+            'fingerprints': tasks[0]['fingerprints'] if tasks else []}
+
+
 def page_query(cursor):
-    mode, modality = partitions(cursor['kind'])[cursor['partition']]
-    params = {'codigoModalidadeContratacao': modality, 'pagina': cursor['page'], 'tamanhoPagina': PAGE_SIZE}
+    task = pending_tasks(cursor)[0]
+    mode, modality = task['mode'], task['modality']
+    params = {'codigoModalidadeContratacao': modality, 'pagina': task['page'], 'tamanhoPagina': PAGE_SIZE}
     if mode == 'proposta':
         params['dataFinal'] = cursor['horizon'].replace('-', '')
     else:
@@ -44,22 +67,23 @@ def advance(cursor, records, payload):
     """Validate before any record is written; leave the input cursor untouched."""
     if any(not isinstance(row, dict) or not row.get('numeroControlePNCP') for row in records):
         raise ValueError('invalid_procurement_record')
+    tasks = pending_tasks(cursor)
+    task = tasks[0]
     total = page_count(payload, len(records), PAGE_SIZE)
-    if not records and total and cursor['page'] < total:
+    if not records and total and task['page'] < total:
         raise ValueError('empty_intermediate_page')
     digest = hashlib.sha256(json.dumps(records, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-    if records and digest in cursor['fingerprints']:
+    if records and digest in task['fingerprints']:
         raise ValueError('repeated_page')
-    next_cursor = {**cursor, 'pages': cursor['pages'] + 1, 'received': cursor['received'] + len(records),
-                   'fingerprints': (cursor['fingerprints'] + [digest])[-64:]}
-    done = not records or (total is not None and (not total or cursor['page'] >= total))
-    if done:
-        next_cursor.update(partition=cursor['partition'] + 1, page=1, fingerprints=[])
-    else:
-        if cursor['page'] >= 10000:
+    next_tasks = tasks[1:]
+    done = not records or (total is not None and (not total or task['page'] >= total))
+    if not done:
+        if task['page'] >= 10000:
             raise ValueError('partition_page_limit')
-        next_cursor['page'] += 1
-    return next_cursor
+        next_tasks = next_tasks + [{**task, 'page':task['page']+1,
+                                   'fingerprints':(task['fingerprints']+[digest])[-64:]}]
+    return upgrade_cursor({**cursor, 'pages':cursor['pages']+1, 'received':cursor['received']+len(records),
+                           'pending_tasks':next_tasks})
 
 
 def add_metrics(cursor, metrics):
@@ -98,6 +122,7 @@ def run_chunk(store, kind='incremental', *, run_key, execution_id=None, client=N
                                                    today or datetime.now(TZ).date())
         if cursor['status'] == 'ok':
             return public_progress(cursor, execution_id)
+        cursor = upgrade_cursor(cursor)
         if public_progress(cursor,execution_id)['retryAfterSeconds']>0:
             return public_progress(cursor,execution_id)
         client = client or PNCPClient(timeout_seconds=45, retries=0, pause_seconds=1.5)

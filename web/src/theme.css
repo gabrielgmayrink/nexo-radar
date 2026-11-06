@@ -1,0 +1,32 @@
+/* Shared roles: edit the palette here, rather than recoloring individual screens. */
+:root {
+  color-scheme: light;
+  --canvas: #f5f5f2;
+  --surface: #ffffff;
+  --surface-soft: #f0f2ef;
+  --surface-hover: #e9ede8;
+  --ink: #202923;
+  --muted: #606c64;
+  --subtle: #727c75;
+  --border: #dbe0da;
+  --border-strong: #aebbb0;
+  --accent: #315c43;
+  --accent-hover: #254b35;
+  --accent-soft: #e9f0e9;
+  --accent-ink: #294e37;
+  --rail: #202823;
+  --rail-hover: #2c3830;
+  --rail-selected: #35493b;
+  --on-dark: #f3f5ef;
+  --on-dark-muted: #b8c4b9;
+  --on-dark-subtle: #9eafa1;
+  --success: #2f6242;
+  --success-soft: #edf4ee;
+  --warning: #795b2a;
+  --warning-soft: #faf5e9;
+  --danger: #9c433e;
+  --danger-soft: #fbefed;
+  --shadow: 0 2px 8px rgb(27 39 30 / 3%);
+  --focus: 0 0 0 3px rgb(49 92 67 / 14%);
+  font-synthesis: none;
+}

@@ -8,25 +8,98 @@
         "Assessoria e preparação de documentos e apoio administrativo especializado",
         "Assessoria em gestão empresarial pública e privada",
         "Palestras e treinamento em desenvolvimento profissional e gerencial",
-        "Ensino a distância: cursos profissionalizantes, técnicos, graduação e pós-graduação",
-        "Desenvolvimento de sistemas, software e serviços de tecnologia da informação"
+        "Ensino a distância: cursos profissionalizantes, técnicos, graduação e pós-graduação"
       ],
       "terms": [
-        "assessoria administrativa", "apoio administrativo", "preparação de documentos",
-        "assessoria em gestão empresarial", "assessoria em gestão pública", "assessoria em gestão privada",
-        "consultoria em gestão empresarial", "consultoria em gestão pública",
-        "palestras", "treinamento gerencial", "desenvolvimento profissional", "desenvolvimento gerencial",
-        "capacitação profissional", "capacitação gerencial", "capacitação de servidores", "treinamento de servidores",
-        "cursos profissionalizantes", "cursos técnicos", "ensino a distância", "educação a distância",
-        "cursos de graduação", "cursos de pós-graduação",
-        "desenvolvimento de sistemas", "desenvolvimento de software", "desenvolvimento de softwares",
-        "desenvolvimento de aplicativos", "fábrica de software", "manutenção de sistemas",
-        "sustentação de sistemas", "consultoria em tecnologia da informação",
-        "serviços de tecnologia da informação", "serviços de informática", "serviços de TI",
-        "consultoria de TI", "implantação de sistemas", "suporte técnico em informática"
+        "assessoria administrativa",
+        "apoio administrativo",
+        "preparação de documentos",
+        "serviços de escritório",
+        "assessoria em gestão empresarial",
+        "assessoria em gestão pública",
+        "assessoria em gestão privada",
+        "consultoria em gestão empresarial",
+        "consultoria em gestão pública",
+        "consultoria administrativa",
+        "assessoria e consultoria administrativa",
+        "assessoria técnica administrativa",
+        "consultoria empresarial",
+        "palestra",
+        "palestras",
+        "treinamento gerencial",
+        "desenvolvimento profissional",
+        "desenvolvimento gerencial",
+        "capacitação profissional",
+        "capacitação gerencial",
+        "capacitação de servidores",
+        "treinamento de servidores",
+        "curso de capacitação",
+        "cursos de capacitação",
+        "capacitação e treinamento",
+        "treinamento e capacitação",
+        "capacitação de pessoal",
+        "capacitação dos servidores",
+        "treinamento profissional",
+        "formação profissional",
+        "curso profissionalizante",
+        "cursos profissionalizantes",
+        "curso técnico",
+        "cursos técnicos",
+        "ensino a distância",
+        "ensino à distância",
+        "educação a distância",
+        "educação à distância",
+        "cursos EAD",
+        "curso EAD",
+        "curso de graduação",
+        "cursos de graduação",
+        "curso de pós-graduação",
+        "cursos de pós-graduação"
       ],
-      "excludeTerms": []
+      "excludeTerms": [],
+      "reviewGroups": [
+        {
+          "label": "Capacitação ou formação de equipes: conferir o escopo",
+          "subjects": [
+            "capacitação",
+            "treinamento",
+            "aperfeiçoamento",
+            "curso",
+            "cursos"
+          ],
+          "contexts": [
+            "servidores",
+            "profissional",
+            "gerencial",
+            "gestores",
+            "equipe",
+            "equipes",
+            "pessoal"
+          ]
+        },
+        {
+          "label": "Assessoria administrativa ou documental: conferir o escopo",
+          "subjects": [
+            "assessoria",
+            "consultoria"
+          ],
+          "contexts": [
+            "administrativa",
+            "administrativo",
+            "documentos",
+            "gestão empresarial",
+            "gestão pública"
+          ]
+        }
+      ]
     },
-    { "id": "gerico", "name": "Gerico", "enabled": false, "services": [], "terms": [], "excludeTerms": [] }
+    {
+      "id": "gerico",
+      "name": "Gerico",
+      "enabled": false,
+      "services": [],
+      "terms": [],
+      "excludeTerms": []
+    }
   ]
 }

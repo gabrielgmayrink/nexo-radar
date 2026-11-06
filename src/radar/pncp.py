@@ -15,7 +15,7 @@ from urllib.request import Request, urlopen
 
 
 BASE_URL = "https://pncp.gov.br/api/consulta"
-PUBLICATION_MODALITIES = (6, 7, 8, 4, 5, 12, 2, 10, 11, 15)
+PUBLICATION_MODALITIES = (9, 6, 7, 8, 4, 5, 12, 2, 10, 11, 15)
 PAGE_SIZE = 50
 USER_AGENT = "Mozilla/5.0 (compatible; RadarLicitacoes/0.1; public-data-research)"
 

@@ -29,8 +29,8 @@ class RelevanceTests(unittest.TestCase):
             self.assertEqual(result['score'],0)
             self.assertTrue(result['configurationPending'])
 
-    def test_public_services_include_administrative_training_ead_and_it(self):
-        for text in ('Serviços de apoio administrativo','Palestras para desenvolvimento gerencial','Cursos técnicos por ensino a distância','Desenvolvimento de sistemas para o município'):
+    def test_public_services_include_administrative_training_and_ead(self):
+        for text in ('Serviços de apoio administrativo','Palestras para desenvolvimento gerencial','Cursos técnicos por ensino a distância'):
             self.assertEqual(classify(text)['suggestedOffer'],'Public')
 
     def test_gerico_is_not_suggested_before_services_are_known(self):
