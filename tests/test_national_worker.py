@@ -57,6 +57,19 @@ class WorkerTests(unittest.TestCase):
             worker.run(budget_seconds=120,receiver=receiver,source=ServerErrorSource())
         self.assertFalse(summary.call_args.args[1]);self.assertEqual(receiver.store.cursor['error'],'source_5xx')
 
+    def test_decreasing_national_page_count_does_not_trap_the_worker(self):
+        receiver=Receiver()
+        class ChangingSource:
+            calls=0
+            def fetch(self,page):
+                self.calls+=1
+                if self.calls==1:return payload(1,total=60)
+                if page>1:raise worker.PNCPError('http_400')
+                return payload(1,total=40)
+        with patch.object(worker,'write_summary') as summary,patch('builtins.print'):
+            worker.run(budget_seconds=120,receiver=receiver,source=ChangingSource())
+        self.assertTrue(summary.call_args.args[1]);self.assertEqual(summary.call_args.args[0]['uniqueRecords'],40)
+
     def test_source_reuses_connection_and_decodes_gzip(self):
         original=json.dumps(payload(1,total=1)).encode()
         class Connection:

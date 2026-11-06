@@ -15,8 +15,8 @@ on:
         default: '480'
       national_budget:
         type: choice
-        options: ['2700', '5400', '120']
-        default: '2700'
+        options: ['3600', '5400', '120']
+        default: '3600'
 permissions:
   contents: read
   id-token: write
@@ -42,7 +42,7 @@ jobs:
         env:
           PYTHONPATH: src
           RADAR_APP_URL: ${{ vars.RADAR_APP_URL }}
-          RADAR_NATIONAL_BUDGET_SECONDS: ${{ inputs.national_budget || '2700' }}
+          RADAR_NATIONAL_BUDGET_SECONDS: ${{ inputs.national_budget || '3600' }}
       - if: github.event_name == 'workflow_dispatch' && inputs.kind != 'diagnostic' && inputs.kind != 'national_open'
         run: python scripts/run_scheduled_collection.py
         env:

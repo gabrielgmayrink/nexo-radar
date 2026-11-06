@@ -22,9 +22,9 @@ class Store:
         if self.fail:raise RuntimeError('Interrupted write')
         for row in rows:self.rows[row['numeroControlePNCP']]=cursor['passNumber']
         self.ledger[(cursor['passNumber'],page)]=digest;self.cursor=copy.deepcopy(cursor)
-    def national_counts(self,execution_id,pass_number):
+    def national_counts(self,execution_id,pass_number,current_only=False):
         if self.interrupt_finish:self.interrupt_finish=False;raise RuntimeError('Interrupted finalization')
-        return sum(value==pass_number for value in self.rows.values()),sum(key[0]==pass_number for key in self.ledger)
+        return sum(value==pass_number for value in self.rows.values()) if current_only else len(self.rows),sum(key[0]==pass_number for key in self.ledger)
     def save_failure(self,execution_id,kind,cursor):self.cursor=copy.deepcopy(cursor)
     def complete(self,execution_id,kind,cursor):self.cursor=copy.deepcopy(cursor)
 
@@ -45,8 +45,10 @@ class NationalTests(unittest.TestCase):
         self.assertFalse(commit(store,payload(1))['done'])
         self.assertFalse(commit(store,payload(2))['done'])
         final=commit(store,payload(3))
+        self.assertFalse(final['done']);self.assertEqual(final['passNumber'],2)
+        final=commit(store,payload(1),pass_number=2)
         self.assertTrue(final['done']);self.assertTrue(final['coverageComplete'])
-        self.assertEqual(final['uniqueRecords'],120);self.assertEqual(len(store.ledger),3)
+        self.assertEqual(final['uniqueRecords'],120);self.assertEqual(len(store.ledger),4)
 
     def test_lost_response_retries_do_not_duplicate_or_skip_pages(self):
         store=Store();data=payload(1)
@@ -81,6 +83,8 @@ class NationalTests(unittest.TestCase):
         store=Store();store.interrupt_finish=True
         with self.assertRaises(RuntimeError):commit(store,payload(1,total=1))
         result=handle_national(store,'national_plan',{},'run')
+        self.assertFalse(result['done']);self.assertEqual(result['passNumber'],2)
+        result=commit(store,payload(1,total=1),pass_number=2)
         self.assertTrue(result['done']);self.assertEqual(result['uniqueRecords'],1)
 
     def test_source_timeout_preserves_page_and_cannot_set_complete(self):
@@ -89,5 +93,19 @@ class NationalTests(unittest.TestCase):
         self.assertEqual(result['plan']['page'],2);self.assertFalse(result['coverageComplete'])
 
     def test_empty_success_with_explicit_metadata_can_complete_zero_records(self):
-        result=commit(Store(),payload(1,total=0))
+        store=Store();commit(store,payload(1,total=0))
+        result=commit(store,payload(1,total=0),pass_number=2)
         self.assertTrue(result['done']);self.assertEqual(result['uniqueRecords'],0)
+
+    def test_records_published_during_full_pass_are_collected_in_final_check(self):
+        store=Store();commit(store,payload(1,total=51));commit(store,payload(2,total=51))
+        result=commit(store,payload(1,total=52,ids=[51]+list(range(49))),pass_number=2)
+        self.assertTrue(result['done']);self.assertEqual(result['uniqueRecords'],52)
+
+    def test_source_with_fewer_pages_can_be_reconciled_without_stalling(self):
+        store=Store();commit(store,payload(1,total=60))
+        result=handle_national(store,'national_reconcile',{'executionId':1,'passNumber':1,'page':2,'payload':payload(1,total=40)},'run')
+        self.assertEqual(result['passNumber'],2);self.assertFalse(result['done'])
+        result=commit(store,payload(1,total=40),pass_number=2)
+        self.assertTrue(result['done']);self.assertEqual(result['uniqueRecords'],40)
+        self.assertEqual(store.cursor['minimumPass'],2)

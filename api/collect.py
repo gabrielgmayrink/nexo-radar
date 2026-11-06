@@ -26,7 +26,8 @@ class handler(BaseHTTPRequestHandler):
                 raise ValueError('Invalid request size')
             body = json.loads(self.rfile.read(length))
             if not isinstance(body, dict):raise ValueError('Invalid request')
-            national=body.get('action') in ('national_plan','national_commit','national_failure')
+            national=body.get('action') in ('national_plan','national_commit','national_failure','national_reconcile')
+            if 'action' in body and not national:raise ValueError('Invalid operation')
             if not national and body.get('kind', 'incremental') not in ('incremental', 'open', 'backfill'):
                 raise ValueError('Invalid request')
             execution_id = body.get('executionId')

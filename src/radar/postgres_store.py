@@ -129,9 +129,9 @@ class PostgresStore:
                                (execution_id,pass_number,page)).fetchone()
         return result[0] if result else None
 
-    def national_counts(self,execution_id,pass_number):
-        unique=self.db.execute('select count(*) from radar_opportunities where national_execution_id=%s and national_pass=%s',
-                               (execution_id,pass_number)).fetchone()[0]
+    def national_counts(self,execution_id,pass_number,current_only=False):
+        unique=self.db.execute('select count(*) from radar_opportunities where national_execution_id=%s'+(' and national_pass=%s' if current_only else ''),
+                               (execution_id,pass_number) if current_only else (execution_id,)).fetchone()[0]
         pages=self.db.execute('select count(*) from radar_national_pages where execution_id=%s and pass_number=%s',
                               (execution_id,pass_number)).fetchone()[0]
         return unique,pages
@@ -168,8 +168,8 @@ class PostgresStore:
             cutoff=(date.fromisoformat(cursor['end'])-timedelta(days=29)).isoformat()
             now=datetime.now(TZ).replace(tzinfo=None).isoformat()
             if kind=='national_open':
-                total,candidates=self.db.execute('select count(*),count(*) filter(where score>=40) from radar_opportunities where national_execution_id=%s and national_pass=%s',
-                                                 (execution_id,cursor.get('passNumber',1))).fetchone()
+                total,candidates=self.db.execute('select count(*),count(*) filter(where score>=40) from radar_opportunities where national_execution_id=%s and national_pass>=%s',
+                                                 (execution_id,cursor.get('minimumPass',1))).fetchone()
             else:
                 total, candidates = self.db.execute('''select count(*),count(*) filter(where score>=40) from radar_opportunities
                 where coalesce(payload->>'dataPublicacaoPncp','') >= %s
@@ -177,6 +177,7 @@ class PostgresStore:
                    or (payload->>'situacaoCompraId'='1' and coalesce(payload->>'dataEncerramentoProposta','') >= %s)''',
                                                    (cutoff,now)).fetchone()
             content = {**public_progress(cursor, execution_id), 'completedAt': datetime.now(timezone.utc).isoformat(),
+                       **({'minimumPass':cursor.get('minimumPass',1),'basePagesComplete':True} if kind=='national_open' else {}),
                        'catalogWindow':{'scope':'all_open_brazil','publicationDateFilter':None} if kind=='national_open' else {'start':cutoff,'end':cursor['end']},
                        'metrics': {'unique': total, 'candidates': candidates, 'discarded': total - candidates}}
             self._checkpoint(kind, cursor)

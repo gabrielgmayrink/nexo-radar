@@ -41,16 +41,27 @@ def plan(cursor,execution_id):
 
 
 def finish_if_ready(store,cursor,execution_id):
-    if cursor['status']=='ok' or cursor['pending_tasks']:return cursor
+    if cursor['status']=='ok':return cursor
+    if cursor['pending_tasks'] and not cursor.get('basePagesComplete'):return cursor
     pass_number=cursor.get('passNumber',1)
     unique,covered=store.national_counts(execution_id,pass_number)
+    complete_fresh_pass=covered==max(1,cursor['expectedPages'])
+    if cursor.get('basePagesComplete') and complete_fresh_pass:
+        unique,_=store.national_counts(execution_id,pass_number,True)
     cursor.update(uniqueRecords=unique)
-    if unique>=cursor['expectedRecords'] and covered==max(1,cursor['expectedPages']):
-        cursor.update(status='ok',coverageComplete=True)
+    # The source changes during a scan. Always revisit its head after the full
+    # pass, accumulating IDs so newly published records do not force an endless
+    # discard-and-restart cycle. A count gap still prevents completion.
+    if cursor.get('basePagesComplete') and cursor.get('passPages',0)>0 and unique>=cursor['expectedRecords']:
+        cursor.update(status='ok',coverageComplete=True,pending_tasks=[],partition=1,
+                      minimumPass=pass_number if complete_fresh_pass else 1)
         store.complete(execution_id,KIND,cursor)
-    else:
+    elif not cursor['pending_tasks']:
+        if not cursor.get('basePagesComplete') and covered!=max(1,cursor['expectedPages']):
+            raise ValueError('National coverage ledger has missing pages')
         cursor.update(passNumber=pass_number+1,passPages=0,pending_tasks=[{'mode':'proposta','modality':0,'page':1,'fingerprints':[]}],
-                      partition=0,page=1,fingerprints=[],status='running',error='coverage_gap')
+                      partition=0,page=1,fingerprints=[],status='running',basePagesComplete=True,
+                      error='coverage_gap' if unique<cursor['expectedRecords'] else None)
         store.save_failure(execution_id,KIND,cursor)
     return cursor
 
@@ -66,6 +77,19 @@ def handle_national(store,action,body,run_key):
         if action=='national_plan':return plan(cursor,execution_id)
         page=body.get('page');pass_number=body.get('passNumber')
         if type(page) is not int or page<1 or type(pass_number) is not int or pass_number<1:raise ValueError('Invalid page reference')
+        if action=='national_reconcile':
+            if cursor['status']=='ok':return plan(cursor,execution_id)
+            if page!=page_query(cursor)[2]['pagina'] or pass_number!=cursor.get('passNumber',1):raise StalePage('National page changed')
+            _,total,pages=validate_payload(body.get('payload'),1)
+            if pages>=page:raise ValueError('Source did not shorten its page list')
+            if cursor.get('expectedRecords',0)>0 and total==0:raise ValueError('Unexpected empty national source')
+            _,covered=store.national_counts(execution_id,pass_number)
+            cursor.update(expectedRecords=total,expectedPages=pages,passNumber=pass_number+1,passPages=0,
+                          pending_tasks=[{'mode':'proposta','modality':0,'page':1,'fingerprints':[]}],partition=0,page=1,
+                          fingerprints=[],status='running',coverageComplete=False,error='coverage_gap',
+                          basePagesComplete=cursor.get('basePagesComplete',False) or covered>=pages)
+            store.save_failure(execution_id,KIND,cursor)
+            return plan(cursor,execution_id)
         if action=='national_commit':
             rows,total,pages=validate_payload(body.get('payload'),page)
             digest=hashlib.sha256(json.dumps(body['payload'],sort_keys=True,ensure_ascii=False).encode()).hexdigest()

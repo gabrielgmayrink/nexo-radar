@@ -42,7 +42,16 @@ async function api(path,options={}){return fetch('https://api.github.com'+path,{
     if(!response.ok)throw Error('Could not dispatch verification (HTTP '+response.status+')');
     console.log(JSON.stringify({verificationRequested:true,emailSent:false}));return;
   }
-  if(mode==='collect'||mode==='collect-check'||mode==='source-probe'){
+  if(mode==='restart-national'){
+    const response=await api(base+'/actions/workflows/collect.yml/runs?per_page=10');
+    if(!response.ok)throw Error('Cannot inspect current collection');
+    for(const run of (await response.json()).workflow_runs.filter(run=>run.status==='in_progress')){
+      const cancelled=await api(base+'/actions/runs/'+run.id+'/cancel',{method:'POST'});
+      if(!cancelled.ok && cancelled.status!==409)throw Error('Cannot restart current collection');
+    }
+    console.log(JSON.stringify({restartRequested:true,progressPreserved:true}));
+  }
+  if(mode==='collect'||mode==='collect-check'||mode==='source-probe'||mode==='restart-national'){
     const response=await api(base+'/actions/workflows/collect.yml/dispatches',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ref:'main',inputs:{kind:mode==='source-probe'?'diagnostic':'national_open',...(mode==='collect-check'?{national_budget:'120'}:{national_budget:'5400'})}})});
     if(!response.ok)throw Error('Could not start collection (HTTP '+response.status+')');
     console.log(JSON.stringify({collectionRequested:true}));return;

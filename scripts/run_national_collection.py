@@ -112,7 +112,7 @@ def write_summary(progress,complete):
             if not complete:stream.write('A cobertura não foi marcada como concluída. A próxima execução retoma o progresso salvo.\n')
 
 
-def run(*,budget_seconds=2700,receiver=None,source=None):
+def run(*,budget_seconds=3600,receiver=None,source=None):
     if type(budget_seconds) is not int or not 120<=budget_seconds<=7200:raise ValueError('Invalid national budget')
     receiver=receiver or Receiver();source=source or Source()
     started=time.monotonic();progress=receiver.post({'action':'national_plan'})
@@ -133,7 +133,7 @@ def run(*,budget_seconds=2700,receiver=None,source=None):
                 maximum=progress.get('expectedPages') or page
                 for candidate in range(page,min(page+2,max(page,maximum))+1):
                     if candidate not in futures:futures[candidate]=pool.submit(source.fetch,candidate)
-                payload=None
+                payload=None;replanned=False
                 for attempt in range(5):
                     try:
                         payload=futures.pop(page).result() if page in futures else source.fetch(page)
@@ -142,6 +142,15 @@ def run(*,budget_seconds=2700,receiver=None,source=None):
                     except (PNCPError,ValueError) as exc:
                         raw_reason=str(exc) if isinstance(exc,PNCPError) else 'source_contract'
                         reason='source_5xx' if raw_reason.startswith('http_5') else 'source_contract' if raw_reason in ('resposta_nao_json','contrato_resposta_sem_lista_data') else raw_reason
+                        if page>1 and reason in ('source_contract','http_400'):
+                            try:
+                                fresh=source.fetch(1)
+                                _,_,fresh_pages=validate_payload(fresh,1)
+                            except (PNCPError,ValueError):fresh_pages=None
+                            if fresh_pages is not None and fresh_pages<page:
+                                progress=receiver.post({'action':'national_reconcile','executionId':plan['executionId'],
+                                         'passNumber':plan['passNumber'],'page':page,'payload':fresh})
+                                replanned=True;break
                         if reason not in ('timeout','erro_transporte','http_429','resposta_html_waf','source_contract','source_5xx'):
                             raise
                         if attempt==4 or time.monotonic()-started>=budget_seconds-180:
@@ -151,6 +160,7 @@ def run(*,budget_seconds=2700,receiver=None,source=None):
                         delay=max(min(10*2**attempt,120),getattr(exc,'retry_after_seconds',None) or 0)
                         print(json.dumps({'event':'national_source_retry','page':page,'reason':reason,'waitSeconds':delay}),flush=True)
                         time.sleep(delay)
+                if replanned:continue
                 progress=receiver.post({'action':'national_commit','executionId':plan['executionId'],
                           'passNumber':plan['passNumber'],'page':page,'payload':payload,
                           'sourceMs':getattr(source,'timings',{}).get(page)})
@@ -163,7 +173,7 @@ def run(*,budget_seconds=2700,receiver=None,source=None):
 
 
 if __name__=='__main__':
-    try:raise SystemExit(run(budget_seconds=int(os.environ.get('RADAR_NATIONAL_BUDGET_SECONDS','2700'))))
+    try:raise SystemExit(run(budget_seconds=int(os.environ.get('RADAR_NATIONAL_BUDGET_SECONDS','3600'))))
     except Exception as exc:
         print(json.dumps({'event':'national_worker_failed','errorType':type(exc).__name__,
                           **({'sourceError':str(exc)} if isinstance(exc,PNCPError) else {})}),flush=True)
