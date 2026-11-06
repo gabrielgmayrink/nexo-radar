@@ -81,7 +81,7 @@ class TeamMailTests(unittest.TestCase):
         self.assertEqual(len(selected),1)
         subject,body,text=render_digest(selected,'urgent',now)
         self.assertNotIn('<script>',body);self.assertIn('&lt;script&gt;',body)
-        self.assertIn('IA desligada',body);self.assertIn('A&amp;B',body)
+        self.assertIn('não confirmam elegibilidade',body);self.assertIn('A&amp;B',body)
         self.assertIn('PNCP',text)
 
     def test_onboarding_explains_navigation_and_useful_feedback(self):

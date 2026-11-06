@@ -3,13 +3,16 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Review } from './opportunities';
 export type SharedReview = Review & { id: string; actor: string; version: number; updatedAt: string; exampleObject?: string; sourceCurrent?: boolean };
 type Session = { enabled: boolean; authenticated: boolean; email?: string; company?: string; companies?: string[]; reviews?: SharedReview[] };
+class TeamRequestError extends Error {
+  constructor(message: string,readonly status: number) { super(message); }
+}
 
 export async function teamRequest(data?: Record<string, unknown>,company?: string) {
   const response = await fetch('/api/team'+(company?'?company='+encodeURIComponent(company):''), data ? {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
   } : { cache: 'no-store' });
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error || 'Não foi possível acessar a equipe.');
+  if (!response.ok) throw new TeamRequestError(result.error || 'Não foi possível acessar a equipe.',response.status);
   if (['confirm_login','password_login','setup_password','logout'].includes(String(data?.action))) window.dispatchEvent(new Event('nexo:session'));
   return result;
 }
@@ -20,7 +23,10 @@ export function useTeam(company?: string) {
   const [loading, setLoading] = useState(true);
   const reload = useCallback(async () => {
     try { setSession(await teamRequest(undefined,company)); setError(''); }
-    catch { setError('Não foi possível carregar a equipe. Suas anotações locais estão disponíveis.'); }
+    catch (error) {
+      if(error instanceof TeamRequestError && (error.status===401 || error.status===403)) setSession({enabled:true,authenticated:false});
+      setError('Não foi possível carregar a equipe. Tente entrar novamente.');
+    }
     finally { setLoading(false); }
   }, [company]);
   useEffect(() => {

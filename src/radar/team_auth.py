@@ -48,7 +48,7 @@ def request_login(db,email,*,provider=auth_request,sender=send_reserved):
         db.execute('insert into radar_login_requests(token_digest,email,verification_type,expires_at) values(%s,%s,%s,%s)',
                    (digest(token),email,kind,expires))
         link=APP_URL+'/#login='+token
-        body=f'<h1>Entrar no Radar de Licitações</h1><p>Você solicitou acesso à equipe Public.</p><p><a href="{html.escape(link,quote=True)}">Confirmar entrada no Radar</a></p><p>O link expira em 15 minutos e só pode ser usado uma vez. Se você não solicitou o acesso, ignore esta mensagem.</p>'
+        body=f'<h1>Entrar no Radar de Licitações</h1><p>Você solicitou acesso ao espaço da sua empresa.</p><p><a href="{html.escape(link,quote=True)}">Confirmar entrada no Radar</a></p><p>O link expira em 15 minutos e só pode ser usado uma vez. Se você não solicitou o acesso, ignore esta mensagem.</p>'
         sender(db,identifier,email,'Seu acesso ao Radar de Licitações',body,
                'Confirme sua entrada no Radar: '+link+'\nO link expira em 15 minutos. Se não solicitou, ignore.')
     except Exception:
