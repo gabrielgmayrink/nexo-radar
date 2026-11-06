@@ -25,7 +25,7 @@ export default function SearchFilters({ filters, rows, onChange, open, onToggle,
       </select><ChevronDown size={16} aria-hidden="true"/></span>
     </label>)}</div>
     <div className="active-filters"><span className="result-summary" role="status" aria-live="polite">{total} {total === 1 ? 'licitação nesta lista' : 'licitações nesta lista'}</span>
-      {active.map(key => <button key={key} className="filter-chip" aria-label={'Remover filtro de ' + ({ product: 'produto', uf: 'estado', query: 'busca', deadline: 'encerramento', modality: 'modalidade', assessment: 'avaliação' }[key])} onClick={() => onChange({ [key]: EMPTY_FILTERS[key] })}>{chip(key)}<X size={13}/></button>)}
+      {active.map(key => <button key={key} className="filter-chip" aria-label={'Remover filtro de ' + ({ product: 'empresa', uf: 'estado', query: 'busca', deadline: 'encerramento', modality: 'modalidade', assessment: 'avaliação' }[key])} onClick={() => onChange({ [key]: EMPTY_FILTERS[key] })}>{chip(key)}<X size={13}/></button>)}
       {!!active.length && <button className="reset-filters" onClick={() => onChange(EMPTY_FILTERS)}>Limpar filtros</button>}
     </div>
   </div>;

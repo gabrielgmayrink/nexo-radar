@@ -135,8 +135,7 @@ def gmail_client(*,factory=None):
 
 
 def gmail_authenticate(smtp,username,password):
-    # Use the advertised LOGIN challenge rather than sending an initial SASL
-    # response. Some Google gateways close the latter without a reply.
+    # Use the advertised LOGIN challenge with an explicit round trip.
     password=password.replace(' ','').strip()
     smtp.ehlo_or_helo_if_needed()
     methods=str(smtp.esmtp_features.get('auth','')).upper().split()

@@ -16,7 +16,7 @@ export default function ReviewForm({ row, review, shared, draft, authenticated, 
       <button type="button" aria-pressed={negative} onClick={() => onChange({ offer: 'Nenhuma', status: 'Descartada', reasonCode: '' })}><ThumbsDown size={16}/> Não tem relação</button>
       <button type="button" aria-pressed={assessment === 'unsure'} onClick={() => onChange({ offer: 'Revisar', status: 'Em avaliação', reasonCode: 'edital_insuficiente' })}><HelpCircle size={16}/> Preciso analisar</button>
     </div>
-    <label>Produto relacionado<select value={review?.offer || ''} onChange={event => onChange({ offer: event.target.value,...(event.target.value==='Nenhuma'?{reasonCode:'',status:'Descartada'}:{}) })}>
+    <label>Empresa relacionada<select value={review?.offer || ''} onChange={event => onChange({ offer: event.target.value,...(event.target.value==='Nenhuma'?{reasonCode:'',status:'Descartada'}:{}) })}>
       <option value="">Selecione uma decisão</option>{['Public','Gerico','Ambas','Nenhuma','Revisar'].map(value => <option key={value}>{value}</option>)}
     </select></label>
     <label>{negative ? 'Por que não serve? *' : 'Motivo da avaliação'}<select aria-label="Motivo da avaliação" value={review?.reasonCode || ''} onChange={event => onChange({ reasonCode: event.target.value })}>
