@@ -65,6 +65,17 @@ class NationalTests(unittest.TestCase):
         for data in ({'data':[]},{**payload(1),'data':[]},{**payload(1),'data':payload(1)['data'][:10]},payload(2)):
             with self.assertRaises(ValueError):validate_payload(data,1)
 
+    def test_upstream_mistyped_year_is_preserved_without_blocking_the_page(self):
+        data=payload(1,total=1)
+        identifier='08241747000496-1-000001/20226'
+        data['data'][0]['numeroControlePNCP']=identifier
+        rows,_,_=validate_payload(data,1)
+        self.assertEqual(rows[0]['numeroControlePNCP'],identifier)
+        store=Store();commit(store,data)
+        self.assertIn(identifier,store.rows)
+        data['data'][0]['numeroControlePNCP']='https://example.com/20226'
+        with self.assertRaises(ValueError):validate_payload(data,1)
+
     def test_duplicates_across_pages_trigger_reconciliation_instead_of_complete(self):
         store=Store();commit(store,payload(1,total=51))
         result=commit(store,payload(2,total=51,ids=[0]))

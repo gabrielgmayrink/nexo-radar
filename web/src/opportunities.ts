@@ -33,7 +33,7 @@ export function formatDate(value: string) {
 }
 export function procurementState(row: Row, now = Date.now()) {
   if (row.statusId !== 1) return 'Inativa';
-  if (![1, 2].includes(row.instrumentId)) return 'Inteligência';
+  if (![1, 2, 4].includes(row.instrumentId)) return 'Inteligência';
   const deadline = parseDate(row.proposalDeadline);
   if (!deadline) return 'Prazo não informado';
   if (+deadline <= now) return 'Encerrada';

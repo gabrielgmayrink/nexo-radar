@@ -11,7 +11,7 @@ from radar.verification import verify_shortlist,fetch_record
 
 
 def future_deadline(card,now):
-    if card.get('statusId')!=1 or card.get('instrumentId') not in (1,2):return None
+    if card.get('statusId')!=1 or card.get('instrumentId') not in (1,2,4):return None
     try:
         value=datetime.fromisoformat(card.get('proposalDeadline','').replace('Z','+00:00'))
         if value.tzinfo is None:value=value.replace(tzinfo=TZ)

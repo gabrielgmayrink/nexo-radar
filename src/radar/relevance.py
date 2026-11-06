@@ -44,7 +44,7 @@ def procurement_state(row: dict, now: datetime | None = None) -> str:
     now = now or datetime.now(TZ)
     if row.get("situacaoCompraId") != 1:
         return "Inativa"
-    if row.get("tipoInstrumentoConvocatorioCodigo") not in (1, 2):
+    if row.get("tipoInstrumentoConvocatorioCodigo") not in (1, 2, 4):
         return "Inteligência"
     value = row.get("dataEncerramentoProposta")
     if not value:

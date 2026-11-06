@@ -24,7 +24,9 @@ def validate_payload(payload,page):
     expected=min(50,max(0,total-(page-1)*50))
     if len(rows)!=expected:raise ValueError('Incomplete national page')
     for row in rows:
-        if not isinstance(row,dict) or not re.fullmatch(r'\d{14}-1-\d{1,10}/\d{4}',str(row.get('numeroControlePNCP',''))):
+        # Preserve source IDs verbatim, including a mistyped year observed in
+        # PNCP (20226). One upstream anomaly cannot prevent the national scan.
+        if not isinstance(row,dict) or not re.fullmatch(r'[0-9]{14}-1-[0-9]{1,10}/[0-9]{4,10}',str(row.get('numeroControlePNCP',''))):
             raise ValueError('Invalid national procurement')
     if len({row['numeroControlePNCP'] for row in rows})!=len(rows):raise ValueError('Duplicate IDs within national page')
     return rows,total,pages

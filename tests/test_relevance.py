@@ -63,6 +63,15 @@ class RelevanceTests(unittest.TestCase):
         row["situacaoCompraId"] = 4
         self.assertEqual(procurement_state(row, now), "Inativa")
 
+    def test_open_public_calls_are_not_lost_as_noncompetitive_contracts(self):
+        now=datetime(2026,11,6,10,tzinfo=ZoneInfo('America/Sao_Paulo'))
+        row={'situacaoCompraId':1,'tipoInstrumentoConvocatorioCodigo':4,'dataEncerramentoProposta':'2026-11-07T10:00:00'}
+        self.assertEqual(procurement_state(row,now),'Recebendo propostas')
+        row['dataEncerramentoProposta']='2026-11-05T10:00:00'
+        self.assertEqual(procurement_state(row,now),'Encerrada')
+        row['tipoInstrumentoConvocatorioCodigo']=3
+        self.assertEqual(procurement_state(row,now),'Inteligência')
+
 
 if __name__ == "__main__":
     unittest.main()

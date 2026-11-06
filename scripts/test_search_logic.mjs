@@ -18,6 +18,9 @@ assert.equal(matchesView(row,'matches',{offer:'Nenhuma',status:'Descartada',reas
 assert.equal(matchesView(row,'dismissed',{offer:'Nenhuma',status:'Descartada',reason:'Outro produto'},now),true);
 assert.equal(matchesView({...row,score:40},'matches',{offer:'Public',status:'Em avaliação',reason:'Corresponde ao produto'},now),true);
 assert.equal(procurementState({...row,statusId:2},now),'Inativa');
+assert.equal(procurementState({...row,instrumentId:4},now),'Recebendo propostas');
+assert.equal(matchesView({...row,instrumentId:4},'open',undefined,now),true);
+assert.equal(matchesView({...row,instrumentId:3},'open',undefined,now),false);
 assert.equal(matchesView({...row,statusId:2},'open',undefined,now),false);
 assert.equal(procurementState({...row,proposalStart:'2026-11-06T12:00:00'},now),'A receber propostas');
 assert.equal(procurementState({...row,proposalDeadline:'2026-11-04T12:00:00'},now),'Encerrada');

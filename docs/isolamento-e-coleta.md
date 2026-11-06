@@ -29,6 +29,8 @@ A leitura não possui o antigo limite de 10.000 páginas. Cada execução tem te
 
 O painel mostra as páginas recebidas, o total nacional informado pela fonte e as candidatas da empresa. Contratações encerradas da antiga coleta por publicação não integram esse catálogo de abertas. Atualizações completas substituem a fotografia anterior; durante a leitura, os resultados já recebidos e a última fotografia concluída permanecem disponíveis.
 
+O instrumento 4 (Edital de Chamamento Público) também é elegível quando ativo e com prazo aberto, incluindo credenciamentos. O instrumento 3 (autorização de contratação direta) continua fora das oportunidades com propostas abertas. Identificadores originais com ano numérico fora de quatro dígitos são preservados na importação, sem inventar uma correção: foi observado um registro da própria fonte com ano `20226`.
+
 ## Verificação
 
 Testes cobrem tentativa de trocar empresa no parâmetro, vazamento de pontuações/evidências, avaliações por empresa, feedback assinado para empresa diferente, descarte de cache após 403 e rotação/retomada do coletor. A validação em produção usa sessões temporárias e remove suas próprias sessões ao final, sem enviar e-mails ou alterar senhas das empresas.

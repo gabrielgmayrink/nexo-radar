@@ -79,6 +79,8 @@ class TeamMailTests(unittest.TestCase):
               (card,'Nenhuma',None),(card,None,'Descartada'),({**card,'pncpUrl':'https://evil.example'},None,None)]
         selected=select_cards(rows,'urgent',now)
         self.assertEqual(len(selected),1)
+        self.assertEqual(len(select_cards([({**card,'instrumentId':4},None,None)],'urgent',now)),1)
+        self.assertEqual(select_cards([({**card,'instrumentId':3},None,None)],'urgent',now),[])
         subject,body,text=render_digest(selected,'urgent',now)
         self.assertNotIn('<script>',body);self.assertIn('&lt;script&gt;',body)
         self.assertIn('não confirmam elegibilidade',body);self.assertIn('A&amp;B',body)
