@@ -50,6 +50,7 @@ def run(kind, *, budget_seconds=480, opener=None, clock=time.monotonic, sleeper=
     opener = opener or build_opener(NoRedirect())
     started, execution_id, failures, last = clock(), None, 0, {}
     previous_errors=None
+    last_request_failed=False
     while budget_seconds - (clock() - started) > REQUEST_MARGIN_SECONDS + MIN_BATCH_SECONDS:
         try:
             token = identity(opener)
@@ -66,6 +67,7 @@ def run(kind, *, budget_seconds=480, opener=None, clock=time.monotonic, sleeper=
                               headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'}, method='POST')
             with opener.open(request, timeout=min(235, max(1, remaining - 10))) as response:
                 last = json.load(response)
+            last_request_failed=False
             if last.get('busy'):
                 sleeper(15)
                 continue
@@ -86,12 +88,15 @@ def run(kind, *, budget_seconds=480, opener=None, clock=time.monotonic, sleeper=
             # Never print the request, token or an exception that may echo headers.
             print(json.dumps({'event': 'batch_request_failed', 'status': getattr(exc, 'code', None)}), flush=True)
             failures += 1
+            last_request_failed=True
         if failures >= 3:
             return 1
         if failures:
             sleeper(min(10 * 2 ** failures, 30))
     print(json.dumps({'event': 'budget_reached', 'executionId': execution_id,
                       'resume': 'Próxima execução retomará o progresso salvo.'}), flush=True)
+    if last_request_failed:return 1
+    if last.get('error') in RETRYABLE_SOURCE_ERRORS:return defer_source(last)
     return defer_source(last) if failures or last.get('status')=='partial' else 0
 
 

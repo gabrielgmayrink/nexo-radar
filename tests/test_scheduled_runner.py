@@ -82,3 +82,35 @@ class ScheduledRunnerTests(unittest.TestCase):
             for value in ({'executionId':7,'error':'storage_guard'},{'error':'timeout'},{'executionId':True,'error':'timeout'}):
                 self.assertEqual(runner.defer_source(value),1)
         output.assert_not_called()
+
+    def test_short_check_reports_timeout_even_when_other_tasks_remain_ready(self):
+        class Clock:
+            now=0
+            def read(self):return self.now
+        clock=Clock()
+        class Opener:
+            def open(self,*args,**kwargs):
+                clock.now+=45
+                return io.BytesIO(json.dumps({'executionId':1,'done':False,'status':'running','requestErrors':10,'error':'timeout'}).encode())
+        with patch.object(runner,'identity',return_value='unit-test-only'),patch.object(runner,'defer_source',return_value=0) as deferred,patch('builtins.print'):
+            result=runner.run('incremental',budget_seconds=120,opener=Opener(),clock=clock.read)
+        self.assertEqual(result,0);deferred.assert_called_once()
+
+    def test_app_request_errors_after_a_source_pause_are_not_deferred(self):
+        class Clock:
+            now=0
+            def read(self):return self.now
+            def sleep(self,seconds):self.now+=seconds
+        clock=Clock()
+        class Opener:
+            calls=0
+            def open(self,*args,**kwargs):
+                self.calls+=1
+                if self.calls==1:
+                    clock.now+=45
+                    return io.BytesIO(json.dumps({'executionId':1,'done':False,'status':'running','requestErrors':10,'error':'timeout'}).encode())
+                clock.now+=170
+                raise runner.URLError('unavailable')
+        with patch.object(runner,'identity',return_value='unit-test-only'),patch.object(runner,'defer_source') as deferred,patch('builtins.print'):
+            result=runner.run('incremental',opener=Opener(),clock=clock.read,sleeper=clock.sleep)
+        self.assertEqual(result,1);deferred.assert_not_called()
