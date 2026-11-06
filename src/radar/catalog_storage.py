@@ -37,8 +37,13 @@ def load_collection_status(*, opener=urlopen):
     executions=database_get('radar_executions?select=id,task,status,metrics,started_at,finished_at&task=like.sync%3A%25&order=started_at.desc&limit=6',opener=opener)
     checkpoints=database_get('radar_checkpoints?select=key,updated_at&key=like.sync%3A%25',opener=opener)
     activity={row['key'][5:]:row['updated_at'] for row in checkpoints if str(row.get('key','')).startswith('sync:')}
-    collections={row['id']:row['content'] for row in states
-                 if row.get('id') in ('publications','open') and isinstance(row.get('content'),dict)}
+    collections={}
+    for row in states:
+        if row.get('id') not in ('publications','open') or not isinstance(row.get('content'),dict):continue
+        content=row['content']
+        # Coverage is public-source metadata; company selection totals are private.
+        collections[row['id']]={key:content[key] for key in ('completedAt','source','window') if key in content}
+        collections[row['id']]['metrics']={'unique':content.get('metrics',{}).get('unique',0)}
     jobs=[]
     for row in executions:
         if not str(row.get('task','')).startswith('sync:'):continue
@@ -85,8 +90,10 @@ def load_database_catalog(snapshot: dict, *, opener=urlopen,company=None) -> dic
     cards.sort(key=lambda r:(-r['score'],r['proposalDeadline']))
     sync=load_collection_status(opener=opener)
     published=sync['collections'].get('publications',{})
+    metrics={**snapshot.get('metrics',{}),**published.get('metrics',{}),'candidates':len(cards)}
+    metrics['discarded']=max(0,metrics.get('unique',0)-len(cards))
     return {**snapshot,'dataSource':'supabase','databaseCheckedAt':datetime.now(timezone.utc).isoformat(),
             'collectionDate':published.get('window',{}).get('end',snapshot.get('collectionDate')),
             'collectionCompletedAt':published.get('completedAt'),
             'historical':not bool(published) or published.get('source')=='historical-import','sync':sync,
-            'metrics':{**snapshot.get('metrics',{}),**published.get('metrics',{}),'candidates':len(cards)},'opportunities':cards}
+            'metrics':metrics,'opportunities':cards}

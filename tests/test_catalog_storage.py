@@ -46,6 +46,16 @@ class StorageTests(unittest.TestCase):
         with patch.dict('os.environ',{'SUPABASE_URL':'https://example.com','SUPABASE_SECRET_KEY':'unit-test-only'},clear=True):
             with self.assertRaises(ValueError):load_database_catalog({})
 
+    def test_collection_status_does_not_export_global_company_selection_totals(self):
+        from radar.catalog_storage import load_collection_status
+        def opener(request,**kwargs):
+            rows=[{'id':'publications','content':{'window':{'end':'2026-11-06'},'metrics':{'unique':2000,'candidates':99,'discarded':1901},'companySelections':{'Gerico':50}}}] if 'radar_catalog_state?' in request.full_url else []
+            return io.BytesIO(json.dumps(rows).encode())
+        with patch.dict('os.environ',{'SUPABASE_URL':'https://unit-test.supabase.co','SUPABASE_SECRET_KEY':'unit-test-only'},clear=True):
+            result=load_collection_status(opener=opener)
+        self.assertEqual(result['collections']['publications']['metrics'],{'unique':2000})
+        self.assertNotIn('companySelections',json.dumps(result))
+
     def test_public_status_exposes_only_known_error_labels(self):
         from radar.catalog_storage import load_collection_status
         for error,expected in [('http_429','http_429'),('storage_guard','storage_guard'),('private diagnostic containing credentials',None)]:
