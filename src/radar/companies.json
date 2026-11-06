@@ -1,0 +1,6 @@
+{
+  "companies": [
+    { "id": "daltton", "name": "Daltton", "enabled": false, "services": [], "terms": [], "excludeTerms": [] },
+    { "id": "gerico", "name": "Gerico", "enabled": false, "services": [], "terms": [], "excludeTerms": [] }
+  ]
+}

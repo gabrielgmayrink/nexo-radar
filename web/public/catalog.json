@@ -1,0 +1,19 @@
+{
+  "generatedAt": null,
+  "collectionDate": "",
+  "window": {
+    "start": "",
+    "end": ""
+  },
+  "historical": false,
+  "setupPending": true,
+  "rulesVersion": "2026-11-06.1",
+  "metrics": {
+    "received": 0,
+    "unique": 0,
+    "candidates": 0,
+    "discarded": 0,
+    "byOffer": {}
+  },
+  "opportunities": []
+}

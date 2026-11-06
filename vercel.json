@@ -1,0 +1,8 @@
+{
+  "framework": null,
+  "installCommand": "npm ci --prefix web",
+  "buildCommand": "npm run build --prefix web",
+  "outputDirectory": "web/dist",
+  "functions": {"api/index.py": {"includeFiles": "web/public/catalog.json"}, "api/collect.py": {"maxDuration": 240}, "api/team.py": {"maxDuration": 60}, "api/notify.py": {"maxDuration": 240}},
+  "rewrites": [{"source": "/api/opportunities", "destination": "/api/index"}]
+}

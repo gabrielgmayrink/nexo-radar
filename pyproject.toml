@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "radar-daltton-gerico"
+version = "0.1.0"
+description = "Radar PNCP para Daltton e Gerico"
+requires-python = ">=3.12"
+dependencies = ["psycopg[binary]>=3.2,<4", "PyJWT[crypto]>=2.10,<3", "tzdata>=2025.1"]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.2,<4"]
+
+[project.scripts]
+radar = "radar.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+radar = ["companies.json"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

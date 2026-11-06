@@ -1,0 +1,11 @@
+work
+.git
+.venv
+outputs
+evaluation
+tests
+web/node_modules
+web/dist
+**/.env*
+.npm-cache
+scripts/adapt_project.py
