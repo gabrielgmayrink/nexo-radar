@@ -209,8 +209,20 @@
 .search-workbench .search-tools {
   display: flex;
   gap: 10px;
-  align-items: center
+  align-items: flex-end
 }
+.search-workbench .state-filter {
+  display: grid;
+  gap: 6px;
+  flex: 0 0 260px;
+  min-width: 0;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 550;
+}
+.search-workbench .state-filter .select-surface { min-height: 50px; }
+.search-workbench .state-filter select { height: 48px; }
+.state-filter-help { margin: 8px 1px 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .search-workbench .search-field {
   background: var(--surface);
   min-height: 50px;
@@ -244,7 +256,7 @@
 }
 .search-workbench .advanced-filters {
   display: grid;
-  grid-template-columns: repeat(5,minmax(0,1fr));
+  grid-template-columns: repeat(4,minmax(0,1fr));
   gap: 12px;
   width: 100%;
   padding: 0;
@@ -557,7 +569,7 @@
 }
 @media(max-width:1240px){
 .search-workbench .advanced-filters {
-  grid-template-columns: repeat(3,minmax(0,1fr))
+  grid-template-columns: repeat(2,minmax(0,1fr))
 }
 .radar-app .heading-row h1 {
   font-size: 30px
@@ -593,6 +605,7 @@
   font-size: 14px
 }}
 @media(max-width:600px){
+.search-workbench .state-filter { flex-basis: 100%; width: 100%; }
 .radar-app .page-title {
   padding: 20px 0 16px
 }
