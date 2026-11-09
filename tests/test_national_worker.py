@@ -29,7 +29,7 @@ class WorkerTests(unittest.TestCase):
         receiver=worker.Receiver()
         class Opener:
             def open(self,*args,**kwargs):return io.BytesIO(b'{"done": false}')
-        receiver.opener=Opener()
+        receiver.open=Opener().open
         with patch.object(worker,'identity',return_value='unit-test-only') as identity:
             receiver.post({'action':'national_plan'})
             receiver.post({'action':'national_plan'})
@@ -46,7 +46,7 @@ class WorkerTests(unittest.TestCase):
                 self.calls+=1
                 if self.calls==1:raise worker.HTTPError(request.full_url,403,'unauthorized',{},io.BytesIO())
                 return io.BytesIO(b'{"done": false}')
-        receiver.opener=Opener()
+        receiver.open=Opener().open
         with patch.object(worker,'identity',side_effect=['unit-old','unit-new']) as identity:
             self.assertEqual(receiver.post({'action':'national_plan'}),{'done':False})
             self.assertEqual(identity.call_count,2)
@@ -55,10 +55,43 @@ class WorkerTests(unittest.TestCase):
         receiver=worker.Receiver()
         class Opener:
             def open(self,request,**kwargs):raise worker.HTTPError(request.full_url,403,'unauthorized',{},io.BytesIO())
-        receiver.opener=Opener()
+        receiver.open=Opener().open
         with patch.object(worker,'identity',return_value='unit-invalid') as identity:
             with self.assertRaises(worker.HTTPError):receiver.post({'action':'national_plan'})
             self.assertEqual(identity.call_count,2)
+
+    def test_receiver_reuses_connection_and_rejects_redirects(self):
+        receiver=worker.Receiver()
+        class Connection:
+            closed=False
+            calls=0
+            status=200
+            def request(self,*args,**kwargs):self.calls+=1
+            def getresponse(self):return worker.BufferedResponse(b'{"done":false}',self.status,{})
+            def close(self):self.closed=True
+        connection=Connection();receiver.connection=connection
+        request=worker.Request(worker.AUDIENCE,data=b'{}')
+        with patch.dict('os.environ',{},clear=True):
+            for _ in range(2):
+                with receiver.open(request,90) as response:self.assertEqual(json.load(response),{'done':False})
+            self.assertEqual(connection.calls,2)
+            self.assertFalse(connection.closed)
+            connection.status=302
+            with self.assertRaises(worker.HTTPError):receiver.open(request,90)
+        receiver.close()
+        self.assertTrue(connection.closed)
+
+    def test_receiver_closes_a_broken_connection_before_retry(self):
+        receiver=worker.Receiver()
+        class Connection:
+            closed=False
+            def request(self,*args,**kwargs):raise http.client.RemoteDisconnected('closed')
+            def close(self):self.closed=True
+        connection=Connection();receiver.connection=connection
+        with patch.dict('os.environ',{},clear=True):
+            with self.assertRaises(worker.URLError):receiver.open(worker.Request(worker.AUDIENCE,data=b'{}'),90)
+        self.assertTrue(connection.closed)
+        self.assertIsNone(receiver.connection)
 
     def test_worker_collects_all_pages_without_old_record_caps(self):
         receiver=Receiver();source=Source(10001)

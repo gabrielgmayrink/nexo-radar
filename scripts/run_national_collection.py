@@ -38,6 +38,31 @@ class Receiver:
         if not 20<=timeout_seconds<=235:raise ValueError('Invalid receiver timeout')
         self.opener=build_opener(NoRedirect());self.timeout_seconds=timeout_seconds
         self._token=None;self._token_until=0
+        self.connection=None
+    def open(self,request,timeout):
+        if os.environ.get('HTTPS_PROXY') or os.environ.get('https_proxy'):
+            return self.opener.open(request,timeout=timeout)
+        parsed=urlsplit(request.full_url)
+        if parsed.scheme!='https' or request.full_url!=AUDIENCE:
+            raise ValueError('Unexpected receiver destination')
+        if self.connection is None:
+            self.connection=http.client.HTTPSConnection(parsed.netloc,timeout=timeout,context=ssl.create_default_context())
+        try:
+            self.connection.request('POST',parsed.path,body=request.data,headers=dict(request.header_items()))
+            response=self.connection.getresponse()
+            body=response.read(4_000_001);status=response.status;headers=response.headers
+            response.close()
+            if len(body)>4_000_000:raise ValueError('Receiver response exceeds transport budget')
+            if status>=300:raise HTTPError(request.full_url,status,'Receiver response',headers,io.BytesIO(body))
+            return BufferedResponse(body,status,headers)
+        except HTTPError:
+            raise
+        except (http.client.HTTPException,OSError):
+            self.close()
+            raise URLError('Receiver connection interrupted') from None
+    def close(self):
+        if self.connection is not None:
+            self.connection.close();self.connection=None
     def post(self,body):
         refreshed=False
         for attempt in range(4):
@@ -47,7 +72,7 @@ class Receiver:
             request=Request(AUDIENCE,data=json.dumps(body,ensure_ascii=False).encode(),method='POST',
                             headers={'Authorization':'Bearer '+self._token,'Content-Type':'application/json'})
             try:
-                with self.opener.open(request,timeout=self.timeout_seconds) as response:return json.load(response)
+                with self.open(request,timeout=self.timeout_seconds) as response:return json.load(response)
             except HTTPError as exc:
                 if exc.code in (401,403) and not refreshed:
                     self._token=None;refreshed=True;continue
@@ -187,6 +212,7 @@ def run(*,budget_seconds=3600,receiver=None,source=None):
             return 2
         finally:
             for future in futures.values():future.cancel()
+            if hasattr(receiver,'close'):receiver.close()
 
 
 def run_with_resume(*, budget_seconds=5400):
