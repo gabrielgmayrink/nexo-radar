@@ -4,6 +4,7 @@
       "id": "public",
       "name": "Public",
       "enabled": true,
+      "requireServiceIntent": true,
       "services": [
         "Assessoria e preparação de documentos e apoio administrativo especializado",
         "Assessoria em gestão empresarial pública e privada",
@@ -26,6 +27,8 @@
         "consultoria empresarial",
         "palestra",
         "palestras",
+        "palestrante",
+        "palestrantes",
         "treinamento gerencial",
         "desenvolvimento profissional",
         "desenvolvimento gerencial",

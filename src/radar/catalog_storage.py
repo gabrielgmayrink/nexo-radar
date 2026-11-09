@@ -5,7 +5,7 @@ from datetime import datetime,timezone
 from urllib.parse import urlparse
 from urllib.request import Request,urlopen
 from radar.canonical import to_card
-from radar.relevance import TZ,procurement_state,VERSION
+from radar.relevance import TZ,procurement_state,VERSION,classify
 from radar.learning import apply_examples
 from radar.company_access import visible_card,COMPANIES
 
@@ -74,6 +74,8 @@ def load_database_catalog(snapshot: dict, *, opener=urlopen,company=None) -> dic
             if not card and isinstance(item.get('payload'),dict):card=to_card(item['payload'])
             if not isinstance(card,dict) or not card.get('id'):
                 raise ValueError('Invalid procurement record')
+            if card.get('ruleVersion') != VERSION:
+                card={**card,**classify(card.get('object',''),card.get('additionalInfo',''))}
             if company:
                 card=visible_card(card,company)
                 if card is None:continue

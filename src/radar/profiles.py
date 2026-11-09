@@ -12,6 +12,8 @@ def load_profiles():
     for company in companies:
         if type(company.get('enabled')) is not bool:
             raise ValueError('Invalid company status')
+        if type(company.get('requireServiceIntent',False)) is not bool:
+            raise ValueError('Invalid service intent policy')
         for field in ('services', 'terms', 'excludeTerms'):
             values = company.get(field)
             if not isinstance(values, list) or any(not isinstance(term, str) or not term.strip() for term in values):

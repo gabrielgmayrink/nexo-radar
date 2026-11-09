@@ -5,14 +5,20 @@ import re
 import unicodedata
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from functools import lru_cache
 
-VERSION = "2026-11-06.6"
+VERSION = "2026-11-09.2"
 TZ = ZoneInfo("America/Sao_Paulo")
 
 
 def normalize(text: str) -> str:
     text = "".join(c for c in unicodedata.normalize("NFKD", text.lower()) if not unicodedata.combining(c))
     return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9 ]", " ", text)).strip()
+
+
+@lru_cache(maxsize=512)
+def phrase(term):
+    return ' '+normalize(term)+' '
 
 
 def classify(obj: str, additional: str = "", *, profiles=None) -> dict:
@@ -24,15 +30,24 @@ def classify(obj: str, additional: str = "", *, profiles=None) -> dict:
     reasons = []
     active = [company for company in profiles if company["enabled"] and company["terms"]]
     for company in active:
-        if any(" " + normalize(term) + " " in text for term in company["excludeTerms"]):
+        scoped=text
+        intent=company.get('requireServiceIntent',False)
+        exclusions=[phrase(term) for term in company['excludeTerms']]
+        if intent:
+            from radar.contract_intent import service_contract_focus,exclusion_is_primary
+            focus=service_contract_focus(text)
+            if not focus:continue
+            scoped=' '+focus+' '
+            if exclusion_is_primary(scoped,exclusions):continue
+        elif any(term in text for term in exclusions):
             continue
-        evidence = [term for term in company["terms"] if " " + normalize(term) + " " in text]
-        incidental = [term for term in company["terms"] if " " + normalize(term) + " " in extra]
+        evidence = [term for term in company["terms"] if phrase(term) in scoped]
+        incidental = [term for term in company["terms"] if phrase(term) in extra]
         review_groups = [group['label'] for group in company.get('reviewGroups',[]) if
-                         any(' '+normalize(term)+' ' in text for term in group['subjects']) and
-                         any(' '+normalize(term)+' ' in text for term in group['contexts'])]
+                         any(phrase(term) in scoped for term in group['subjects']) and
+                         any(phrase(term) in text for term in group['contexts'])]
         scores[company["name"]] = min(90, 60 + 10 * len(evidence)) if evidence else 45 if review_groups else 20 if incidental else 0
-        reasons.extend(company["name"] + ": " + term for term in evidence)
+        reasons.extend(company["name"] + ": " + ('Serviço no objeto principal: ' if intent else '') + term for term in evidence)
         if not evidence:reasons.extend(company['name']+': '+label for label in review_groups)
     matches = [name for name, score in scores.items() if score >= 60]
     offer = "Ambas" if len(matches) > 1 else matches[0] if matches else "Revisar" if max(scores.values()) else "Nenhuma"
