@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 from test_national_collection import Store,payload
 from radar.national_collection import handle_national
+from radar.sync import public_progress
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 import run_national_collection as worker
@@ -160,6 +161,15 @@ class WorkerTests(unittest.TestCase):
             self.assertEqual(worker.run(budget_seconds=120,receiver=receiver,source=RateLimitedSource()),2)
         self.assertEqual(receiver.store.cursor['error'],'http_429')
         self.assertIn('next_attempt_at',receiver.store.cursor)
+
+    def test_rate_limit_without_retry_after_waits_a_minute_and_is_persisted(self):
+        receiver=Receiver()
+        class RateLimitedSource:
+            def fetch(self,page):raise worker.PNCPError('http_429')
+        with patch.object(worker,'write_summary'),patch('builtins.print'):
+            self.assertEqual(worker.run(budget_seconds=120,receiver=receiver,source=RateLimitedSource()),2)
+        self.assertEqual(receiver.store.cursor['error'],'http_429')
+        self.assertGreater(public_progress(receiver.store.cursor,1)['retryAfterSeconds'],0)
 
     def test_decreasing_national_page_count_does_not_trap_the_worker(self):
         receiver=Receiver()

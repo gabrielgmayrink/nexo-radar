@@ -203,12 +203,19 @@ def run(*,budget_seconds=3600,receiver=None,source=None):
                                 replanned=True;break
                         if reason not in ('timeout','erro_transporte','http_429','resposta_html_waf','source_contract','source_5xx'):
                             raise
+                        delay=max(60 if reason=='http_429' else min(10*2**attempt,120),getattr(exc,'retry_after_seconds',None) or 0)
+                        failure={'action':'national_failure','executionId':plan['executionId'],
+                                 'passNumber':plan['passNumber'],'page':page,'reason':reason,
+                                 'retryAfterSeconds':min(86400,max(0,int(delay)))}
+                        if reason=='http_429':
+                            # Do not replay prefetched rate-limit failures one
+                            # by one after the same source-wide cooldown.
+                            for future in futures.values():future.cancel()
+                            futures={}
+                            progress=receiver.post(failure)
                         if attempt==4 or time.monotonic()-started>=budget_seconds-180:
-                            progress=receiver.post({'action':'national_failure','executionId':plan['executionId'],
-                                      'passNumber':plan['passNumber'],'page':page,'reason':reason,
-                                      'retryAfterSeconds':min(86400,max(0,int(getattr(exc,'retry_after_seconds',None) or 0)))})
+                            if reason!='http_429':progress=receiver.post(failure)
                             write_summary(progress,False);return 2
-                        delay=max(min(10*2**attempt,120),getattr(exc,'retry_after_seconds',None) or 0)
                         print(json.dumps({'event':'national_source_retry','page':page,'reason':reason,'waitSeconds':delay}),flush=True)
                         time.sleep(delay)
                 if replanned:continue
