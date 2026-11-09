@@ -2,7 +2,7 @@
 import hashlib
 import json
 import re
-from datetime import datetime
+from datetime import datetime,timedelta,timezone
 from radar.sync import upgrade_cursor,page_query,advance,public_progress
 from radar.relevance import TZ
 
@@ -113,7 +113,11 @@ def handle_national(store,action,body,run_key):
             if page!=page_query(cursor)[2]['pagina'] or pass_number!=cursor.get('passNumber',1):raise StalePage('National page changed')
             reason=body.get('reason')
             if reason not in ('timeout','erro_transporte','http_429','resposta_html_waf','source_contract','source_5xx'):raise ValueError('Invalid source error')
+            delay=body.get('retryAfterSeconds',0)
+            if type(delay) is not int or not 0<=delay<=86400:raise ValueError('Invalid source retry delay')
             cursor.update(status='partial',error=reason,coverageComplete=False)
+            if delay:
+                cursor['next_attempt_at']=(datetime.now(timezone.utc)+timedelta(seconds=delay)).isoformat()
             store.save_failure(execution_id,KIND,cursor)
             return plan(cursor,execution_id)
         raise ValueError('Invalid national operation')

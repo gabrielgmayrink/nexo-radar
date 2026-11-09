@@ -76,6 +76,23 @@ class WorkerTests(unittest.TestCase):
                 run.assert_called_once_with(budget_seconds=budget)
                 sleep.assert_not_called()
 
+    def test_persisted_source_retry_delay_prevents_new_fetches(self):
+        receiver=Receiver();source=Source(100)
+        receiver.post({'action':'national_plan'})
+        receiver.store.cursor['next_attempt_at']='2099-01-01T00:00:00+00:00'
+        with patch.object(worker,'write_summary'),patch('builtins.print'):
+            self.assertEqual(worker.run(budget_seconds=120,receiver=receiver,source=source),2)
+        self.assertEqual(source.pages,[])
+
+    def test_last_retry_preserves_the_source_retry_after(self):
+        receiver=Receiver()
+        class RateLimitedSource:
+            def fetch(self,page):raise worker.PNCPError('http_429',retry_after_seconds=3600)
+        with patch.object(worker,'write_summary'),patch('builtins.print'):
+            self.assertEqual(worker.run(budget_seconds=120,receiver=receiver,source=RateLimitedSource()),2)
+        self.assertEqual(receiver.store.cursor['error'],'http_429')
+        self.assertIn('next_attempt_at',receiver.store.cursor)
+
     def test_decreasing_national_page_count_does_not_trap_the_worker(self):
         receiver=Receiver()
         class ChangingSource:

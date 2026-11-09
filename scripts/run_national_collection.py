@@ -128,6 +128,12 @@ def run(*,budget_seconds=3600,receiver=None,source=None):
                     write_summary(progress,True);return 0
                 if progress.get('busy'):
                     time.sleep(5);progress=receiver.post({'action':'national_plan'});continue
+                wait_seconds=progress.get('retryAfterSeconds',0)
+                if wait_seconds>0:
+                    if time.monotonic()-started+wait_seconds>=budget_seconds-100:
+                        write_summary(progress,False);return 2
+                    time.sleep(min(wait_seconds,60))
+                    progress=receiver.post({'action':'national_plan'});continue
                 plan=validate_plan(progress.get('plan'))
                 key=(plan['executionId'],plan['passNumber'])
                 if key!=generation:
@@ -159,7 +165,8 @@ def run(*,budget_seconds=3600,receiver=None,source=None):
                             raise
                         if attempt==4 or time.monotonic()-started>=budget_seconds-180:
                             progress=receiver.post({'action':'national_failure','executionId':plan['executionId'],
-                                      'passNumber':plan['passNumber'],'page':page,'reason':reason})
+                                      'passNumber':plan['passNumber'],'page':page,'reason':reason,
+                                      'retryAfterSeconds':min(86400,max(0,int(getattr(exc,'retry_after_seconds',None) or 0)))})
                             write_summary(progress,False);return 2
                         delay=max(min(10*2**attempt,120),getattr(exc,'retry_after_seconds',None) or 0)
                         print(json.dumps({'event':'national_source_retry','page':page,'reason':reason,'waitSeconds':delay}),flush=True)
