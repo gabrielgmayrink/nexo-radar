@@ -7,7 +7,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from functools import lru_cache
 
-VERSION = "2026-11-09.2"
+VERSION = "2026-11-09.3"
 TZ = ZoneInfo("America/Sao_Paulo")
 
 
@@ -43,9 +43,15 @@ def classify(obj: str, additional: str = "", *, profiles=None) -> dict:
             continue
         evidence = [term for term in company["terms"] if phrase(term) in scoped]
         incidental = [term for term in company["terms"] if phrase(term) in extra]
-        review_groups = [group['label'] for group in company.get('reviewGroups',[]) if
-                         any(phrase(term) in scoped for term in group['subjects']) and
-                         any(phrase(term) in text for term in group['contexts'])]
+        review_groups = []
+        for group in company.get('reviewGroups', []):
+            subjects = [term for term in group['subjects'] if phrase(term) in scoped]
+            # Training recipients may follow "destinada a". Advisory scope must
+            # be in the main clause, rather than incidental reports/documents.
+            training = any(normalize(term) in {'capacitacao', 'treinamento', 'aperfeicoamento', 'curso', 'cursos'} for term in subjects)
+            context = text if training else scoped
+            if subjects and any(phrase(term) in context for term in group['contexts']):
+                review_groups.append(group['label'])
         scores[company["name"]] = min(90, 60 + 10 * len(evidence)) if evidence else 45 if review_groups else 20 if incidental else 0
         reasons.extend(company["name"] + ": " + ('Serviço no objeto principal: ' if intent else '') + term for term in evidence)
         if not evidence:reasons.extend(company['name']+': '+label for label in review_groups)

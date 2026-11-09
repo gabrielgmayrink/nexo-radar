@@ -27,7 +27,8 @@ OTHER_OBJECT = re.compile(
     r'softwares?|licenciamento|licencas?|plataformas?|'
     r'sistemas? (?:integrados?|informatizados?|de digitalizacao|de gestao publica)|'
     r'construcao|reformas?|obras?|pavimentacao|modernizacao|auditorios?|'
-    r'auditoria|exames|consultas medicas|procedimentos cirurgicos|unidade movel|'
+    r'auditoria|quimica|engenharia|tratamento de agua|analises laboratoriais|'
+    r'responsabilidade tecnica|exames|consultas medicas|procedimentos cirurgicos|unidade movel|'
     r'traducao|interpretacao|interpretes|tradutores|filmagem|fotografia|sonorizacao|'
     r'iluminacao|transmissao|gravacao|organizacao de eventos|producao de eventos)\b'
 )

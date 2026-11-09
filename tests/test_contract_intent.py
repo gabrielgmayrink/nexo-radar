@@ -30,6 +30,8 @@ class ContractIntentTests(unittest.TestCase):
             'Produção audiovisual com gravação e entrega de material para cursos profissionalizantes',
             'Fornecimento de reagentes para atividades dos cursos técnicos',
             'Reforma do centro de treinamento profissional',
+            'Serviços especializados na área da química, compreendendo responsabilidade técnica, assessoria técnica, controle da qualidade da água, incluindo elaboração de laudos e documentos técnicos',
+            'Assessoria técnica em engenharia, incluindo relatórios e documentos administrativos',
         ]
         for obj in objects:
             with self.subTest(obj=obj):
@@ -58,7 +60,7 @@ class ContractIntentTests(unittest.TestCase):
         for obj in [
             'Capacitação e treinamento teórico-prático de brigada de incêndio, destinada a 50 servidores do hospital',
             'Organização e execução de capacitação destinada aos professores e servidores, incluindo confraternização',
-            'Assessoria e consultoria em recursos humanos, compreendendo orientação administrativa',
+            'Assessoria técnica na gestão administrativa de pessoal, compreendendo orientação aos servidores',
             'Inscrição de servidores em curso sobre contratações públicas',
         ]:
             with self.subTest(obj=obj):
