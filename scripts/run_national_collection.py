@@ -66,13 +66,22 @@ class Receiver:
     def post(self,body):
         refreshed=False
         for attempt in range(4):
+            started=time.monotonic();identity_ms=0
             if not self._token or time.monotonic()>=self._token_until:
                 self._token=identity(self.opener)
                 self._token_until=time.monotonic()+60
+                identity_ms=round((time.monotonic()-started)*1000)
             request=Request(AUDIENCE,data=json.dumps(body,ensure_ascii=False).encode(),method='POST',
                             headers={'Authorization':'Bearer '+self._token,'Content-Type':'application/json'})
             try:
-                with self.open(request,timeout=self.timeout_seconds) as response:return json.load(response)
+                upload_started=time.monotonic()
+                with self.open(request,timeout=self.timeout_seconds) as response:result=json.load(response)
+                request_ms=round((time.monotonic()-upload_started)*1000)
+                if identity_ms+request_ms>=3000:
+                    print(json.dumps({'event':'national_transport_timing','page':body.get('page'),
+                                      'identityMs':identity_ms,'requestMs':request_ms,
+                                      'proxyConfigured':bool(os.environ.get('HTTPS_PROXY') or os.environ.get('https_proxy'))}),flush=True)
+                return result
             except HTTPError as exc:
                 if exc.code in (401,403) and not refreshed:
                     self._token=None;refreshed=True;continue
