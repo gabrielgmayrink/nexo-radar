@@ -17,7 +17,7 @@ from run_scheduled_collection import identity,NoRedirect,AUDIENCE
 
 SOURCE_PATH='/v1/contratacoes/proposta'
 SOURCE_CONCURRENCY=5
-SOURCE_START_INTERVAL=2.0
+SOURCE_START_INTERVAL=3.0  # Margem para evitar o limite observado na leitura real.
 
 
 class BufferedResponse(io.BytesIO):
