@@ -26,7 +26,7 @@ OTHER_OBJECT = re.compile(
     r'coffee break|buffet|alimentacao|passagens|transporte|hospedagem|'
     r'softwares?|licenciamento|licencas?|plataformas?|'
     r'sistemas? (?:integrados?|informatizados?|de digitalizacao|de gestao publica)|'
-    r'construcao|reformas?|obras?|pavimentacao|modernizacao|auditorios?|'
+    r'construcao|reformas?|(?<!mao de )obras?|pavimentacao|modernizacao|auditorios?|'
     r'auditoria|quimica|engenharia|tratamento de agua|analises laboratoriais|'
     r'responsabilidade tecnica|exames|consultas medicas|procedimentos cirurgicos|unidade movel|'
     r'traducao|interpretacao|interpretes|tradutores|filmagem|fotografia|sonorizacao|'
