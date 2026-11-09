@@ -37,14 +37,20 @@ class Receiver:
     def __init__(self,*,timeout_seconds=90):
         if not 20<=timeout_seconds<=235:raise ValueError('Invalid receiver timeout')
         self.opener=build_opener(NoRedirect());self.timeout_seconds=timeout_seconds
+        self._token=None;self._token_until=0
     def post(self,body):
+        refreshed=False
         for attempt in range(4):
-            token=identity(self.opener)
+            if not self._token or time.monotonic()>=self._token_until:
+                self._token=identity(self.opener)
+                self._token_until=time.monotonic()+60
             request=Request(AUDIENCE,data=json.dumps(body,ensure_ascii=False).encode(),method='POST',
-                            headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'})
+                            headers={'Authorization':'Bearer '+self._token,'Content-Type':'application/json'})
             try:
                 with self.opener.open(request,timeout=self.timeout_seconds) as response:return json.load(response)
             except HTTPError as exc:
+                if exc.code in (401,403) and not refreshed:
+                    self._token=None;refreshed=True;continue
                 if exc.code==409:return self.post({'action':'national_plan','executionId':body.get('executionId')})
                 if exc.code not in (429,500,502,503,504):raise
                 if attempt==3:raise

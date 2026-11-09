@@ -25,6 +25,41 @@ class Source:
 
 
 class WorkerTests(unittest.TestCase):
+    def test_receiver_reuses_short_lived_identity_only_in_memory(self):
+        receiver=worker.Receiver()
+        class Opener:
+            def open(self,*args,**kwargs):return io.BytesIO(b'{"done": false}')
+        receiver.opener=Opener()
+        with patch.object(worker,'identity',return_value='unit-test-only') as identity:
+            receiver.post({'action':'national_plan'})
+            receiver.post({'action':'national_plan'})
+            identity.assert_called_once()
+            receiver._token_until=0
+            receiver.post({'action':'national_plan'})
+            self.assertEqual(identity.call_count,2)
+
+    def test_receiver_refreshes_a_rejected_identity_once_without_weakening_auth(self):
+        receiver=worker.Receiver()
+        class Opener:
+            calls=0
+            def open(self,request,**kwargs):
+                self.calls+=1
+                if self.calls==1:raise worker.HTTPError(request.full_url,403,'unauthorized',{},io.BytesIO())
+                return io.BytesIO(b'{"done": false}')
+        receiver.opener=Opener()
+        with patch.object(worker,'identity',side_effect=['unit-old','unit-new']) as identity:
+            self.assertEqual(receiver.post({'action':'national_plan'}),{'done':False})
+            self.assertEqual(identity.call_count,2)
+
+    def test_receiver_stops_if_a_refreshed_identity_is_still_rejected(self):
+        receiver=worker.Receiver()
+        class Opener:
+            def open(self,request,**kwargs):raise worker.HTTPError(request.full_url,403,'unauthorized',{},io.BytesIO())
+        receiver.opener=Opener()
+        with patch.object(worker,'identity',return_value='unit-invalid') as identity:
+            with self.assertRaises(worker.HTTPError):receiver.post({'action':'national_plan'})
+            self.assertEqual(identity.call_count,2)
+
     def test_worker_collects_all_pages_without_old_record_caps(self):
         receiver=Receiver();source=Source(10001)
         with patch.object(worker,'write_summary') as summary,patch('builtins.print'):
