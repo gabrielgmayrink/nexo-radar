@@ -48,6 +48,9 @@ def finish_if_ready(store,cursor,execution_id):
     pass_number=cursor.get('passNumber',1)
     unique,covered=store.national_counts(execution_id,pass_number)
     complete_fresh_pass=covered==max(1,cursor['expectedPages'])
+    cursor.setdefault('fullPassNumber',1)
+    cursor.setdefault('tailCheckedForFullPass',1 if cursor.get('tailChecked') else 0)
+    if complete_fresh_pass:cursor['fullPassNumber']=pass_number
     if cursor.get('basePagesComplete') and complete_fresh_pass:
         unique,_=store.national_counts(execution_id,pass_number,True)
     cursor.update(uniqueRecords=unique)
@@ -59,12 +62,12 @@ def finish_if_ready(store,cursor,execution_id):
         cursor.update(status='ok',coverageComplete=True,pending_tasks=[],partition=1,
                       minimumPass=pass_number if complete_fresh_pass else 1)
         store.complete(execution_id,KIND,cursor)
-    elif (cursor.get('basePagesComplete') and cursor.get('passPages',0)>0
-          and not cursor.get('tailChecked') and cursor.get('expectedPages',0)>3):
+    elif (cursor.get('basePagesComplete') and cursor.get('passPages',0)>0 and cursor['pending_tasks']
+          and cursor['tailCheckedForFullPass']!=cursor['fullPassNumber'] and cursor.get('expectedPages',0)>3):
         gap=max(0,cursor['expectedRecords']-unique)
         window=max(3,(gap+49)//50+2)
         first=max(1,cursor['expectedPages']-window+1)
-        cursor.update(passNumber=pass_number+1,passPages=0,tailChecked=True,
+        cursor.update(passNumber=pass_number+1,passPages=0,tailChecked=True,tailCheckedForFullPass=cursor['fullPassNumber'],
                       pending_tasks=[{'mode':'proposta','modality':0,'page':first,'fingerprints':[]}],
                       partition=0,page=first,fingerprints=[],status='running',error='coverage_gap')
         store.save_failure(execution_id,KIND,cursor)

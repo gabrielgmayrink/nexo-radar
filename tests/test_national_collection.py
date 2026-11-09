@@ -59,6 +59,24 @@ class NationalTests(unittest.TestCase):
         self.assertEqual(result['plan']['page'],1)
         self.assertEqual(result['passNumber'],4)
 
+    def test_tail_is_rechecked_when_source_grows_after_another_full_pass(self):
+        store=Store()
+        for page in range(1,13):commit(store,payload(page,total=600))
+        commit(store,payload(1,total=650),pass_number=2)
+        for page in range(11,14):
+            commit(store,payload(page,total=650,ids=range((page-1)*50-50,(page-1)*50)),pass_number=3)
+        for page in range(1,13):commit(store,payload(page,total=650),pass_number=4)
+        result=commit(store,payload(13,total=650,ids=range(599,649)),pass_number=4)
+        self.assertFalse(result['done'])
+        self.assertEqual(result['plan']['page'],1)
+        self.assertEqual(result['passNumber'],5)
+        result=commit(store,payload(1,total=700),pass_number=5)
+        self.assertEqual(result['passNumber'],6)
+        self.assertEqual(result['plan']['page'],11)
+        for page in range(11,15):result=commit(store,payload(page,total=700),pass_number=6)
+        self.assertTrue(result['coverageComplete'])
+        self.assertEqual(result['uniqueRecords'],700)
+
     def test_plan_has_no_company_state_modality_or_publication_window(self):
         result=handle_national(Store(),'national_plan',{},'run')
         self.assertEqual(result['scope'],'all_open_brazil')
