@@ -21,8 +21,8 @@ SECONDARY = re.compile(
 )
 TOPIC = re.compile(r'\b(?:sobre|acerca de|com o tema|com temas|que aborda|que abordam)\b')
 OTHER_OBJECT = re.compile(
-    r'\b(?:equipamentos?|materiais?|mobiliario|moveis|cadeiras|uniformes|brindes|'
-    r'insumos|reagentes|kits?|generos alimenticios|lanches|'
+    r'\b(?:equipamentos?|material|materiais|mobiliario|moveis|cadeiras|uniformes|brindes|'
+    r'insumos|reagentes|kits?|generos? alimenticios?|lanches|'
     r'coffee break|buffet|alimentacao|passagens|transporte|hospedagem|'
     r'softwares?|licenciamento|licencas?|plataformas?|'
     r'sistemas? (?:integrados?|informatizados?|de digitalizacao|de gestao publica)|'
@@ -35,6 +35,11 @@ OTHER_OBJECT = re.compile(
 ORGANIZATION_SERVICE = re.compile(
     r'\b(?:area|unidade|setor|departamento|centro) (?:de|do|da) '
     r'(?:apoio administrativo|ensino)\b'
+)
+ACQUISITION = re.compile(r'\b(?:aquisicao|compra|locacao)\b')
+SERVICE_PURCHASE = re.compile(
+    r'^\s+(?:de|do|da|dos|das)\s+(?:\d+\s+)?(?:servicos?|cursos?|vagas|'
+    r'inscricoes|palestras?|treinamento|capacitacao|bolsas|mao de obra)\b'
 )
 
 
@@ -60,6 +65,10 @@ def service_contract_focus(text: str) -> str:
     other = OTHER_OBJECT.search(text)
     if other and other.start() < service.start():
         return ''
+    acquisition = ACQUISITION.search(text)
+    if acquisition and acquisition.start() < service.start():
+        if not SERVICE_PURCHASE.match(text[acquisition.end():]):
+            return ''
     organization = ORGANIZATION_SERVICE.search(text)
     if organization and organization.start() < service.start():
         return ''

@@ -14,6 +14,9 @@ class ContractIntentTests(unittest.TestCase):
         objects = [
             'Contratação de serviços para MODERNIZAÇÃO DO AUDITÓRIO DO CENTRO ADMINISTRATIVO DE NITERÓI, com vistas a requalificar o espaço físico onde é realizado eventos institucionais, reuniões, palestras e atividades oficiais, por meio de melhorias estruturais.',
             'Compra de materiais para eventos e palestras de desenvolvimento profissional',
+            'Registro de Preços objetivando a eventual aquisição de material de consumo, gênero alimentícios (café, açúcar e adoçante) a ser utilizado no atendimento das demandas dos Gabinetes, nas Sessões e em eventos, a exemplo de cursos, palestras e seminários',
+            'Aquisição de canecas para palestras e cursos de capacitação',
+            'Locação de espaço para cursos profissionalizantes',
             'Aquisição de mobiliário para cursos técnicos e profissionalizantes',
             'Fornecimento de brindes para palestras de desenvolvimento gerencial',
             'Fornecimento de equipamentos de apoio administrativo e educacional',
@@ -49,6 +52,8 @@ class ContractIntentTests(unittest.TestCase):
             'Assessoria em gestão pública, incluindo capacitação de servidores',
             'Palestras a serem realizadas no auditório da prefeitura',
             'Preparação de documentos para contratação de equipamentos',
+            'Aquisição de vagas em curso de capacitação de servidores',
+            'Locação de mão de obra de apoio administrativo',
         ]
         for obj in objects:
             with self.subTest(obj=obj):
