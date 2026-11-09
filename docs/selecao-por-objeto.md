@@ -10,6 +10,13 @@ mesmo job, com intervalo entre tentativas e sem repetir páginas já confirmadas
 Uma execução ainda incompleta termina com erro, preserva o cursor e não libera o
 resumo semanal. O diagnóstico curto de 120 segundos executa uma única tentativa.
 
+Depois de percorrer todas as páginas, a conferência consulta o início e o fim da
+lista. A fonte retorna publicações antigas no início; consultar apenas esse trecho
+não captura novas publicações adicionadas ao final durante a varredura. O trecho
+final é dimensionado pela diferença de contagem, com margem. Se a diferença
+persistir, a releitura completa continua; o ajuste não elimina a validação de IDs
+únicos nem os recibos da primeira passagem completa.
+
 A Public exige indícios do serviço no objeto principal. A regra normaliza o texto
 e delimita menções a finalidade do espaço, exemplos, temas de cursos e serviços
 incluídos. Compras de equipamentos, materiais, software, transporte, reformas,

@@ -51,13 +51,23 @@ def finish_if_ready(store,cursor,execution_id):
     if cursor.get('basePagesComplete') and complete_fresh_pass:
         unique,_=store.national_counts(execution_id,pass_number,True)
     cursor.update(uniqueRecords=unique)
-    # The source changes during a scan. Always revisit its head after the full
-    # pass, accumulating IDs so newly published records do not force an endless
-    # discard-and-restart cycle. A count gap still prevents completion.
+    # Recheck the head, then the tail: proposals are returned oldest-first in
+    # production, so new publications can arrive after the scanned tail. Keep
+    # every ID and retain the count gate; a remaining gap still triggers a full
+    # verification pass rather than being declared complete.
     if cursor.get('basePagesComplete') and cursor.get('passPages',0)>0 and unique>=cursor['expectedRecords']:
         cursor.update(status='ok',coverageComplete=True,pending_tasks=[],partition=1,
                       minimumPass=pass_number if complete_fresh_pass else 1)
         store.complete(execution_id,KIND,cursor)
+    elif (cursor.get('basePagesComplete') and cursor.get('passPages',0)>0
+          and not cursor.get('tailChecked') and cursor.get('expectedPages',0)>3):
+        gap=max(0,cursor['expectedRecords']-unique)
+        window=max(3,(gap+49)//50+2)
+        first=max(1,cursor['expectedPages']-window+1)
+        cursor.update(passNumber=pass_number+1,passPages=0,tailChecked=True,
+                      pending_tasks=[{'mode':'proposta','modality':0,'page':first,'fingerprints':[]}],
+                      partition=0,page=first,fingerprints=[],status='running',error='coverage_gap')
+        store.save_failure(execution_id,KIND,cursor)
     elif not cursor['pending_tasks']:
         if not cursor.get('basePagesComplete') and covered!=max(1,cursor['expectedPages']):
             raise ValueError('National coverage ledger has missing pages')

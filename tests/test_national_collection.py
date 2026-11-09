@@ -34,6 +34,31 @@ def commit(store,data,pass_number=1):
 
 
 class NationalTests(unittest.TestCase):
+    def test_new_tail_publications_are_checked_without_replaying_the_entire_source(self):
+        store=Store()
+        for page in range(1,13):result=commit(store,payload(page,total=600))
+        self.assertFalse(result['done'])
+        result=commit(store,payload(1,total=650),pass_number=2)
+        self.assertFalse(result['done'])
+        self.assertEqual(result['plan']['page'],11)
+        self.assertEqual(result['passNumber'],3)
+        for page in range(11,14):result=commit(store,payload(page,total=650),pass_number=3)
+        self.assertTrue(result['coverageComplete'])
+        self.assertEqual(result['uniqueRecords'],650)
+        self.assertEqual(len(store.rows),650)
+        self.assertEqual(len([key for key in store.ledger if key[0]==1]),12)
+
+    def test_tail_check_does_not_hide_a_gap_elsewhere_in_the_source(self):
+        store=Store()
+        for page in range(1,13):commit(store,payload(page,total=600))
+        commit(store,payload(1,total=650),pass_number=2)
+        for page in range(11,14):
+            result=commit(store,payload(page,total=650,ids=range((page-1)*50-50,(page-1)*50)),pass_number=3)
+        self.assertFalse(result['done'])
+        self.assertFalse(result['coverageComplete'])
+        self.assertEqual(result['plan']['page'],1)
+        self.assertEqual(result['passNumber'],4)
+
     def test_plan_has_no_company_state_modality_or_publication_window(self):
         result=handle_national(Store(),'national_plan',{},'run')
         self.assertEqual(result['scope'],'all_open_brazil')
