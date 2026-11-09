@@ -5,6 +5,11 @@ de `/v1/contratacoes/proposta`, sem filtros de UF, modalidade ou publicação.
 O total nacional é diferente do número de oportunidades selecionadas por empresa.
 Itens, documentos, contratos assinados e republicações não são novos editais.
 
+A rotina nacional retoma automaticamente até três tentativas de 90 minutos no
+mesmo job, com intervalo entre tentativas e sem repetir páginas já confirmadas.
+Uma execução ainda incompleta termina com erro, preserva o cursor e não libera o
+resumo semanal. O diagnóstico curto de 120 segundos executa uma única tentativa.
+
 A Public exige indícios do serviço no objeto principal. A regra normaliza o texto
 e delimita menções a finalidade do espaço, exemplos, temas de cursos e serviços
 incluídos. Compras de equipamentos, materiais, software, transporte, reformas,

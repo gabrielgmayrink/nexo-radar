@@ -45,7 +45,8 @@ class WorkerTests(unittest.TestCase):
         class TimeoutSource:
             def fetch(self,page):raise worker.PNCPError('timeout')
         with patch.object(worker,'write_summary') as summary,patch('builtins.print'):
-            worker.run(budget_seconds=120,receiver=receiver,source=TimeoutSource())
+            result=worker.run(budget_seconds=120,receiver=receiver,source=TimeoutSource())
+        self.assertEqual(result,2)
         self.assertFalse(summary.call_args.args[1]);self.assertEqual(receiver.store.rows,{})
         self.assertEqual(receiver.store.cursor['status'],'partial')
 
@@ -56,6 +57,24 @@ class WorkerTests(unittest.TestCase):
         with patch.object(worker,'write_summary') as summary,patch('builtins.print'):
             worker.run(budget_seconds=120,receiver=receiver,source=ServerErrorSource())
         self.assertFalse(summary.call_args.args[1]);self.assertEqual(receiver.store.cursor['error'],'source_5xx')
+
+    def test_incomplete_attempt_resumes_and_completes_in_the_same_job(self):
+        with patch.object(worker,'run',side_effect=[2,0]) as run,patch.object(worker.time,'sleep') as sleep,patch('builtins.print'):
+            self.assertEqual(worker.run_with_resume(budget_seconds=5400),0)
+        self.assertEqual(run.call_count,2)
+        sleep.assert_called_once_with(60)
+
+    def test_exhausted_resume_budget_does_not_report_success(self):
+        with patch.object(worker,'run',return_value=2) as run,patch.object(worker.time,'sleep'),patch('builtins.print'):
+            self.assertEqual(worker.run_with_resume(budget_seconds=5400),2)
+        self.assertEqual(run.call_count,3)
+
+    def test_fatal_failure_and_short_diagnostics_are_not_automatically_repeated(self):
+        for budget,result in ((5400,1),(120,2)):
+            with self.subTest(budget=budget),patch.object(worker,'run',return_value=result) as run,patch.object(worker.time,'sleep') as sleep:
+                self.assertEqual(worker.run_with_resume(budget_seconds=budget),result)
+                run.assert_called_once_with(budget_seconds=budget)
+                sleep.assert_not_called()
 
     def test_decreasing_national_page_count_does_not_trap_the_worker(self):
         receiver=Receiver()

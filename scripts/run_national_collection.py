@@ -160,7 +160,7 @@ def run(*,budget_seconds=3600,receiver=None,source=None):
                         if attempt==4 or time.monotonic()-started>=budget_seconds-180:
                             progress=receiver.post({'action':'national_failure','executionId':plan['executionId'],
                                       'passNumber':plan['passNumber'],'page':page,'reason':reason})
-                            write_summary(progress,False);return 0
+                            write_summary(progress,False);return 2
                         delay=max(min(10*2**attempt,120),getattr(exc,'retry_after_seconds',None) or 0)
                         print(json.dumps({'event':'national_source_retry','page':page,'reason':reason,'waitSeconds':delay}),flush=True)
                         time.sleep(delay)
@@ -171,13 +171,27 @@ def run(*,budget_seconds=3600,receiver=None,source=None):
                 if progress.get('done') or time.monotonic()-last_log>=30:
                     print(json.dumps({key:value for key,value in progress.items() if key!='plan'}),flush=True);last_log=time.monotonic()
             write_summary(progress,False)
-            return 0
+            return 2
         finally:
             for future in futures.values():future.cancel()
 
 
+def run_with_resume(*, budget_seconds=5400):
+    """Resume bounded incomplete attempts in the same authenticated job."""
+    attempts = 1 if budget_seconds == 120 else 3
+    for attempt in range(1, attempts + 1):
+        result = run(budget_seconds=budget_seconds)
+        if result != 2:
+            return result
+        if attempt < attempts:
+            print(json.dumps({'event':'national_resume_pending','attempt':attempt,
+                              'nextAttempt':attempt+1,'waitSeconds':60}),flush=True)
+            time.sleep(60)
+    return 2
+
+
 if __name__=='__main__':
-    try:raise SystemExit(run(budget_seconds=int(os.environ.get('RADAR_NATIONAL_BUDGET_SECONDS','3600'))))
+    try:raise SystemExit(run_with_resume(budget_seconds=int(os.environ.get('RADAR_NATIONAL_BUDGET_SECONDS','5400'))))
     except Exception as exc:
         print(json.dumps({'event':'national_worker_failed','errorType':type(exc).__name__,
                           **({'sourceError':str(exc)} if isinstance(exc,PNCPError) else {})}),flush=True)

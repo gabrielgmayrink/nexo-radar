@@ -28,7 +28,7 @@ jobs:
   collect:
     if: vars.RADAR_COLLECTION_ENABLED == '1' && github.event.schedule != '0 2 * * 1' && inputs.kind != 'cleanup' && inputs.kind != 'cleanup_preview'
     runs-on: ubuntu-latest
-    timeout-minutes: 125
+    timeout-minutes: 330 # Até três tentativas de 90 min, retomando o mesmo cursor
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
