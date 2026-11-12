@@ -23,7 +23,7 @@ def row(sequence,**extra):
 class IngestionIntegrationTests(unittest.TestCase):
     def setUp(self):
         options=psycopg.conninfo.conninfo_to_dict(DSN)
-        if options.get('host') not in ('127.0.0.1','localhost') or options.get('dbname')!='postgres':
+        if options.get('host') not in ('127.0.0.1','localhost') or not (options.get('dbname')=='postgres' or options.get('dbname','').startswith('radar_restore_test_')):
             raise ValueError('Integration tests require a disposable loopback PostgreSQL database')
         self.db=psycopg.connect(DSN,autocommit=True)
         self.transaction=self.db.transaction(force_rollback=True);self.transaction.__enter__()

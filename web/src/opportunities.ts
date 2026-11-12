@@ -23,8 +23,8 @@ export const REASONS: Record<string, string> = {
   aderente: 'O objeto corresponde ao nosso produto',
   outro: 'Outro motivo',
 };
-export type Filters = { query: string; product: string; uf: string; deadline: string; modality: string; assessment: string; city:string;organization:string;minValue:string;maxValue:string;publishedFrom:string;publishedTo:string };
-export const EMPTY_FILTERS: Filters = { query: '', product: 'Todos', uf: 'Todas', deadline: 'any', modality: 'Todas', assessment: 'any',city:'',organization:'',minValue:'',maxValue:'',publishedFrom:'',publishedTo:'' };
+export type Filters = { query: string; product: string; uf: string; deadline: string; modality: string; assessment: string; city:string;organization:string;minValue:string;maxValue:string;publishedFrom:string;publishedTo:string;source:string;situation:string };
+export const EMPTY_FILTERS: Filters = { query: '', product: 'Todos', uf: 'Todas', deadline: 'any', modality: 'Todas', assessment: 'any',city:'',organization:'',minValue:'',maxValue:'',publishedFrom:'',publishedTo:'',source:'all',situation:'open' };
 export const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 export function parseDate(value: string) {
   if (!value) return null;

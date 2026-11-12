@@ -102,7 +102,8 @@ class MFAFlowTests(unittest.TestCase):
 class SecurityBoundaryTests(unittest.TestCase):
     def test_tls_refuses_downgrade_and_invalid_certificate(self):
         self.assertEqual(tls_parameters({'sslmode':'disable'},environ={})['sslmode'],'verify-full')
-        self.assertEqual(tls_parameters({},environ={})['sslrootcert'],'system')
+        self.assertTrue(Path(tls_parameters({},environ={})['sslrootcert']).is_file())
+        self.assertEqual(tls_parameters({},environ={'RADAR_POSTGRES_CA_FILE':'system'})['sslrootcert'],'system')
         with self.assertRaises(ValueError):tls_parameters({},environ={'RADAR_POSTGRES_CA_FILE':'relative.crt'})
         with tempfile.TemporaryDirectory(dir=TEMP_ROOT) as root:
             self.assertTrue(Path(root).resolve().is_relative_to(TEMP_ROOT.resolve()))
@@ -129,6 +130,7 @@ class SecurityBoundaryTests(unittest.TestCase):
         sql=db.execute.call_args.args[0]
         for guard in ('s.auth_generation','a.disabled_at','u.banned_until','md5(u.encrypted_password)','auth.mfa_factors'):
             self.assertIn(guard,sql)
+        self.assertIsInstance(db.execute.call_args.args[1][1],list)
 
     def test_alphanumeric_identifier_and_bounded_checklist(self):
         data={'id':'ABCD5678000100-1-1/2026','offer':'Public','status':'Nova','reason':'','version':0,
@@ -138,6 +140,13 @@ class SecurityBoundaryTests(unittest.TestCase):
 
 
 class BackupIntegrityTests(unittest.TestCase):
+    def test_existing_destination_survives_failed_exclusive_open(self):
+        with tempfile.TemporaryDirectory(dir=TEMP_ROOT) as root:
+            source=Path(root)/'archive';target=Path(root)/'keep'
+            source.write_bytes(b'invalid');target.write_bytes(b'preserve existing file')
+            with self.assertRaises(FileExistsError):decrypt_archive(source,target,b'k'*32)
+            self.assertEqual(target.read_bytes(),b'preserve existing file')
+
     def test_offline_roundtrip_and_tamper_rejection(self):
         with tempfile.TemporaryDirectory(dir=TEMP_ROOT) as root:
             self.assertTrue(Path(root).resolve().is_relative_to(TEMP_ROOT.resolve()))

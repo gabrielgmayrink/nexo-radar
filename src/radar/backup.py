@@ -26,8 +26,10 @@ def encrypt_archive(source,destination,key):
 
 
 def decrypt_archive(source,destination,key):
+    created=False
     try:
         with open(source,'rb') as incoming,open(destination,'xb') as outgoing:
+            created=True
             if incoming.read(len(MAGIC))!=MAGIC:raise ValueError('Invalid backup format')
             nonce=incoming.read(12);incoming.seek(-16,2);tag=incoming.read(16)
             remaining=incoming.tell()-len(MAGIC)-12-16
@@ -41,5 +43,5 @@ def decrypt_archive(source,destination,key):
                 remaining-=len(chunk);outgoing.write(decryptor.update(chunk))
             outgoing.write(decryptor.finalize())
     except Exception:
-        Path(destination).unlink(missing_ok=True)
+        if created:Path(destination).unlink(missing_ok=True)
         raise

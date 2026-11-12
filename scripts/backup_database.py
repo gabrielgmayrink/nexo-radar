@@ -43,6 +43,7 @@ def main():
     parser.add_argument('--archive',required=True,type=Path)
     parser.add_argument('--database-url-env',default='POSTGRES_URL_NON_POOLING')
     parser.add_argument('--allow-test-restore',action='store_true')
+    parser.add_argument('--allow-local-test-backup',action='store_true')
     args=parser.parse_args()
     archive=args.archive.resolve()
     if not args.archive.is_absolute() or archive.is_relative_to(ROOT):
@@ -52,7 +53,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='nexo-backup-',dir=archive.parent) as temporary:
         plain=Path(temporary)/'database.dump'
         if args.action=='backup':
-            env=pg_environment(os.environ.get(args.database_url_env,''))
+            env=pg_environment(os.environ.get(args.database_url_env,''),local=args.allow_local_test_backup)
             run_pg(['pg_dump','--format=custom','--no-owner','--no-acl','--file',str(plain)],env)
             encrypt_archive(plain,archive,key)
         else:
@@ -61,6 +62,10 @@ def main():
             if args.action=='restore-test':
                 if not args.allow_test_restore:raise ValueError('Explicit --allow-test-restore is required')
                 env=pg_environment(os.environ.get(args.database_url_env,''),local=True)
+                import psycopg
+                with psycopg.connect(host=env['PGHOST'],port=env['PGPORT'],dbname=env['PGDATABASE'],user=env['PGUSER'],password=env['PGPASSWORD'],sslmode='disable') as db:
+                    existing=db.execute("select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname not in ('pg_catalog','information_schema') and n.nspname not like 'pg_toast%%' and c.relkind in ('r','p','m')").fetchone()[0]
+                    if existing:raise ValueError('Restore target must be an empty disposable database')
                 run_pg(['pg_restore','--exit-on-error','--no-owner','--no-acl','--dbname',env['PGDATABASE'],str(plain)],env)
                 run_pg(['psql','--no-psqlrc','--set','ON_ERROR_STOP=1','--command',
                         'select count(*) from public.radar_opportunities; select count(*) from public.radar_review_state;'],env)

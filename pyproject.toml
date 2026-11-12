@@ -19,7 +19,7 @@ radar = "radar.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-radar = ["companies.json"]
+radar = ["companies.json", "certificates/*.crt"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

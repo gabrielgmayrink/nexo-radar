@@ -65,6 +65,14 @@ def _link(db, job, rows, url, key, kind):
     db.execute('''insert into radar_source_links(opportunity_id,source_id,source_hash,external_id,link_type,url,content_hash,payload)
       values(%s,%s,%s,%s,%s,%s,%s,%s) on conflict do nothing''',
                (job['opportunity'], TASK_SOURCE[job['task']], job['hash'], key, kind, url, _hash(content), Jsonb(rows)))
+    if kind=='item_page':
+        items=[{'number':str(item['number']),'description':item['description']} for item in _items(TASK_SOURCE[job['task']],rows) if item['number'] is not None]
+        if items:
+            db.execute('''insert into radar_item_search(opportunity_id,source_hash,source_id,item_number,text_normalized)
+              select %s,%s,%s,number,public.radar_search_normalize(description)
+              from jsonb_to_recordset(%s::jsonb) as i(number text,description text)
+              on conflict(opportunity_id,source_hash,source_id,item_number) do update set text_normalized=excluded.text_normalized''',
+              (job['opportunity'],job['hash'],TASK_SOURCE[job['task']],Jsonb(items)))
 
 
 def _manifest(db, job, rows):

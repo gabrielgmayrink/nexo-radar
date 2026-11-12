@@ -21,7 +21,7 @@ OTHER_OBJECT = re.compile(
     r'seguros?|apostilas|confeccao|passagens|transporte|hospedagem|softwares?|'
     r'licenciamento|licencas?|plataformas?|sistemas? (?:integrados?|informatizados?|de digitalizacao|de gestao publica)|'
     r'construcao|reformas?|(?<!mao de )obras?|pavimentacao|modernizacao|auditorios?|'
-    r'auditoria|quimica|engenharia|tratamento de agua|analises laboratoriais|responsabilidade tecnica|'
+    r'isolamento|tratamento acustico|auditoria|quimica|engenharia|tratamento de agua|analises laboratoriais|responsabilidade tecnica|'
     r'exames|consultas medicas|procedimentos cirurgicos|unidade movel|traducao|interpretacao|interpretes|'
     r'tradutores|filmagem|fotografia|sonorizacao|iluminacao|transmissao|gravacao|organizacao de eventos|producao de eventos)\b'
 )
@@ -96,7 +96,8 @@ def analyze_service_intent(obj: str, additional: str = '') -> dict:
             role,code = 'context','organization_name'
         elif other and other.start() < match.start():
             coordinated = COORDINATED_SERVICE.search(before[other.end():])
-            if coordinated and len(before[other.end()+coordinated.end():].split()) <= 8:
+            facility = re.search(r'\b(?:sala|auditorio|espaco|predio)\b.{0,120}\b(?:realizacao|ministracao|ensino|cursos?)\b',before)
+            if coordinated and not facility and len(before[other.end()+coordinated.end():].split()) <= 8:
                 mixed = True
                 role,code = 'mixed','mixed_object'
             else:

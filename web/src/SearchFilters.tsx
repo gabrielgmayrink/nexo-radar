@@ -29,12 +29,14 @@ export default function SearchFilters({ companyName, filters, rows, facets, onCh
     { key: 'product', label: 'Empresa', aria: 'Filtrar empresa', options: [['Todos',companyName]] },
     { key: 'deadline', label: 'Encerramento', aria: 'Filtrar encerramento', options: Object.entries(DEADLINES) },
     { key: 'modality', label: 'Modalidade', aria: 'Filtrar modalidade', options: [['Todas','Todas as modalidades'], ...modalities] },
+    { key: 'source', label: 'Fonte complementar', aria: 'Filtrar fonte', options: [['all','Todas as fontes'],['pncp','PNCP'],['compras_gov','Com dados do Compras.gov.br']] },
+    { key: 'situation', label: 'Situação oficial', aria: 'Filtrar situação', options: [['open','Abertas'],['all','Todas as situações no acervo'],['closed','Prazo encerrado'],['suspended','Suspensas']] },
     { key: 'assessment', label: 'Avaliação', aria: 'Filtrar avaliação', options: [['any','Todas as avaliações'],['unreviewed','Ainda não avaliadas'],['reviewed','Já avaliadas']] },
   ] as const;
-  const labels:Record<keyof Filters,string>={product:'empresa',uf:'estado',query:'busca',deadline:'encerramento',modality:'modalidade',assessment:'avaliação',city:'município',organization:'órgão',minValue:'valor mínimo',maxValue:'valor máximo',publishedFrom:'publicação desde',publishedTo:'publicação até'};
+  const labels:Record<keyof Filters,string>={product:'empresa',uf:'estado',query:'busca',deadline:'encerramento',modality:'modalidade',assessment:'avaliação',city:'município',organization:'órgão',minValue:'valor mínimo',maxValue:'valor máximo',publishedFrom:'publicação desde',publishedTo:'publicação até',source:'fonte',situation:'situação'};
   const chip = (key: keyof Filters) => key === 'uf' ? `Estado: ${stateLabel(filters.uf)}` : key === 'query' ? `Busca: ${filters.query}` : key === 'deadline' ? DEADLINES[filters.deadline] : key === 'assessment' ? filters.assessment === 'reviewed' ? 'Já avaliadas' : 'Ainda não avaliadas' : labels[key]+': '+filters[key];
   return <div className="search-workbench">
-    <div className="search-tools"><label className="search-field"><Search size={20}/><input ref={searchRef} type="search" aria-label="Buscar licitações" aria-describedby="search-guidance" autoComplete="off" spellCheck={false} maxLength={240} placeholder="Objeto, órgão, cidade, UF ou número PNCP" value={filters.query} onChange={event => onChange({ query: event.target.value })}/>
+    <div className="search-tools"><label className="search-field"><Search size={20}/><input ref={searchRef} type="search" aria-label="Buscar licitações" aria-describedby="search-guidance" autoComplete="off" spellCheck={false} maxLength={240} placeholder="Objeto, itens, órgão, cidade ou número PNCP" value={filters.query} onChange={event => onChange({ query: event.target.value })}/>
       {pending && <LoaderCircle className="spinning search-pending" size={16} aria-label="Atualizando busca"/>}
       {!filters.query && <kbd className="search-shortcut" title="Pressione / ou Ctrl+K para buscar">/</kbd>}
       {filters.query && <button type="button" className="clear-search" aria-label="Limpar busca" onClick={() => { onChange({ query: '' }); searchRef.current?.focus(); }}><X size={17}/></button>}

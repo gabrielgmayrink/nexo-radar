@@ -14,6 +14,7 @@ class RelevanceQualityTests(unittest.TestCase):
 
     def test_context_negation_and_presential_are_not_recommendations(self):
         for obj in ('Contratação de seguro para participantes de cursos profissionalizantes',
+                    'Contratação de empresa especializada para isolamento e tratamento acústico da sala de edição e realização de aulas de ensino à distância do IEP.',
                     'Contratação de serviços de manutenção, excluídos os cursos de capacitação de servidores',
                     'Modernização do auditório onde ocorrem palestras',
                     'Contratação de curso de graduação presencial em medicina'):

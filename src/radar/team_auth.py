@@ -107,7 +107,7 @@ def session_user(db,header):
         and (not coalesce(a.require_mfa,false) or s.assurance_level='aal2')
         and (s.assurance_level='aal2' or not exists(select 1 from auth.mfa_factors f where f.user_id=u.id and f.status='verified'))
         and (not (s.email=any(%s::text[])) or s.assurance_level='aal2')''',
-                   (digest(token),email_list('RADAR_MFA_REQUIRED_EMAILS'))).fetchone()
+                   (digest(token),sorted(email_list('RADAR_MFA_REQUIRED_EMAILS')))).fetchone()
     return row[0] if row and row[0] in email_list('RADAR_TEAM_EMAILS') else None
 
 

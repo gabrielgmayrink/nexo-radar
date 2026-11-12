@@ -25,7 +25,10 @@ def options(query):
     result={'page':page,'limit':limit,'view':view,'sort':sort,'uf':uf,'deadline':deadline,
             'assessment':assessment,'q':value('q')[:240],'modality':value('modality','Todas')[:180],
             'city':value('city')[:160],'organization':value('organization')[:160],
-            'publishedFrom':value('publishedFrom'),'publishedTo':value('publishedTo')}
+            'publishedFrom':value('publishedFrom'),'publishedTo':value('publishedTo'),
+            'source':value('source','all'),'situation':value('situation','open')}
+    if result['source'] not in ('all','pncp','compras_gov'):raise ValueError('Invalid source')
+    if result['situation'] not in ('open','all','closed','suspended'):raise ValueError('Invalid situation')
     for key in ('publishedFrom','publishedTo'):
         if result[key]:datetime.strptime(result[key],'%Y-%m-%d')
     for key in ('minValue','maxValue'):
@@ -37,14 +40,14 @@ def options(query):
 
 
 BASE='''with records as (
- select n.id,n.payload,n.card,n.rule_version,n.classification_version,
+ select n.id,n.payload,n.card,n.rule_version,n.classification_version,n.content_hash as source_hash,
  coalesce((n.product_scores->>%s)::integer,0) as rule_score,
  case when r.opportunity_id<>n.id and (r.offer='Nenhuma' and r.reason_code not in ('produto_diferente','nao_contrata_sistema','mencao_incidental')
  or exists(select 1 from public.radar_review_state x where x.company_id=r.company_id and x.object_hash=n.object_hash
    and ((x.offer='Nenhuma' and r.offer in ('Public','Gerico')) or (r.offer='Nenhuma' and x.offer in ('Public','Gerico')))))
  then 'Revisar' else r.offer end as review_offer,
  case when r.opportunity_id=n.id then r.status else null end as review_status,r.reason as review_reason,r.reason_code,
- r.expected_scope,r.actor,r.version,r.updated_at,r.opportunity_id as review_source_id,
+ r.expected_scope,r.actor,r.version,r.updated_at,r.owner,r.checklist,r.opportunity_id as review_source_id,
  public.radar_safe_timestamp(n.payload->>'dataEncerramentoProposta') as deadline,
  public.radar_safe_timestamp(n.payload->>'dataPublicacaoPncp') as published,
  case when jsonb_typeof(n.payload->'valorTotalEstimado')='number' then (n.payload->>'valorTotalEstimado')::numeric else null end as estimated,
@@ -54,19 +57,23 @@ BASE='''with records as (
  n.payload->'unidadeOrgao'->>'ufSigla' as uf,n.payload->>'modalidadeNome' as modality,
  public.radar_search_normalize(n.payload->'unidadeOrgao'->>'municipioNome') as city,
  public.radar_search_normalize(n.payload->'orgaoEntidade'->>'razaoSocial') as organization
- from public.radar_catalog_source n left join lateral (
+ from public.radar_opportunities n left join lateral (
  select r.* from public.radar_review_state r where r.company_id=%s and
  ((r.opportunity_id=n.id and r.example_object=n.payload->>'objetoCompra'
  and r.example_additional=coalesce(n.payload->>'informacaoComplementar',''))
  or (n.object_hash is not null and r.object_hash=n.object_hash and length(public.radar_search_normalize(n.payload->>'objetoCompra'))>=80))
  order by (r.opportunity_id=n.id) desc,r.updated_at desc,r.opportunity_id limit 1
  ) r on true
- where n.payload->>'situacaoCompraId'='1' and n.payload->>'tipoInstrumentoConvocatorioCodigo' in ('1','2','4')
+ where (n.id in (select id from public.radar_catalog_source)
+   or exists(select 1 from public.radar_review_state own where own.opportunity_id=n.id and own.company_id=%s
+       and own.status in ('Vou participar','Descartada','Ganhou','Perdeu')))
+ and n.payload->>'tipoInstrumentoConvocatorioCodigo' in ('1','2','4')
 ), classified as (
  select *, coalesce(rule_score>=40 or review_offer=%s or review_offer='Revisar' or review_status='Vou participar',false) as selected,
  coalesce(review_offer='Nenhuma' or review_status='Descartada',false) as dismissed,
  case when review_offer=%s then greatest(rule_score,70) else rule_score end as effective_score
- from records where deadline is null or deadline>%s
+ ,coalesce(payload->>'situacaoCompraId'='1' and (deadline is null or deadline>%s),false) as active
+ from records
 )'''
 
 
@@ -92,9 +99,18 @@ def filter_sql(config,profile=None):
             padded=phrase or ' ' in term or len(term)<=2
             tests.append("position(%s in (' '||search_text||' '))>0" if padded else 'position(%s in search_text)>0')
             params.append(' '+term+' ' if padded else term)
+            tests.append('''exists(select 1 from public.radar_item_search i where i.opportunity_id=classified.id
+              and i.source_hash=classified.source_hash and position(%s in (' '||i.text_normalized||' '))>0)''')
+            params.append(' '+term+' ' if padded else term)
         clauses.append(('not ' if excluded else '')+'('+' or '.join(tests)+')')
     if config['uf']!='Todas':clauses.append('uf=%s');params.append(config['uf'])
     if config['modality']!='Todas':clauses.append('modality=%s');params.append(config['modality'])
+    situation=config.get('situation','open')
+    if situation=='open' and config.get('view') not in ('tracked','dismissed','learning'):clauses.append('active')
+    elif situation=='closed':clauses.append("deadline<=now()")
+    elif situation=='suspended':clauses.append("payload->>'situacaoCompraId'='4'")
+    if config.get('source','all')=='compras_gov':
+        clauses.append("exists(select 1 from public.radar_source_links l where l.opportunity_id=classified.id and l.source_hash=classified.source_hash and l.source_id='compras_gov')")
     for field in ('city','organization'):
         if config.get(field):clauses.append('position(%s in '+field+')>0');params.append(normalize(config[field]))
     for field,operator in (('minValue','>='),('maxValue','<=')):
@@ -131,20 +147,20 @@ def load_catalog_page(snapshot,company,query,db,*,status_loader=None):
     profiles=load_profiles(db);profile=next(p for p in profiles if p['id']==company);active=profile['enabled']
     version=classification_version(profiles)
     now=datetime.now(timezone.utc)
-    base_params=[name,company,name,name,now]
+    base_params=[name,company,company,name,name,now]
     where,params=filter_sql(config,profile)
-    if not active:where='false'
+    if not active:where='false';params=[]
     counts=db.execute(BASE+' select '+','.join('count(*) filter(where '+view_condition(view)+')' for view in VIEWS)+' from classified where '+where,base_params+params).fetchone()
     counts=dict(zip(VIEWS,counts));total=counts[config['view']]
     pages=max(1,(total+config['limit']-1)//config['limit']);page=min(config['page'],pages)
     data=db.execute(BASE+''' select payload,card,review_offer,review_status,review_reason,reason_code,expected_scope,actor,version,updated_at
-       ,review_source_id from classified where '''+where+' and ('+view_condition(config['view'])+') order by '+SORTS[config['sort']]+' limit %s offset %s',base_params+params+[config['limit'],(page-1)*config['limit']]).fetchall()
+       ,review_source_id,owner,checklist from classified where '''+where+' and ('+view_condition(config['view'])+') order by '+SORTS[config['sort']]+' limit %s offset %s',base_params+params+[config['limit'],(page-1)*config['limit']]).fetchall()
     cards=[];reviews={}
-    for payload,stored,offer,status,reason,reason_code,expected_scope,actor,review_version,updated,review_source_id in data:
+    for payload,stored,offer,status,reason,reason_code,expected_scope,actor,review_version,updated,review_source_id,owner,checklist in data:
         card=private_card(payload,stored,company,review_candidate=config['view']=='discover',profiles=profiles)
         if offer is not None and review_source_id==card['id']:
             reviews[card['id']]={'id':card['id'],'offer':offer,'status':status,'reason':reason,'reasonCode':reason_code,
-                'expectedScope':expected_scope,'actor':actor,'version':review_version,'sourceCurrent':True,'updatedAt':updated.isoformat()}
+                'expectedScope':expected_scope,'actor':actor,'version':review_version,'sourceCurrent':True,'updatedAt':updated.isoformat(),'owner':owner,'checklist':checklist}
         elif offer:
             card['learning']={'label':'irrelevante' if offer=='Nenhuma' else 'relevante' if offer==name else 'revisar',
                              'match':'exact','reasonCode':reason_code,'examples':1,'offer':offer}

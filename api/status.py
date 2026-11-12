@@ -7,14 +7,20 @@ from radar.company_access import request_access,AccessDenied
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        store=None
         try:
             request_access(self.headers.get('Cookie'))
-            payload=load_collection_status() if os.environ.get('RADAR_CATALOG_STORE')=='supabase' else {'enabled':False,'collections':{},'executions':[]}
+            if os.environ.get('RADAR_CATALOG_STORE')=='supabase':
+                from radar.postgres_store import PostgresStore
+                store=PostgresStore();payload=load_collection_status(db=store.db)
+            else:payload={'enabled':False,'collections':{},'executions':[]}
             status=200
         except AccessDenied as exc:
             payload,status={'error':str(exc)},exc.status
         except Exception:
             payload,status={'error':'Situação da atualização temporariamente indisponível.'},503
+        finally:
+            if store:store.close()
         body=json.dumps(payload,ensure_ascii=False).encode()
         self.send_response(status)
         self.send_header('Content-Type','application/json; charset=utf-8')

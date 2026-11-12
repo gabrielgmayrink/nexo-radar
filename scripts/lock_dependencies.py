@@ -5,7 +5,7 @@ from urllib.request import urlopen
 
 PACKAGES={'cffi':'2.1.1','cryptography':'50.0.2','psycopg':'3.3.8','psycopg-binary':'3.3.8',
           'pycparser':'3.12','PyJWT':'2.15.1','typing_extensions':'4.16.0','tzdata':'2026.6',
-          'pypdf':'7.0.1','setuptools':'80.9.0'}
+          'pypdf':'7.0.1','setuptools':'84.1.0'}
 
 
 def main():
