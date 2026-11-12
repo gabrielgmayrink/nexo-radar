@@ -7,6 +7,7 @@ import { getLoginToken, clearLoginToken, getSetupToken, clearSetupToken } from '
 import { teamRequest } from './useTeam';
 
 type Props = { enabled: boolean; loading: boolean; onAuthenticated: () => Promise<void> };
+type MFA = {pendingToken:string; factors:{id:string;friendly_name?:string}[];enrollmentRequired:boolean};
 
 export default function LoginPage({ enabled, loading, onAuthenticated }: Props) {
   const [email,setEmail] = useState('');
@@ -16,6 +17,8 @@ export default function LoginPage({ enabled, loading, onAuthenticated }: Props) 
   const [showPassword,setShowPassword] = useState(false);
   const [busy,setBusy] = useState(false);
   const [error,setError] = useState('');
+  const [mfa,setMfa] = useState<MFA | null>(null);
+  const [code,setCode] = useState(''),[factorId,setFactorId] = useState(''),[qrCode,setQrCode] = useState('');
   const reduced = useReducedMotion();
 
   async function submit(event: FormEvent) {
@@ -26,21 +29,35 @@ export default function LoginPage({ enabled, loading, onAuthenticated }: Props) 
     if (setup && password !== confirmation) { setError('As senhas precisam ser iguais.'); return; }
     setBusy(true);
     try {
-      if (setup) {
-        await teamRequest({ action:'setup_password',token:setup,password });
+      let result;
+      if (mfa) {
+        result=await teamRequest({action:'mfa_verify',pendingToken:mfa.pendingToken,factorId,code});
+      } else if (setup) {
+        result=await teamRequest({ action:'setup_password',token:setup,password });
         clearSetupToken();setSetup('');setPassword('');setConfirmation('');
-        await onAuthenticated();
       } else if (token) {
-        await teamRequest({ action:'confirm_login',token });
+        result=await teamRequest({ action:'confirm_login',token });
         clearLoginToken();setToken('');
-        await onAuthenticated();
       } else {
-        await teamRequest({ action:'password_login',email:email.trim(),password });
-        setPassword('');
-        await onAuthenticated();
+        result=await teamRequest({ action:'password_login',email:email.trim(),password });
       }
+      if (result.passwordChanged) {setError('Senha atualizada. Entre com seu e-mail e a nova senha para confirmar o autenticador.');return;}
+      if (result.mfaRequired) {setMfa(result);setFactorId(result.factors[0]?.id || '');return;}
+      setMfa(null);setCode('');setQrCode('');
+      await onAuthenticated();
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível entrar. Tente novamente.'); }
-    finally { setBusy(false); }
+    finally { setBusy(false);setPassword('');setConfirmation('');setCode(''); }
+  }
+
+  async function enrollAuthenticator() {
+    if (!mfa || busy) return;
+    setBusy(true);setError('');
+    try {
+      const result=await teamRequest({action:'mfa_enroll',pendingToken:mfa.pendingToken});
+      setMfa({...mfa,factors:result.factors,enrollmentRequired:false});
+      setFactorId(result.factors[0]?.id || '');setQrCode(result.qrCode);
+    } catch (cause) {setError(cause instanceof Error ? cause.message : 'Não foi possível preparar o autenticador.');}
+    finally {setBusy(false);}
   }
 
   return <main className="login-page">
@@ -71,11 +88,20 @@ export default function LoginPage({ enabled, loading, onAuthenticated }: Props) 
         <p className="login-form-intro">Entre no seu espaço para acompanhar oportunidades e decidir junto com sua equipe.</p>
 
           <form onSubmit={event => void submit(event)} className="login-form">
-            {!token && !setup && <><label htmlFor="login-email">E-mail de acesso</label><div className="login-input-wrap"><Mail size={18} aria-hidden="true"/><input id="login-email" name="email" type="email" autoComplete="email" inputMode="email" required maxLength={254} value={email} onChange={event => setEmail(event.target.value)} placeholder="voce@empresa.com.br" disabled={busy}/></div></>}
-            {!token && <><label htmlFor="login-password" className="login-password-label">{setup ? 'Crie sua senha' : 'Sua senha'}</label><div className="login-input-wrap"><LockKeyhole size={18} aria-hidden="true"/><input id="login-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete={setup ? 'new-password' : 'current-password'} required minLength={setup ? 12 : 1} maxLength={128} value={password} onChange={event => setPassword(event.target.value)} placeholder={setup ? 'Pelo menos 12 caracteres' : 'Digite sua senha'} disabled={busy}/><button type="button" className="login-password-visibility" aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)}>{showPassword ? <EyeOff size={17}/> : <Eye size={17}/>}</button></div>{setup && <><label htmlFor="login-confirmation" className="login-password-label">Confirme sua senha</label><div className="login-input-wrap"><LockKeyhole size={18} aria-hidden="true"/><input id="login-confirmation" name="confirmation" type={showPassword ? 'text' : 'password'} autoComplete="new-password" required minLength={12} maxLength={128} value={confirmation} onChange={event => setConfirmation(event.target.value)} placeholder="Repita a senha" disabled={busy}/></div></>}<p className="login-field-hint"><ShieldCheck size={12}/>{setup ? 'Este convite é pessoal e só pode ser usado uma vez.' : 'Acesso pessoal e exclusivo para sua equipe.'}</p></>}
-            {token && <p className="login-confirm-copy">Seu link de acesso está pronto. Confirme abaixo para entrar com segurança.</p>}
+            {!mfa && !token && !setup && <><label htmlFor="login-email">E-mail de acesso</label><div className="login-input-wrap"><Mail size={18} aria-hidden="true"/><input id="login-email" name="email" type="email" autoComplete="email" inputMode="email" required maxLength={254} value={email} onChange={event => setEmail(event.target.value)} placeholder="voce@empresa.com.br" disabled={busy}/></div></>}
+            {!mfa && !token && <><label htmlFor="login-password" className="login-password-label">{setup ? 'Crie sua senha' : 'Sua senha'}</label><div className="login-input-wrap"><LockKeyhole size={18} aria-hidden="true"/><input id="login-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete={setup ? 'new-password' : 'current-password'} required minLength={setup ? 12 : 1} maxLength={128} value={password} onChange={event => setPassword(event.target.value)} placeholder={setup ? 'Pelo menos 12 caracteres' : 'Digite sua senha'} disabled={busy}/><button type="button" className="login-password-visibility" aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)}>{showPassword ? <EyeOff size={17}/> : <Eye size={17}/>}</button></div>{setup && <><label htmlFor="login-confirmation" className="login-password-label">Confirme sua senha</label><div className="login-input-wrap"><LockKeyhole size={18} aria-hidden="true"/><input id="login-confirmation" name="confirmation" type={showPassword ? 'text' : 'password'} autoComplete="new-password" required minLength={12} maxLength={128} value={confirmation} onChange={event => setConfirmation(event.target.value)} placeholder="Repita a senha" disabled={busy}/></div></>}<p className="login-field-hint"><ShieldCheck size={12}/>{setup ? 'Este convite é pessoal e só pode ser usado uma vez.' : 'Acesso pessoal e exclusivo para sua equipe.'}</p></>}
+            {!mfa && token && <p className="login-confirm-copy">Seu link de acesso está pronto. Confirme abaixo para entrar com segurança.</p>}
+            {mfa && <>
+              <p className="login-confirm-copy">Confirme seu acesso com o código do aplicativo autenticador. Esta etapa expira em cinco minutos.</p>
+              {mfa.enrollmentRequired ? <button type="button" className="login-submit" disabled={busy} onClick={()=>void enrollAuthenticator()}>Configurar autenticador</button> : <>
+                {qrCode && <figure><img src={qrCode} width={208} height={208} alt="Leia este código com seu aplicativo autenticador"/><figcaption>Adicione sua conta ao autenticador e digite o código gerado.</figcaption></figure>}
+                {mfa.factors.length>1 && <><label htmlFor="mfa-factor">Autenticador</label><select id="mfa-factor" value={factorId} onChange={event=>setFactorId(event.target.value)}>{mfa.factors.map(factor=><option key={factor.id} value={factor.id}>{factor.friendly_name || 'Autenticador'}</option>)}</select></>}
+                <label htmlFor="mfa-code">Código de seis números</label><div className="login-input-wrap"><ShieldCheck size={18}/><input id="mfa-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" minLength={6} maxLength={6} value={code} onChange={event=>setCode(event.target.value.replace(/\D/g,''))} required disabled={busy} autoFocus/></div>
+              </>}
+              <button type="button" disabled={busy} onClick={()=>{setMfa(null);setCode('');setQrCode('');setError('');}}>Voltar ao login</button>
+            </>}
             {error && <p className="login-error" role="alert">{error}</p>}
-            <button className="login-submit" type="submit" disabled={busy || loading} aria-busy={busy}>{busy || loading ? <><LoaderCircle size={18} className="spinning"/>{busy ? 'Só um instante…' : 'Preparando seu acesso…'}</> : <>{setup ? 'Definir senha e entrar' : token ? 'Confirmar meu acesso' : 'Entrar no meu radar'}<ArrowRight size={18}/></>}</button>
+            {!mfa?.enrollmentRequired && <button className="login-submit" type="submit" disabled={busy || loading} aria-busy={busy}>{busy || loading ? <><LoaderCircle size={18} className="spinning"/>{busy ? 'Só um instante…' : 'Preparando seu acesso…'}</> : <>{mfa ? 'Confirmar código' : setup ? 'Definir senha e entrar' : token ? 'Confirmar meu acesso' : 'Entrar no meu radar'}<ArrowRight size={18}/></>}</button>}
             {!loading && !enabled && !token && <p className="login-pending-note">O acesso está indisponível neste momento. Tente novamente em instantes.</p>}
           </form>
 

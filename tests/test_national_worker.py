@@ -212,5 +212,5 @@ class WorkerTests(unittest.TestCase):
             def close(self):self.closed=True
         source=worker.Source();connection=Connection();source.local.connection=connection
         with patch.dict('os.environ',{},clear=True):
-            with self.assertRaises(worker.URLError):source.open(worker.Request('https://pncp.gov.br/api/consulta'+worker.SOURCE_PATH),60)
+            with self.assertRaises(worker.URLError):source.open(worker.Request('https://pncp.gov.br/api/consulta'+worker.SOURCE_PATH+'?pagina=1'),60)
         self.assertTrue(connection.closed);self.assertIsNone(source.local.connection)

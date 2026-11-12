@@ -8,16 +8,19 @@ from urllib.request import Request,urlopen
 from urllib.error import HTTPError,URLError
 from radar.feedback_security import verify_feedback, InvalidFeedbackToken
 from radar.company_access import request_access,AccessDenied
+from radar.mail import APP_URL,NoRedirect
+from urllib.request import build_opener
 
 
 def configured():
     return bool(os.environ.get('RADAR_SHARED_FEEDBACK_ENABLED') == '1' and os.environ.get('SUPABASE_URL') and (os.environ.get('SUPABASE_SECRET_KEY') or os.environ.get('SUPABASE_SERVICE_ROLE_KEY')) and len(os.environ.get('FEEDBACK_SIGNING_SECRET','').encode())>=32)
 
 
-def save_feedback(claims: dict, *, opener=urlopen) -> None:
+def save_feedback(claims: dict, *, opener=None) -> None:
     base=os.environ.get('SUPABASE_URL','').rstrip('/')
     parsed=urlparse(base)
-    if parsed.scheme!='https' or not parsed.hostname or not parsed.hostname.endswith('.supabase.co') or parsed.path or parsed.query or parsed.username:
+    from radar.postgres_store import PROJECT_REF
+    if base!='https://'+PROJECT_REF+'.supabase.co':
         raise ValueError('SUPABASE_URL inválida')
     key=os.environ.get('SUPABASE_SECRET_KEY') or os.environ['SUPABASE_SERVICE_ROLE_KEY']
     headers={'apikey':key,'Content-Type':'application/json','Prefer':'resolution=ignore-duplicates,return=minimal'}
@@ -26,7 +29,7 @@ def save_feedback(claims: dict, *, opener=urlopen) -> None:
     payload={k:claims[k] for k in ('event_id','opportunity_id','product_id','label')}
     payload['created_at']=datetime.now(timezone.utc).isoformat()
     request=Request(base+'/rest/v1/radar_feedback?on_conflict=event_id',method='POST',data=json.dumps(payload).encode(),headers=headers)
-    with opener(request,timeout=20) as response:
+    with (opener or build_opener(NoRedirect()).open)(request,timeout=20) as response:
         if response.status not in (200,201,204):
             raise ValueError('Falha ao salvar feedback')
 
@@ -37,6 +40,8 @@ class handler(BaseHTTPRequestHandler):
         self.handle_feedback(token,write=False)
 
     def do_POST(self):
+        if self.headers.get('Origin')!=APP_URL or self.headers.get('Content-Type','').split(';')[0]!='application/json':
+            self.respond(403,{'error':'Origem não autorizada.'});return
         try:
             length=int(self.headers.get('Content-Length','0'))
             if length<1 or length>8192:

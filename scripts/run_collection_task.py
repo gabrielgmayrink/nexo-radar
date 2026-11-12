@@ -7,14 +7,20 @@ from run_national_collection import Receiver
 
 def run():
     action=os.environ.get('RADAR_COLLECTION_TASK')
-    if action not in ('cleanup','weekly_summary'):raise ValueError('Invalid task')
+    if action not in ('cleanup','weekly_summary','reclassify','enrich','quarantine'):raise ValueError('Invalid task')
     receiver=Receiver(timeout_seconds=235 if action=='weekly_summary' else 90)
+    budget=int(os.environ.get('RADAR_TASK_BUDGET_SECONDS','180'))
+    if not 1<=budget<=180:raise ValueError('Invalid task budget')
     started=time.monotonic()
     while True:
         result=receiver.post({'action':action,'dryRun':os.environ.get('RADAR_TASK_DRY_RUN')=='1'})
         print(json.dumps({'task':action,**result}),flush=True)
         if result.get('done'):return
-        if action!='cleanup' or not result.get('continue'):raise ValueError('Task prerequisites not met')
+        if action in ('reclassify','enrich','quarantine'):
+            if time.monotonic()-started>budget or result.get('reason')=='collection_busy':
+                print('::warning title=Qualidade pendente::O lote foi salvo e poderá ser retomado.',flush=True);return
+            if result.get('processed',result.get('updated',0))==0:return
+        elif action!='cleanup' or not result.get('continue'):raise ValueError('Task prerequisites not met')
         if time.monotonic()-started>240:raise ValueError('Task progress saved; continuation required')
 
 

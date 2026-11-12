@@ -16,9 +16,9 @@ class CompanyIsolationTests(unittest.TestCase):
             with self.assertRaises(AccessDenied):resolve_access(db,'cookie','public or gerico')
 
     def test_anonymous_requests_never_read_the_catalog(self):
-        instance=object.__new__(handler);instance.headers={};instance.path='/api/opportunities?bulk=1'
+        instance=object.__new__(handler);instance.headers={};instance.path='/api/opportunities'
         output=[];instance.respond=lambda code,body:output.append((code,body))
-        with patch('api.index.load_database_catalog') as load:
+        with patch('api.index.load_catalog_page') as load:
             instance.do_GET()
         self.assertEqual(output[0][0],401);load.assert_not_called()
 
@@ -34,7 +34,7 @@ class CompanyIsolationTests(unittest.TestCase):
         db=MagicMock();db.execute.return_value.fetchall.return_value=[]
         list_reviews(db,'gerico')
         sql,parameters=db.execute.call_args.args
-        self.assertIn('r.company_id=%s',sql);self.assertEqual(parameters,('gerico',))
+        self.assertIn('r.company_id=%s',sql);self.assertEqual(parameters,('gerico',200,0))
 
     def test_review_cannot_assign_another_company_even_before_database_access(self):
         db=MagicMock()

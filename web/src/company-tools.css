@@ -1,0 +1,29 @@
+.profile-toggle{margin:0 0 18px}
+.results-section[aria-busy=true] .cards-grid{opacity:.6;pointer-events:none}
+.profile-editor{padding:24px;border:1px solid var(--border);border-radius:14px;background:var(--surface);margin:0 0 22px}
+.profile-editor h2{display:flex;align-items:center;gap:10px;font-size:20px}
+.profile-editor p,.profile-editor small{color:var(--muted);line-height:1.6;font-size:13px}
+.profile-editor fieldset{border:0;padding:0;margin:18px 0 0;min-width:0}
+.profile-editor legend{font-weight:650;margin-bottom:12px}
+.profile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:18px 0}
+.profile-grid label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:600;min-width:0}
+.profile-grid textarea,.profile-grid input,.filter-field>input,.review-form>label>input,.workflow-checklist input:not([type=checkbox]){width:100%;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--ink);padding:10px 12px;font:inherit;min-height:42px}
+.profile-grid textarea{resize:vertical;line-height:1.5;min-height:92px}
+.profile-grid small{font-weight:400;font-size:12px}
+.profile-check{display:flex;align-items:center;gap:10px;font-size:14px}
+.profile-check input,.workflow-checklist input[type=checkbox]{accent-color:var(--accent);width:17px;height:17px;flex:none}
+.profile-editor fieldset:disabled{opacity:.75}
+.profile-editor :focus-visible,.filter-field>input:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.decision-evidence,.source-documents,.procurement-history{padding-top:8px;margin-top:20px;border-top:1px solid var(--border)}
+.detail-panel blockquote{margin:10px 0;padding:10px 14px;border-left:3px solid var(--accent);background:var(--surface-soft);white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.6}
+.detail-panel details{margin:10px 0;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;overflow-wrap:anywhere}
+.detail-panel summary{cursor:pointer;font-weight:600;line-height:1.5}
+.source-documents a{color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+.source-documents li,.procurement-history li{margin:12px 0;line-height:1.6;overflow-wrap:anywhere}
+.workflow-checklist{border:1px solid var(--border);padding:14px;border-radius:9px;min-width:0}
+.workflow-checklist legend{font-size:13px;font-weight:600;padding:0 5px}
+.workflow-checklist>div{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0}
+.workflow-checklist>div label{display:flex;align-items:center;gap:9px;font-size:13px;overflow-wrap:anywhere}
+.workflow-checklist>label{display:grid;gap:7px;font-size:13px;margin:12px 0}
+.workflow-checklist small{color:var(--muted);font-size:12px;line-height:1.6}
+@media(max-width:650px){.profile-grid{grid-template-columns:1fr}.profile-editor{padding:18px}.profile-editor .heading-row{align-items:flex-start}.workflow-checklist>div{align-items:flex-start}}

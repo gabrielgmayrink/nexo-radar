@@ -24,3 +24,5 @@ scripts/adapt_project.py
 scripts/finish_adaptation.py
 scripts/rebrand.py
 .local/
+*.nexo-backup
+*.dump

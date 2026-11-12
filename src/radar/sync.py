@@ -17,14 +17,20 @@ def initial_cursor(kind, today, last_completed=None):
     if kind not in KINDS:
         raise ValueError('Invalid collection kind')
     start = today - timedelta(days=29)
-    if kind == 'incremental' and last_completed:
-        start = max(start, min(today - timedelta(days=1), last_completed - timedelta(days=1)))
-    return {'kind': kind, 'start': (today if kind=='national_open' else start).isoformat(), 'end': today.isoformat(),
+    if kind == 'incremental':
+        # Never cap the catch-up window after an outage. Keep two days of overlap
+        # for late source publications and updates; source versions deduplicate it.
+        start = min(today,last_completed or today)-timedelta(days=2)
+    end=min(today,start+timedelta(days=29)) if kind=='incremental' else today
+    return {'kind': kind, 'start': (today if kind=='national_open' else start).isoformat(), 'end': end.isoformat(),
+            **({'target_end':today.isoformat()} if kind=='incremental' else {}),
             'horizon': '9999-12-31' if kind=='national_open' else (today + timedelta(days=365)).isoformat(),
             **({'scope':'all_open_brazil','passNumber':1} if kind=='national_open' else {}),
             'partition': 0, 'page': 1, 'fingerprints': [], 'status': 'running',
             'pages': 0, 'received': 0, 'request_count': 0, 'request_errors': 0,
-            'latency_total_ms': 0, 'latency_max_ms': 0, 'http_statuses': {}}
+            'latency_total_ms': 0, 'latency_max_ms': 0, 'http_statuses': {},
+            'queue_version':4,'pending_tasks':[{'mode':mode,'modality':modality,'page':1,'fingerprints':[]}
+                                            for mode,modality in partitions(kind)]}
 
 
 def partitions(kind):
@@ -34,7 +40,7 @@ def partitions(kind):
     elif kind=='backfill':
         modes=('publicacao','atualizacao','proposta')
     else:
-        modes=('proposta','publicacao','atualizacao')
+        modes=('publicacao','atualizacao')
     return [(mode, modality) for mode in modes for modality in PUBLICATION_MODALITIES]
 
 
@@ -54,10 +60,18 @@ def pending_tasks(cursor):
 
 def upgrade_cursor(cursor):
     tasks = pending_tasks(cursor)
-    if cursor.get('queue_version')!=3:
+    if cursor.get('queue_version')!=4:
         order={key:index for index,key in enumerate(partitions(cursor['kind']))}
+        if cursor.get('queue_version')==3 and cursor['kind']!='national_open':
+            old_modalities=PUBLICATION_MODALITIES[:11]
+            old_modes=('proposta',) if cursor['kind']=='open' else ('publicacao','atualizacao','proposta')
+            pending_keys={(t['mode'],t['modality']) for t in tasks}
+            completed={(mode,modality) for mode in old_modes for modality in old_modalities}-pending_keys
+            tasks=[t for t in tasks if (t['mode'],t['modality']) in order]
+            tasks += [{'mode':mode,'modality':modality,'page':1,'fingerprints':[]}
+                      for mode,modality in order if (mode,modality) not in pending_keys|completed]
         tasks=sorted(tasks,key=lambda task:order[(task['mode'],task['modality'])])
-    return {**cursor, 'queue_version':3, 'pending_tasks': tasks, 'partition': len(partitions(cursor['kind']))-len(tasks),
+    return {**cursor, 'queue_version':4, 'pending_tasks': tasks, 'partition': len(partitions(cursor['kind']))-len(tasks),
             'page': tasks[0]['page'] if tasks else 1,
             'fingerprints': tasks[0]['fingerprints'] if tasks else []}
 
@@ -97,7 +111,7 @@ def advance(cursor, records, payload):
     if not records and total and task['page'] < total:
         raise ValueError('empty_intermediate_page')
     digest = hashlib.sha256(json.dumps(records, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-    if records and digest in task['fingerprints']:
+    if records and digest in task['fingerprints'] and cursor['kind']!='national_open':
         raise ValueError('repeated_page')
     next_tasks = tasks[1:]
     done = not records or (total is not None and (not total or task['page'] >= total))
@@ -106,6 +120,11 @@ def advance(cursor, records, payload):
             raise ValueError('partition_page_limit')
         next_tasks = next_tasks + [{**task, 'page':task['page']+1,
                                    'fingerprints':(task['fingerprints']+[digest])[-64:]}]
+    if not next_tasks and cursor['kind']=='incremental' and cursor['end']<cursor.get('target_end',cursor['end']):
+        start=datetime.fromisoformat(cursor['end']).date()-timedelta(days=2)
+        end=min(datetime.fromisoformat(cursor['target_end']).date(),start+timedelta(days=29))
+        cursor={**cursor,'start':start.isoformat(),'end':end.isoformat()}
+        next_tasks=[{'mode':mode,'modality':modality,'page':1,'fingerprints':[]} for mode,modality in partitions('incremental')]
     return upgrade_cursor({**cursor, 'pages':cursor['pages']+1, 'received':cursor['received']+len(records),
                            'pending_tasks':next_tasks})
 
@@ -125,7 +144,9 @@ def add_metrics(cursor, metrics):
 def public_progress(cursor, execution_id):
     remaining=max(0,int((datetime.fromisoformat(cursor['next_attempt_at'])-datetime.now(timezone.utc)).total_seconds())) if cursor.get('next_attempt_at') else 0
     return {'executionId': execution_id, 'kind': cursor['kind'], 'done': cursor['status'] == 'ok',
-            **({key:cursor.get(key) for key in ('scope','passNumber','passPages','expectedRecords','expectedPages','uniqueRecords','coverageComplete')} if cursor['kind']=='national_open' else {}),
+            **{key:cursor[key] for key in ('completedAt','indexingComplete','quarantinedRecords') if key in cursor},
+            **({key:cursor.get(key) for key in ('scope','passNumber','passPages','expectedRecords','expectedPages','uniqueRecords','coverageComplete',
+                                               'captureComplete','indexingComplete','quarantinedRecords','consistency','verificationPolicy','completedFullPasses')} if cursor['kind']=='national_open' else {}),
             'status': cursor['status'], 'window': {'start': cursor['start'], 'end': cursor['end']},
             'completedPartitions': cursor['partition'], 'totalPartitions': len(partitions(cursor['kind'])),
             'pages': cursor['pages'], 'recordsReceived': cursor['received'],
@@ -161,18 +182,24 @@ def run_chunk(store, kind='incremental', *, run_key, execution_id=None, client=N
                 break
             mode, modality, params = page_query(cursor)
             metrics = CollectionMetrics()
+            capture_id=None
             try:
                 payload = client.get_page('/v1/contratacoes/' + mode, params,
                                           modality=modality, page=cursor['page'], metrics=metrics)
                 records = payload['data']
-                next_cursor = add_metrics(advance(cursor, records, payload), metrics)
+                capture_id=store.capture_page(execution_id,1,params['pagina'],payload,mode=mode,modality=modality) if hasattr(store,'capture_page') else None
+                pagination_records=[row if isinstance(row,dict) and row.get('numeroControlePNCP') else
+                                    {'numeroControlePNCP':'quarantined-row-'+str(i)} for i,row in enumerate(records)] if capture_id is not None else records
+                next_cursor = add_metrics(advance(cursor, pagination_records, payload), metrics)
                 next_cursor.pop('error', None)
                 next_cursor.pop('next_attempt_at',None)
                 next_cursor['consecutive_errors']=0
                 next_cursor['status'] = 'running'
-                store.commit_page(execution_id, kind, records, next_cursor)
+                store.commit_page(execution_id, kind, records, next_cursor,
+                                  source_page={'page':params['pagina'],'mode':mode,'modality':modality,'payload':payload},capture_id=capture_id)
                 cursor = next_cursor
             except (PNCPError, ValueError) as exc:
+                if capture_id is not None:store.quarantine_page(capture_id,'page_contract')
                 # These exception classes carry fixed transport/contract labels, never DSNs.
                 label = str(exc) if isinstance(exc, PNCPError) else 'storage_guard' if str(exc)=='storage_guard' else 'invalid_page'
                 cursor = {**add_metrics(cursor, metrics), 'status': 'partial', 'error': label[:80]}

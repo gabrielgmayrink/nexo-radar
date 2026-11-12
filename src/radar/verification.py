@@ -5,6 +5,7 @@ import time
 from urllib.request import Request,build_opener,HTTPRedirectHandler
 from radar.canonical import to_card
 from radar.pncp import BASE_URL,USER_AGENT
+from radar.identifiers import parse_pncp_id
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -12,16 +13,15 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 def fetch_record(identifier,*,opener=None,timeout=8):
-    match=re.fullmatch(r'(\d{14})-1-(\d{1,10})/(\d{4})',identifier)
-    if not match:raise ValueError('Invalid procurement identifier')
-    cnpj,sequence,year=match.groups()
+    parsed=parse_pncp_id(identifier)
+    cnpj,sequence,year=parsed.cnpj,parsed.sequence,parsed.year
     request=Request(f'{BASE_URL}/v1/orgaos/{cnpj}/compras/{year}/{int(sequence)}',
                     headers={'User-Agent':USER_AGENT,'Accept':'application/json'})
     with (opener or build_opener(NoRedirect())).open(request,timeout=timeout) as response:
         body=response.read(2_000_001)
     if len(body)>2_000_000:raise ValueError('Procurement response is too large')
     row=json.loads(body)
-    if not isinstance(row,dict) or row.get('numeroControlePNCP')!=identifier:
+    if not isinstance(row,dict) or parse_pncp_id(row.get('numeroControlePNCP')).canonical!=parsed.canonical:
         raise ValueError('PNCP returned a different procurement')
     return row
 

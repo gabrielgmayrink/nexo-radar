@@ -9,28 +9,28 @@ for (const query of ['SISTEMAS horizonte','MG','000001/2026','TI EAD','"desenvol
 for (const query of ['sistemas -informação','"sistemas desenvolvimento"','-"desenvolvimento de sistemas"']) assert.equal(matchesSearch(document,parseSearchQuery(query)),false,query);
 assert.equal(matchesSearch(createSearchDocument({object:'Atividades sociais'}),parseSearchQuery('TI')),false);
 
-const fixture={collectionDate:'2026-11-06',metrics:{unique:125,candidates:125,discarded:0},total:125,opportunities:Array.from({length:125},(_,i)=>({...row,id:String(i)}))};
+const fixture={collectionDate:'2026-11-06',metrics:{unique:125,candidates:125,discarded:0},total:125,page:1,pages:6,limit:24,paginated:true,opportunities:Array.from({length:24},(_,i)=>({...row,id:String(i)}))};
 let calls=0,time=0,offline=false;
 const load=createCatalogLoader(async url=>{
   calls++;
-  assert.equal(url,'/api/opportunities?bulk=1&company=public');
+  assert.equal(url,'/api/opportunities?company=public&limit=24&page=1');
   return new Response(JSON.stringify(offline?{error:'offline'}:fixture),{status:offline?503:200});
 },()=>time);
-assert.equal((await load(new AbortController().signal)).opportunities.length,125);
+assert.equal((await load(new AbortController().signal)).opportunities.length,24);
 assert.equal(calls,1);
 await load(new AbortController().signal);assert.equal(calls,1);
 await load(new AbortController().signal,true);assert.equal(calls,2);
 offline=true;time=25000;
 const previous=await load(new AbortController().signal);
-assert.equal(previous.opportunities.length,125);assert.equal(previous.stale,true);assert.equal(calls,3);
+assert.equal(previous.opportunities.length,24);assert.equal(previous.total,125);assert.equal(previous.stale,true);assert.equal(calls,3);
 const aborted=new AbortController();aborted.abort();
 await assert.rejects(load(aborted.signal),{name:'AbortError'});assert.equal(calls,3);
 let fallbackCalls=0;
 const fallback=createCatalogLoader(async url=>{
   fallbackCalls++;
-  return new Response(JSON.stringify(url.startsWith('/api/')?{...fixture,total:999}:{...fixture,total:125}));
+  return new Response(JSON.stringify(url.startsWith('/api/')?{...fixture,total:2}:fixture));
 });
-await assert.rejects(fallback(new AbortController().signal),/não foi recebido por completo/);
+await assert.rejects(fallback(new AbortController().signal),/contagem de resultados/);
 assert.equal(fallbackCalls,1);
 let deny=false;
 const privateLoader=createCatalogLoader(async()=>new Response(JSON.stringify(fixture),{status:deny?403:200}));
@@ -38,7 +38,12 @@ await privateLoader(new AbortController().signal,false,'public');
 deny=true;
 await assert.rejects(privateLoader(new AbortController().signal,true,'public'),/conta autorizada/);
 await assert.rejects(privateLoader(new AbortController().signal,false,'gerico'),/conta autorizada/);
-console.log(JSON.stringify({searchPhrases:true,exclusions:true,acronyms:true,oneCatalogRequest:true,memoryCache:true,failedRefreshKeepsResults:true,abortDoesNotFetch:true,incompleteCatalogDetected:true}));
+let pageCalls=0;
+const paged=createCatalogLoader(async url=>{pageCalls++;const page=Number(new URL(url,'https://example.test').searchParams.get('page'));return new Response(JSON.stringify({...fixture,page,opportunities:[{...row,id:'page-'+page}]}));});
+assert.equal((await paged(new AbortController().signal,false,'public',{page:'1',q:'capacitação'})).opportunities[0].id,'page-1');
+assert.equal((await paged(new AbortController().signal,false,'public',{page:'2',q:'capacitação'})).opportunities[0].id,'page-2');
+await paged(new AbortController().signal,false,'public',{page:'1',q:'capacitação'});assert.equal(pageCalls,2);
+console.log(JSON.stringify({searchPhrases:true,exclusions:true,acronyms:true,paginatedCatalog:true,queryScopedMemoryCache:true,failedRefreshKeepsSamePage:true,abortDoesNotFetch:true,invalidCountsDetected:true,otherCompanyCacheDenied:true}));
 
 if (process.argv.includes('--benchmark')) {
   const rows=Array.from({length:10000},(_,i)=>({...row,id:String(i)}));

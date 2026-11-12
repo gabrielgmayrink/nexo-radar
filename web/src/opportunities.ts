@@ -1,6 +1,8 @@
 import { createSearchDocument, matchesSearch, parseSearchQuery, type SearchClause, type SearchDocument } from './search.ts';
-export type Review = { offer: string; reason: string; status: string; reasonCode?: string; expectedScope?: string };
-export type Row = { id: string; organization: string; state: string; city: string; modality: string; publishedAt: string; object: string; additionalInfo: string; estimatedValue: number | null; proposalDeadline: string; proposalStart?: string; statusId: number; instrumentId: number; pncpUrl: string; sourceUrl: string; suggestedOffer: string; score: number; scores?: Record<string,number>; evidence: string[]; checkedAt?: string; learning?: { label: string; match: string; reasonCode: string; examples: number; offer?: string } };
+export type Review = { offer: string; reason: string; status: string; reasonCode?: string; expectedScope?: string; owner?: string; checklist?: {id:string;label:string;done:boolean}[]; sourceCurrent?: boolean; version?: number };
+export type Decision = {status:string;reasonCodes:string[];evidence:{code:string;service?:string;role:string;source:string;start:number;end:number;matchedText:string;excerpt:string}[]};
+export type ReviewHistory=Review & {actor?:string;version?:number;createdAt:string};
+export type Row = { id: string; organization: string; state: string; city: string; modality: string; publishedAt: string; object: string; additionalInfo: string; estimatedValue: number | null; proposalDeadline: string; proposalStart?: string; statusId: number; instrumentId: number; pncpUrl: string; sourceUrl: string; suggestedOffer: string; score: number; scores?: Record<string,number>; evidence: string[]; checkedAt?: string; reviewCandidate?:boolean; classificationVersion?:string; decisionByCompany?:Record<string,Decision>; enrichment?:{analysisStatus:string;items:{number:number;description:string;source:string}[];documents:{title:string;url:string;status:string;contentHash?:string}[];textExcerpts:{documentKey:string;page:number;text:string}[];sources:{id:string;name:string;url:string;externalId:string;linkType:string}[];limitations:string[]}; procurementEvents?:{id:number;kind:string;oldValue:unknown;newValue:unknown;source:string;detectedAt:string}[]; learning?: { label: string; match: string; reasonCode: string; examples: number; offer?: string } };
 export const VIEWS = {
   all: { label: 'Todas as oportunidades', short: 'No radar', description: 'Licitações abertas selecionadas para os serviços da sua empresa após a consulta à base nacional. A cobertura e as páginas pendentes aparecem no andamento da coleta.' },
   matches: { label: 'Mais compatíveis', short: 'Mais compatíveis', description: 'O objeto tem sinais de compatibilidade por regras ou foi aprovado pela equipe. Confira os requisitos do edital.' },
@@ -8,6 +10,7 @@ export const VIEWS = {
   open: { label: 'Com prazo futuro', short: 'Com prazo futuro', description: 'Contratações ativas, recebendo ou prestes a receber propostas. Confirme prazo e situação no PNCP antes de participar.' },
   tracked: { label: 'Vou participar', short: 'Vou participar', description: 'Oportunidades que você ou a equipe marcaram para participação.' },
   dismissed: { label: 'Descartadas', short: 'Descartadas', description: 'Avaliações negativas e objetos idênticos a exemplos rejeitados. Você pode conferir e corrigir a decisão.' },
+  discover: { label: 'Conferir outros objetos', short: 'Outros objetos', description: 'Acervo oficial aberto fora da seleção automática. Pesquise e recupere uma oportunidade que faça sentido para a empresa; nenhum objeto é apagado por ter pontuação baixa.' },
   learning: { label: 'Aprendizado da equipe', short: 'Aprendizado', description: 'Exemplos avaliados e motivos que ajudam a reduzir o ruído da busca.' },
 } as const;
 export type View = keyof typeof VIEWS;
@@ -20,8 +23,8 @@ export const REASONS: Record<string, string> = {
   aderente: 'O objeto corresponde ao nosso produto',
   outro: 'Outro motivo',
 };
-export type Filters = { query: string; product: string; uf: string; deadline: string; modality: string; assessment: string };
-export const EMPTY_FILTERS: Filters = { query: '', product: 'Todos', uf: 'Todas', deadline: 'any', modality: 'Todas', assessment: 'any' };
+export type Filters = { query: string; product: string; uf: string; deadline: string; modality: string; assessment: string; city:string;organization:string;minValue:string;maxValue:string;publishedFrom:string;publishedTo:string };
+export const EMPTY_FILTERS: Filters = { query: '', product: 'Todos', uf: 'Todas', deadline: 'any', modality: 'Todas', assessment: 'any',city:'',organization:'',minValue:'',maxValue:'',publishedFrom:'',publishedTo:'' };
 export const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 export function parseDate(value: string) {
   if (!value) return null;

@@ -1,5 +1,6 @@
 """Fetch every national PNCP page on the runner; checkpoint each page through OIDC."""
 import concurrent.futures
+import base64
 import gzip
 import http.client
 import io
@@ -85,7 +86,7 @@ class Receiver:
             except HTTPError as exc:
                 if exc.code in (401,403) and not refreshed:
                     self._token=None;refreshed=True;continue
-                if exc.code==409:return self.post({'action':'national_plan','executionId':body.get('executionId')})
+                if exc.code==409:return self.post({'action':'incremental_plan' if body.get('action','').startswith('incremental_') else 'national_plan','executionId':body.get('executionId')})
                 if exc.code not in (429,500,502,503,504):raise
                 if attempt==3:raise
             except (URLError,TimeoutError):
@@ -97,15 +98,30 @@ class Receiver:
 class Source:
     def __init__(self):
         self.lock=threading.Lock();self.last_started=0;self.local=threading.local()
-        self.context=ssl.create_default_context();self.timings={}
+        self.context=ssl.create_default_context();self.timings={};self.raw_responses={}
+        self.opener=build_opener(NoRedirect())
     def open(self,request,timeout):
         parsed=urlsplit(request.full_url)
-        if parsed.scheme!='https' or parsed.netloc!='pncp.gov.br' or parsed.path!='/api/consulta'+SOURCE_PATH:
+        if parsed.scheme!='https' or parsed.netloc!='pncp.gov.br' or parsed.path not in (
+                '/api/consulta/v1/contratacoes/'+mode for mode in ('proposta','publicacao','atualizacao')):
             raise ValueError('Unexpected source destination')
+        from urllib.parse import parse_qs
+        page=int(parse_qs(parsed.query)['pagina'][0])
         # Honour a configured proxy instead of bypassing the runner's network policy.
         if os.environ.get('HTTPS_PROXY') or os.environ.get('https_proxy'):
-            from urllib.request import urlopen
-            return urlopen(request,timeout=timeout)
+            try:
+                response=self.opener.open(request,timeout=timeout)
+            except HTTPError as error:response=error
+            with response:
+                body=response.read(4_000_001);status=response.status;headers=response.headers
+            self.raw_responses[page]={'wire':body,'status':status,'truncated':len(body)>4_000_000}
+            if len(body)>4_000_000:raise ValueError('Source page exceeds transport budget')
+            if headers.get('Content-Encoding','').lower()=='gzip':
+                with gzip.GzipFile(fileobj=io.BytesIO(body)) as stream:body=stream.read(4_000_001)
+                self.raw_responses[page]={'wire':body,'status':status,'truncated':len(body)>4_000_000}
+                if len(body)>4_000_000:raise ValueError('Source page exceeds transport budget')
+            if status>=300:raise HTTPError(request.full_url,status,'PNCP response',headers,io.BytesIO(body))
+            return BufferedResponse(body,status,headers)
         connection=getattr(self.local,'connection',None)
         if connection is None:
             connection=http.client.HTTPSConnection('pncp.gov.br',timeout=timeout,context=self.context)
@@ -116,12 +132,14 @@ class Source:
                 'User-Agent':'NexoRadar/1.0 (public procurement collection)'})
             response=connection.getresponse();headers=response.headers;status=response.status
             body=response.read(4_000_001)
+            self.raw_responses[page]={'wire':body,'status':status,'truncated':len(body)>4_000_000}
             if len(body)>4_000_000:raise ValueError('Source page exceeds transport budget')
             if headers.get('Content-Encoding','').lower()=='gzip':
                 with gzip.GzipFile(fileobj=io.BytesIO(body)) as stream:body=stream.read(4_000_001)
+                self.raw_responses[page]={'wire':body,'status':status,'truncated':len(body)>4_000_000}
                 if len(body)>4_000_000:raise ValueError('Source page exceeds transport budget')
             response.close()
-            if status>=400:raise HTTPError(request.full_url,status,'PNCP response',headers,io.BytesIO(body))
+            if status>=300:raise HTTPError(request.full_url,status,'PNCP response',headers,io.BytesIO(body))
             return BufferedResponse(body,status,headers)
         except http.client.HTTPException:
             connection.close();self.local.connection=None
@@ -130,23 +148,54 @@ class Source:
             connection.close();self.local.connection=None
             raise
     def fetch(self,page):
+        return self.fetch_query(SOURCE_PATH,{'dataFinal':'99991231','pagina':page,'tamanhoPagina':50},0)
+    def fetch_query(self,path,params,modality):
+        page=params['pagina']
+        self.raw_responses.pop(page,None)
         with self.lock:
             delay=SOURCE_START_INTERVAL-(time.monotonic()-self.last_started)
             if delay>0:time.sleep(delay)
             self.last_started=time.monotonic()
         metrics=CollectionMetrics()
         started=time.monotonic()
-        result=PNCPClient(timeout_seconds=60,retries=0,pause_seconds=0,opener=self.open).get_page(SOURCE_PATH,
-                    {'dataFinal':'99991231','pagina':page,'tamanhoPagina':50},modality=0,page=page,metrics=metrics)
+        result=PNCPClient(timeout_seconds=60,retries=0,pause_seconds=0,opener=self.open).get_page(path,
+                    params,modality=modality,page=page,metrics=metrics)
         self.timings[page]=round((time.monotonic()-started)*1000)
         return result
 
 
+def capture_failure(receiver,source,plan,*,action='national_capture'):
+    raw=getattr(source,'raw_responses',{}).pop(plan['page'],None)
+    if raw is None:return
+    # Bound incompressible bodies to the authenticated receiver's request limit.
+    wire=raw['wire'][:1_900_000]
+    receiver.post({'action':action,'executionId':plan['executionId'],'passNumber':plan.get('passNumber',1),
+                   'page':plan['page'],'mode':plan.get('mode'),'modality':plan.get('modality'),
+                   'wireGzipBase64':base64.b64encode(gzip.compress(wire,mtime=0)).decode(),
+                   'transportStatus':raw['status'],'truncated':raw['truncated'] or len(raw['wire'])>len(wire)})
+
+
+def wire_fields(source,page):
+    raw=getattr(source,'raw_responses',{}).pop(page,None)
+    if not raw:return {}
+    # Successful pages are never silently truncated. Large pages must be retried
+    # with an explicit transport receipt instead of indexed from partial bytes.
+    encoded=base64.b64encode(gzip.compress(raw['wire'],mtime=0)).decode()
+    if raw['truncated'] or len(encoded)>2_800_000:raise ValueError('Wire capture exceeds receiver budget')
+    return {'wireGzipBase64':encoded}
+
+
 def write_summary(progress,complete):
-    data={'event':'national_complete' if complete else 'national_incomplete','coverageComplete':complete,
+    verified=bool(complete and progress.get('coverageComplete'))
+    data={'event':'national_complete' if complete else 'national_incomplete','captureComplete':complete,'coverageComplete':verified,
           **{key:progress.get(key) for key in ('executionId','recordsReceived','uniqueRecords','expectedRecords','expectedPages','pages','passNumber','error')}}
     print(json.dumps(data),flush=True)
+    output=os.environ.get('GITHUB_OUTPUT')
+    if output:
+        from pathlib import Path
+        with Path(output).open('a',encoding='utf-8') as stream:stream.write('coverage_verified='+str(verified).lower()+'\n')
     if not complete:print('::warning title=Varredura nacional incompleta::Todas as páginas ainda não foram confirmadas. O progresso está salvo e será retomado.',flush=True)
+    elif not verified:print('::warning title=Conferência pendente::Páginas capturadas; a fonte mudou entre as passagens ou há registros em quarentena. A cobertura permanece não confirmada.',flush=True)
     path=os.environ.get('GITHUB_STEP_SUMMARY')
     if path:
         from pathlib import Path
@@ -154,6 +203,7 @@ def write_summary(progress,complete):
             stream.write('\n### '+('Varredura nacional concluída' if complete else 'Varredura nacional incompleta')+'\n\n')
             stream.write(f"Registros recebidos: {progress.get('recordsReceived',0)}. Total informado pelo PNCP: {progress.get('expectedRecords','a consultar')}. Páginas previstas: {progress.get('expectedPages','a consultar')}.\n\n")
             if not complete:stream.write('A cobertura não foi marcada como concluída. A próxima execução retoma o progresso salvo.\n')
+            elif not verified:stream.write('Captura concluída, mas cobertura não confirmada: fonte mudou ou há quarentena pendente.\n')
 
 
 def run(*,budget_seconds=3600,receiver=None,source=None):
@@ -187,9 +237,10 @@ def run(*,budget_seconds=3600,receiver=None,source=None):
                 for attempt in range(5):
                     try:
                         payload=futures.pop(page).result() if page in futures else source.fetch(page)
-                        validate_payload(payload,page)
+                        validate_payload(payload,page,strict_records=False)
                         break
                     except (PNCPError,ValueError) as exc:
+                        capture_failure(receiver,source,plan)
                         raw_reason=str(exc) if isinstance(exc,PNCPError) else 'source_contract'
                         reason='source_5xx' if raw_reason.startswith('http_5') else 'source_contract' if raw_reason in ('resposta_nao_json','contrato_resposta_sem_lista_data') else raw_reason
                         if page>1 and reason in ('source_contract','http_400'):
@@ -221,6 +272,7 @@ def run(*,budget_seconds=3600,receiver=None,source=None):
                 if replanned:continue
                 progress=receiver.post({'action':'national_commit','executionId':plan['executionId'],
                           'passNumber':plan['passNumber'],'page':page,'payload':payload,
+                          **wire_fields(source,page),
                           'sourceMs':getattr(source,'timings',{}).get(page)})
                 if progress.get('done') or time.monotonic()-last_log>=30:
                     print(json.dumps({key:value for key,value in progress.items() if key!='plan'}),flush=True);last_log=time.monotonic()

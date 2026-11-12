@@ -3,7 +3,7 @@ import { AlertCircle, CheckCircle2, Clock, RefreshCw } from 'lucide-react';
 import { hasCurrentWeeklyCollection } from './schedule';
 
 type Job = { kind: string; status: string; recordsReceived: number; expectedRecords?: number; expectedPages?: number; passPages?: number; passNumber?: number; coverageComplete?: boolean; completedPartitions?: number; totalPartitions?: number; lastActivityAt?: string; error?: string };
-type Status = { enabled: boolean; collections: { publications?: { completedAt?: string; source?: string }; open?: { completedAt?: string; coverageComplete?: boolean; metrics?: {unique?: number} } }; executions: Job[] };
+type Status = { enabled: boolean; collections: { publications?: { completedAt?: string; source?: string }; open?: { completedAt?: string; coverageComplete?: boolean; captureComplete?:boolean;indexingComplete?:boolean|null;consistency?:string;quarantinedRecords?:number; metrics?: {unique?: number} } }; executions: Job[] };
 
 export default function CollectionStatus({ collectionDate, totalScanned, selectedCount }: { collectionDate?: string; totalScanned?: number; selectedCount?: number }) {
   const [status,setStatus] = useState<Status|null>(null);
@@ -57,6 +57,8 @@ export default function CollectionStatus({ collectionDate, totalScanned, selecte
   const active = !!pending && !partial && !!pending.lastActivityAt && Date.now()-Date.parse(pending.lastActivityAt) < 300000;
   const verification = (pending?.passNumber || 1)>1;
   const completedAt = status?.collections.open?.completedAt;
+  const captured=status?.collections.open?.captureComplete;
+  const legacy=status?.collections.open?.consistency==='legacy_count_check';
   const historical = !completedAt || !status?.collections.open?.coverageComplete;
   const current = !historical && !!completedAt && hasCurrentWeeklyCollection(completedAt);
   const awaitingFirstCollection = totalScanned === 0 && !collectionDate && !pending;
@@ -67,10 +69,13 @@ export default function CollectionStatus({ collectionDate, totalScanned, selecte
     <div className={'freshness collection-health'+(partial ? ' collection-warning' : current && !pending ? ' collection-current' : '')}>
       <span><Icon size={19} className={active ? 'spinning' : ''}/></span>
       <div className="collection-message">
-        <strong>{awaitingFirstCollection ? 'Preparando a varredura nacional de licitações abertas.' : partial ? pauseMessage : active ? 'Percorrendo todas as licitações abertas do Brasil.' : pending ? 'Varredura nacional incompleta: há páginas pendentes do PNCP.' : current ? 'Varredura nacional concluída.' : historical ? 'A primeira varredura nacional ainda não foi concluída.' : 'A base aguarda uma nova coleta completa.'}</strong>
-        <p>{awaitingFirstCollection ? 'A consulta percorre todas as páginas do PNCP, sem filtro de empresa, estado ou modalidade.' : <>{completedAt ? `Última varredura concluída: ${lastDate}.` : 'A primeira varredura completa ainda está em andamento.'}{pending ? ` ${pending.recordsReceived.toLocaleString('pt-BR')} registros recebidos${pending.expectedPages ? ` · ${verification ? 'Conferência na página ' : ''}${pending.passPages || 0}/${pending.expectedPages}${verification ? '' : ' páginas da varredura atual'}` : ''}.` : ' Confira sempre a situação no PNCP.'}</>}</p>
+        <strong>{awaitingFirstCollection ? 'Preparando a varredura nacional de licitações abertas.' : partial ? pauseMessage : active ? 'Percorrendo todas as licitações abertas do Brasil.' : pending ? 'Varredura nacional incompleta: há páginas pendentes do PNCP.' : current ? 'Captura e conferência do PNCP concluídas.' : captured ? 'Captura finalizada; cobertura ainda sem conferência completa.' : historical ? 'A primeira varredura nacional ainda não foi concluída.' : 'A base aguarda uma nova coleta completa.'}</strong>
+        <p>{awaitingFirstCollection ? 'A consulta percorre todas as páginas do PNCP, sem filtro de empresa, estado ou modalidade.' : <>{completedAt ? `Última captura finalizada: ${lastDate}.` : 'A primeira varredura completa ainda está em andamento.'}{pending ? ` ${pending.recordsReceived.toLocaleString('pt-BR')} registros recebidos${pending.expectedPages ? ` · ${verification ? 'Conferência na página ' : ''}${pending.passPages || 0}/${pending.expectedPages}${verification ? '' : ' páginas da varredura atual'}` : ''}.` : ' Confira sempre a situação no PNCP.'}</>}</p>
+        {legacy && <p>Esta captura antiga foi conferida por contagem. Isso não comprova a presença de todos os registros; uma nova coleta compara identificadores e versões para verificar a consistência.</p>}
+        {status?.collections.open?.indexingComplete===false && <p>A organização dos dados capturados ainda tem etapas pendentes.</p>}
+        {!!status?.collections.open?.quarantinedRecords && <p>{status.collections.open.quarantinedRecords.toLocaleString('pt-BR')} registros aguardam tratamento. Os originais foram preservados.</p>}
         {pending?.expectedPages && <div className="national-coverage"><label htmlFor="national-coverage-progress">{verification ? 'Página conferida: ' : ''}{(pending.passPages || 0).toLocaleString('pt-BR')} de {pending.expectedPages.toLocaleString('pt-BR')}{verification ? '' : ' páginas'} · {pending.expectedRecords?.toLocaleString('pt-BR')} licitações informadas pelo PNCP</label><progress id="national-coverage-progress" max={pending.expectedPages} value={pending.passPages || 0}/><p>{verification ? 'Conferência adicional: houve mudança ou divergência na paginação da fonte. ' : ''}A cobertura só será concluída após confirmar todas as páginas e os registros únicos.</p></div>}
-        {completedAt && totalScanned !== undefined && <p><strong>{totalScanned.toLocaleString('pt-BR')} licitações na varredura nacional</strong>{selectedCount !== undefined && <> · <strong>{selectedCount.toLocaleString('pt-BR')} oportunidades no perfil da empresa</strong></>}. Os filtros abaixo refinam essa seleção.</p>}
+        {completedAt && totalScanned !== undefined && <p><strong>{totalScanned.toLocaleString('pt-BR')} licitações na captura nacional</strong>{selectedCount !== undefined && <> · <strong>{selectedCount.toLocaleString('pt-BR')} oportunidades no perfil da empresa</strong></>}. Os filtros abaixo refinam essa seleção.</p>}
         <p>A coleta percorre todas as páginas de propostas abertas disponibilizadas pelo PNCP, sem filtro de empresa, estado ou modalidade. A seleção considera o serviço no objeto principal; menções de contexto e serviços acessórios são desconsiderados. Recarregar o painel atualiza os resultados sem iniciar outra coleta.</p>
         <p>Coleta semanal: segunda às 07h. Limpeza do catálogo ativo: domingo às 23h. Horários de Brasília.</p>
         {statusError && <p className="collection-error">{statusError}</p>}

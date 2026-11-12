@@ -63,3 +63,9 @@ class JobAuthTests(unittest.TestCase):
         token=jwt.encode(claims,self.key,algorithm='RS256')
         self.assertEqual(authenticate('Bearer '+token,key_client=self.client,purpose='notify'),'123:1')
         with self.assertRaises(jwt.InvalidTokenError):authenticate('Bearer '+token,key_client=self.client)
+
+    def test_independent_health_identity_cannot_mutate_collection(self):
+        claims=self.claims();claims['workflow_ref']=WORKFLOW.replace('collect.yml','health.yml')
+        token=jwt.encode(claims,self.key,algorithm='RS256')
+        self.assertEqual(authenticate('Bearer '+token,key_client=self.client,purpose='health'),'123:1')
+        with self.assertRaises(ValueError):authenticate('Bearer '+token,key_client=self.client,purpose='collect')
