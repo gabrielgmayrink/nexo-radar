@@ -36,6 +36,14 @@ class CatalogPostgresTests(unittest.TestCase):
         for source in ('pncp','compras_gov'):
             self.db.execute('insert into radar_item_search values(%s,%s,%s,%s,%s)',(self.identifier,sha,source,'1','consultoria estrategica municipal'))
         result=self.page(q='estratégica municipal');self.assertEqual(result['total'],1)
+    def test_search_projection_tracks_official_payload_changes(self):
+        self.db.execute("update radar_opportunities set payload=jsonb_set(payload,'{objetoCompra}',%s::jsonb) where id=%s",(Jsonb('Contratação de apoio administrativo e ORGANIZAÇÃO DOCUMENTAL'),self.identifier))
+        self.assertEqual(self.page(q='"organização documental"')['total'],1)
+        self.db.execute("update radar_opportunities set payload=jsonb_set(payload,'{objetoCompra}',%s::jsonb) where id=%s",(Jsonb('Contratação de apoio administrativo e preparação de documentos'),self.identifier))
+        self.assertEqual(self.page(q='"organização documental"')['total'],0)
+        self.assertEqual(self.page(q='"preparação de documentos"')['total'],1)
+        self.db.execute("update radar_opportunities set payload=jsonb_set(payload,'{dataEncerramentoProposta}','\"data inválida\"') where id=%s",(self.identifier,))
+        self.assertIsNone(self.db.execute('select proposal_deadline from radar_opportunities where id=%s',(self.identifier,)).fetchone()[0])
     def test_checklist_owner_and_closed_tracked_record_survive_reload(self):
         review={'id':self.identifier,'offer':'Public','status':'Vou participar','reason':'Acompanhar teste','version':0,
             'reasonCode':'aderente','expectedScope':'','sourceObject':self.row['objetoCompra'],'sourceAdditional':'',

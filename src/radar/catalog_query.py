@@ -48,20 +48,18 @@ BASE='''with records as (
  then 'Revisar' else r.offer end as review_offer,
  case when r.opportunity_id=n.id then r.status else null end as review_status,r.reason as review_reason,r.reason_code,
  r.expected_scope,r.actor,r.version,r.updated_at,r.owner,r.checklist,r.opportunity_id as review_source_id,
- public.radar_safe_timestamp(n.payload->>'dataEncerramentoProposta') as deadline,
- public.radar_safe_timestamp(n.payload->>'dataPublicacaoPncp') as published,
+ n.proposal_deadline as deadline,
+ n.publication_time as published,
  case when jsonb_typeof(n.payload->'valorTotalEstimado')='number' then (n.payload->>'valorTotalEstimado')::numeric else null end as estimated,
- public.radar_search_normalize(coalesce(n.payload->>'objetoCompra','')||' '||coalesce(n.payload->>'informacaoComplementar','')||' '||
- coalesce(n.payload->'orgaoEntidade'->>'razaoSocial','')||' '||coalesce(n.payload->'unidadeOrgao'->>'municipioNome','')||' '||
- coalesce(n.payload->'unidadeOrgao'->>'ufSigla','')||' '||n.id) as search_text,
+ n.search_text,
  n.payload->'unidadeOrgao'->>'ufSigla' as uf,n.payload->>'modalidadeNome' as modality,
- public.radar_search_normalize(n.payload->'unidadeOrgao'->>'municipioNome') as city,
- public.radar_search_normalize(n.payload->'orgaoEntidade'->>'razaoSocial') as organization
+ n.city_text as city,
+ n.organization_text as organization
  from public.radar_opportunities n left join lateral (
  select r.* from public.radar_review_state r where r.company_id=%s and
  ((r.opportunity_id=n.id and r.example_object=n.payload->>'objetoCompra'
  and r.example_additional=coalesce(n.payload->>'informacaoComplementar',''))
- or (n.object_hash is not null and r.object_hash=n.object_hash and length(public.radar_search_normalize(n.payload->>'objetoCompra'))>=80))
+ or (n.object_hash is not null and r.object_hash=n.object_hash and n.object_normalized_length>=80))
  order by (r.opportunity_id=n.id) desc,r.updated_at desc,r.opportunity_id limit 1
  ) r on true
  where (n.id in (select id from public.radar_catalog_source)
