@@ -31,6 +31,21 @@ class RelevanceQualityTests(unittest.TestCase):
         self.assertEqual(mixed['scores']['Public'],45)
         self.assertEqual(mixed['decisionByCompany']['Public']['status'],'review')
 
+    def test_live_sample_accessory_training_and_department_name_are_excluded(self):
+        for obj in ('Fornecimento de sistemas web de contabilidade pública, incluindo implantação e treinamento de pessoal.',
+                    'Elaboração do inventário de emissões de gases de efeito estufa, incluindo plano de redução e capacitação de servidores.',
+                    'Serviços de clipping de mídia para atender à Assessoria de Comunicação Social do Tribunal.'):
+            with self.subTest(obj=obj):
+                result=classify(obj)
+                self.assertEqual(result['scores']['Public'],0)
+                self.assertEqual(result['decisionByCompany']['Public']['status'],'excluded')
+
+    def test_same_topics_remain_relevant_when_training_is_the_main_purchase(self):
+        for obj in ('Realização de treinamento de servidores para utilizar sistemas web de contabilidade.',
+                    'Realização de capacitação de servidores para elaboração do inventário de emissões de gases de efeito estufa.'):
+            with self.subTest(obj=obj):self.assertGreaterEqual(classify(obj)['scores']['Public'],60)
+        self.assertEqual(classify('Fornecimento de sistemas web e realização de capacitação de servidores')['scores']['Public'],45)
+
     def test_evidence_offsets_are_source_text_and_other_company_is_unconfigured(self):
         obj='Serviços de apoio às rotinas administrativas para a secretaria'
         result=classify(obj)

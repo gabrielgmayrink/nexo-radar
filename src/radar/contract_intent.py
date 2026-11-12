@@ -19,11 +19,12 @@ OTHER_OBJECT = re.compile(
     r'\b(?:equipamentos?|material|materiais|mobiliario|moveis|cadeiras|uniformes|brindes|'
     r'insumos|reagentes|kits?|generos? alimenticios?|lanches|coffee break|buffet|alimentacao|'
     r'seguros?|apostilas|confeccao|passagens|transporte|hospedagem|softwares?|'
-    r'licenciamento|licencas?|plataformas?|sistemas? (?:integrados?|informatizados?|de digitalizacao|de gestao publica)|'
+    r'licenciamento|licencas?|plataformas?|sistemas? (?:integrados?|informatizados?|web|de digitalizacao|de gestao publica|de contabilidade)|'
     r'construcao|reformas?|(?<!mao de )obras?|pavimentacao|modernizacao|auditorios?|'
     r'isolamento|tratamento acustico|auditoria|quimica|engenharia|tratamento de agua|analises laboratoriais|responsabilidade tecnica|'
     r'exames|consultas medicas|procedimentos cirurgicos|unidade movel|traducao|interpretacao|interpretes|'
-    r'tradutores|filmagem|fotografia|sonorizacao|iluminacao|transmissao|gravacao|organizacao de eventos|producao de eventos)\b'
+    r'tradutores|filmagem|fotografia|sonorizacao|iluminacao|transmissao|gravacao|organizacao de eventos|producao de eventos|'
+    r'clipping|monitoramento de noticias|inventario de emissoes|gases de efeito estufa)\b'
 )
 SECONDARY = re.compile(
     r'\b(?:com vistas a|onde (?:sao|e|serao|se|ocorrem)|a exemplo de|tais como|destinad[oa]s? (?:a|ao|aos|as)|'
