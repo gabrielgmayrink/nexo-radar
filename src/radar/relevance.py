@@ -9,7 +9,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from functools import lru_cache
 
-VERSION = "2026-11-12.1"
+VERSION = "2026-11-12.2"
 TZ = ZoneInfo("America/Sao_Paulo")
 
 

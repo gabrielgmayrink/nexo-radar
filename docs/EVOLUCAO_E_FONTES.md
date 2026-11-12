@@ -3,6 +3,8 @@
 Revisão: 12/11/2026. Branch de revisão com preview; produção não promovida.
 O painel mantém **Public**. Gerico continua sem critérios comerciais confirmados.
 
+O [relatório de homologação em nuvem](HOMOLOGACAO_CLOUD.md) registra a execução nacional posterior às amostras abaixo, os testes com Auth/MFA real, o destino privado de backup e a comparação de desempenho sobre a base carregada.
+
 ## Cobertura demonstrável
 
 A meta é percorrer os registros disponíveis e medir perdas, não atingir uma quantidade

@@ -66,3 +66,19 @@ class CatalogPostgresTests(unittest.TestCase):
             with self.assertRaises(psycopg.errors.InsufficientPrivilege),self.db.transaction():
                 self.db.execute("insert into radar_company_profiles(company_id,configuration,actor) values('gerico','{}','role.qa@example.com')")
             self.assertEqual(self.db.execute("select count(*) from radar_company_profiles where company_id='gerico'").fetchone()[0],0)
+
+    def test_restricted_role_can_review_without_updating_official_source(self):
+        from radar.database_roles import company_transaction
+        from radar.company_access import AccessDenied
+        self.assertFalse(self.db.execute("select has_function_privilege('anon','public.radar_lock_review_source(text,text)','EXECUTE')").fetchone()[0])
+        self.db.execute("insert into radar_memberships(email,company_id,role) values('review.qa@example.com','public','analyst') on conflict do nothing")
+        review={'id':self.identifier,'offer':'Public','status':'Vou participar','reason':'Conferir edital','version':0,
+            'reasonCode':'aderente','sourceObject':self.row['objetoCompra'],'sourceAdditional':''}
+        with patch.dict(os.environ,{'RADAR_DB_ENFORCE_ROLES':'1'}),company_transaction(self.db,'review.qa@example.com','public'):
+            self.assertFalse(self.db.execute("select has_table_privilege(current_user,'public.radar_opportunities','UPDATE')").fetchone()[0])
+            saved=save_review(self.db,review,'review.qa@example.com','public')
+            self.assertEqual(saved['version'],1)
+            with self.assertRaises(psycopg.errors.InsufficientPrivilege),self.db.transaction():
+                self.db.execute('update radar_opportunities set score=100 where id=%s',(self.identifier,))
+            with self.assertRaises(AccessDenied),self.db.transaction():
+                save_review(self.db,{**review,'offer':'Gerico'},'review.qa@example.com','public')

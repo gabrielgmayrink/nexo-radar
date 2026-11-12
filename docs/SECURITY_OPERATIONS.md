@@ -116,7 +116,19 @@ nos ambientes autorizados, sem reenviá-los ao chat.
 
 ## Ensaio de recuperação e configuração externa
 
-Em 12/11/2026, backup cifrado de dados descartáveis e amostras públicas foi restaurado
+Atualização de 12/11, posterior ao ensaio local abaixo: o [ensaio em nuvem](HOMOLOGACAO_CLOUD.md) validou backup somente de leitura do Supabase independente, upload/download no Blob privado e restauração SQL integral com contagens e hashes de 73 tabelas. O gatilho do ensaio foi desligado após o sucesso; agenda produtiva continua desabilitada. Chaves de plataforma e arquivos binários externos exigem procedimentos próprios.
+
+Para o destino Blob, instalar `npm ci --prefix scripts --ignore-scripts` e configurar `BLOB_READ_WRITE_TOKEN` e `RADAR_BACKUP_BLOB_STORE_ID` exclusivamente do armazenamento privado dedicado. A chave AES é separada. Depois de gerar e validar o arquivo cifrado fora do Git, executar:
+
+```text
+python scripts/backup_blob.py --archive /destino-privado/radar.nexo-backup
+```
+
+O upload sempre verifica o download. O orçamento máximo do script é 512MiB; ao atingir esse limite ele conserva as cópias antigas e recusa a nova. `--retention-days 7 --prune-expired` é optativo e pode remover somente arquivos do prefixo próprio após sete dias, mantendo duas cópias mais novas. Não foi acionado nesta homologação. Ajustar capacidade e retenção antes de qualquer agenda de produção.
+
+No PostgreSQL 16+, conferir `set_option` em `pg_auth_members`: possuir `admin_option` não garante que a conexão possa executar `SET ROLE`. O ambiente de homologação precisou do vínculo explícito para os papéis já criados. `RADAR_DB_ENFORCE_ROLES=1` foi validado na prévia para perfis e avaliações; a conexão administrativa e os demais caminhos ainda são uma limitação documentada. Produção não recebeu esse ajuste.
+
+No ensaio local inicial de 12/11/2026, backup cifrado de dados descartáveis e amostras públicas foi restaurado
 em outro PostgreSQL18 local vazio: 33 tabelas, 73 registros e hashes coincidentes.
 Isso valida o mecanismo de restauração; não é backup da produção nem prova de S3.
 A chave efêmera do ensaio não foi retida. Evidência em HOMOLOGACAO_AUTONOMA.md.

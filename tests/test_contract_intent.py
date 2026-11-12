@@ -35,6 +35,7 @@ class ContractIntentTests(unittest.TestCase):
             'Reforma do centro de treinamento profissional',
             'Serviços especializados na área da química, compreendendo responsabilidade técnica, assessoria técnica, controle da qualidade da água, incluindo elaboração de laudos e documentos técnicos',
             'Assessoria técnica em engenharia, incluindo relatórios e documentos administrativos',
+            'Contratação de empresa especializada para realização de apresentação artística durante a cerimônia de abertura das Olimpíadas Municipais, por meio da empresa LAINE ASSESSORIA E TREINAMENTO LTDA, responsável pela marca artística ESPAÇO SOU ARTE.',
         ]
         for obj in objects:
             with self.subTest(obj=obj):
@@ -44,6 +45,7 @@ class ContractIntentTests(unittest.TestCase):
         objects = [
             'Contratação de palestrante para ministrar palestra de desenvolvimento profissional',
             'Contratação de palestra sobre modernização de auditórios',
+            'Contratação de palestra de desenvolvimento profissional sobre produção de espetáculos artísticos',
             'Curso de capacitação de servidores sobre licenciamento de software',
             'Treinamento profissional de operadores de equipamentos',
             'Serviços de apoio administrativo para hospital e unidade móvel',

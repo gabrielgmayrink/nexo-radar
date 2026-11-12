@@ -24,6 +24,7 @@ OTHER_OBJECT = re.compile(
     r'isolamento|tratamento acustico|auditoria|quimica|engenharia|tratamento de agua|analises laboratoriais|responsabilidade tecnica|'
     r'exames|consultas medicas|procedimentos cirurgicos|unidade movel|traducao|interpretacao|interpretes|'
     r'tradutores|filmagem|fotografia|sonorizacao|iluminacao|transmissao|gravacao|organizacao de eventos|producao de eventos|'
+    r'apresentacao artistica|show artistico|espetaculos? artisticos?|'
     r'clipping|monitoramento de noticias|inventario de emissoes|gases de efeito estufa)\b'
 )
 SECONDARY = re.compile(

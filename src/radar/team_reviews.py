@@ -62,9 +62,8 @@ def save_review(db,data,actor,company='public'):
     with db.transaction():
         # Review queues may rescue a score-zero procurement from the official
         # national collection. A browser cannot create arbitrary source rows.
-        source=db.execute('''select payload,content_hash from radar_opportunities where id=%s
-            and (coalesce((product_scores->>%s)::int,0)>=40 or national_execution_id is not null)
-            for share''',(identifier,COMPANIES[company])).fetchone()
+        source=db.execute('select payload,content_hash from public.radar_lock_review_source(%s,%s)',
+                          (identifier,COMPANIES[company])).fetchone()
         if not source:
             raise ValueError('Unknown opportunity')
         # Lock per opportunity, including the first review where no row exists yet.

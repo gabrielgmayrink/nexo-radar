@@ -4,6 +4,8 @@ Radar de licitações para Public e Gerico, com React/TypeScript, Python, Postgr
 
 Repositório privado: [gabrielgmayrink/nexo-radar](https://github.com/gabrielgmayrink/nexo-radar). A versão desta branch está em homologação; não foi promovida à produção.
 
+Estado mais recente e evidências de Auth/MFA real, isolamento, coleta nacional e restauração externa: [homologação em nuvem](docs/HOMOLOGACAO_CLOUD.md).
+
 ## Funcionalidades
 
 - Coleta nacional do que o PNCP disponibiliza como propostas abertas, sem filtro comercial na captura; incrementais de publicação e atualização com retomada.
@@ -13,7 +15,7 @@ Repositório privado: [gabrielgmayrink/nexo-radar](https://github.com/gabrielgma
 - Perfis editáveis com produtos, serviços, expressões, sinônimos, exclusões, regiões, órgãos e preferência de resumo semanal.
 - Login separado por empresa, avaliação auditada e acompanhamento que preserva registros encerrados.
 - Itens, anexos e trechos de PDFs com fontes. Extração textual não representa análise jurídica nem OCR.
-- Diagnóstico das fontes para responsáveis; manutenção por jobs autenticados; backup criptografado e upload privado preparado.
+- Diagnóstico das fontes para responsáveis; manutenção por jobs autenticados; backup cifrado com restauração externa validada em homologação.
 
 Public mantém os quatro grupos confirmados de serviços administrativos, gestão, palestras/capacitação e EAD. TI está fora do perfil. Gerico permanece desativada até receber seus produtos/serviços; nenhum segmento foi inventado.
 
@@ -24,6 +26,7 @@ python -m venv .venv
 .venv\Scripts\python -m pip install --require-hashes -r requirements.lock
 .venv\Scripts\python -m pip install --no-build-isolation --no-deps -e .
 npm ci --prefix web
+npm ci --prefix scripts --ignore-scripts
 $env:PYTHONPATH='src'
 .venv\Scripts\python -m unittest discover -s tests -v
 npm run build --prefix web

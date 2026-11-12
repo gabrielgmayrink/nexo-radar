@@ -1,5 +1,7 @@
 # Homologação autônoma · 12 de novembro de 2026
 
+> Registro histórico da validação local inicial, encerrada antes da criação do ambiente em nuvem. As pendências de staging, Auth/MFA e destino externo descritas abaixo foram posteriormente trabalhadas. Consulte o [relatório atual de homologação em nuvem](HOMOLOGACAO_CLOUD.md) para o estado vigente e suas limitações.
+
 ## Resumo executivo
 
 Versão implementada e testada na branch de revisão, com preview Vercel. **Ainda não liberada para produção**: faltam Supabase independente de homologação, validação de Auth/MFA nesse provedor e destino de backup externo. O login do preview informa indisponibilidade enquanto suas variáveis próprias não existirem. O teste local usa rotas e PostgreSQL reais com provedor de identidade fictício, declaradamente.
