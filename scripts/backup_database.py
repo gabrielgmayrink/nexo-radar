@@ -9,6 +9,7 @@ import tempfile
 from urllib.parse import parse_qs,urlparse,unquote
 from radar.backup import backup_key,encrypt_archive,decrypt_archive
 from radar.database_tls import tls_parameters
+from cryptography.exceptions import InvalidTag
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -75,6 +76,6 @@ def main():
 
 if __name__=='__main__':
     try:main()
-    except (ValueError,RuntimeError,OSError,subprocess.TimeoutExpired) as exc:
+    except (ValueError,RuntimeError,OSError,InvalidTag,subprocess.TimeoutExpired) as exc:
         print(json.dumps({'event':'backup_failed','errorType':type(exc).__name__}))
         raise SystemExit(1)

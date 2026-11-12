@@ -43,3 +43,8 @@ class RelevanceQualityTests(unittest.TestCase):
         profiles=load_profiles();old=classification_version(profiles)
         profiles[0]['terms'].append('novo critério de revisão')
         self.assertNotEqual(old,classification_version(profiles))
+
+    def test_delivery_and_region_preferences_do_not_reclassify_the_national_archive(self):
+        profiles=load_profiles();old=classification_version(profiles)
+        profiles[0].update(notificationPreferences={'weeklyEmail':False},states=['MG'],organizations=['Prefeitura'])
+        self.assertEqual(old,classification_version(profiles))

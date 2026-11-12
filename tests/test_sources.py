@@ -7,6 +7,8 @@ from radar.sources.http import PublicHTTP, SourceError, validate_url, retry_dela
 from radar.sources.compras import ComprasGovConnector
 from radar.sources.pncp_details import PNCPDetailsConnector, document_url
 from radar.enrichment import _items
+from radar.enrichment import _execute
+import hashlib
 
 ID = '00394502000144-1-010615/2025'
 
@@ -66,6 +68,13 @@ class SourceTests(unittest.TestCase):
 
     def test_retry_after_does_not_get_ignored(self):
         self.assertEqual(retry_delay({'Retry-After': '120'}), 120)
+
+    def test_repeated_detail_page_is_not_marked_complete(self):
+        rows=[{'numeroItem':1,'descricao':'Curso EAD'}]*50
+        fingerprint=hashlib.sha256(json.dumps(rows,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
+        job={'opportunity':ID,'task':'pncp_items','cursor':{'page':2,'lastPageHash':fingerprint}}
+        with self.assertRaisesRegex(SourceError,'repeated_detail_page'):
+            _execute(Mock(),job,Mock(json=lambda *a,**k:rows))
 
 
 if __name__ == '__main__': unittest.main()

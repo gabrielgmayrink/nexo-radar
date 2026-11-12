@@ -43,6 +43,7 @@ class handler(BaseHTTPRequestHandler):
         from radar.company_access import resolve_access,memberships,AccessDenied
         from radar.access_security import request_origin,throttle
         from radar.mfa import MFARequired,enroll,verify
+        from radar.database_roles import company_transaction
         origin=request_origin(self.headers,getattr(self,'client_address',('unknown',))[0])
         if not session_token(self.headers.get('Cookie')):
             if self.command=='GET':
@@ -60,7 +61,9 @@ class handler(BaseHTTPRequestHandler):
                 limit=max(1,min(500,int(query.get('reviewsLimit',['200'])[0])))
                 company=None;allowed=[]
                 if user:_,company,allowed=resolve_access(db,self.headers.get('Cookie'),requested)
-                reviews=list_reviews(db,company,limit=limit+1,offset=page*limit) if user else []
+                if user:
+                    with company_transaction(db,user,company):reviews=list_reviews(db,company,limit=limit+1,offset=page*limit)
+                else:reviews=[]
                 self.respond(200,{'enabled':True,'authenticated':bool(user),'email':user,
                                   'company':company,'companies':allowed,
                                   'reviews':reviews[:limit],'reviewsPage':page,'reviewsHasMore':len(reviews)>limit});return
@@ -95,7 +98,7 @@ class handler(BaseHTTPRequestHandler):
                 _,company,_=resolve_access(db,self.headers.get('Cookie'),data.get('company'))
                 role=db.execute('select role from radar_memberships where email=%s and company_id=%s',(user,company)).fetchone()
                 if not role or role[0] not in ('owner','admin','analyst'):raise AccessDenied()
-                result=save_review(db,data.get('review'),user,company)
+                with company_transaction(db,user,company):result=save_review(db,data.get('review'),user,company)
                 self.respond(200,{'review':result});return
             raise ValueError()
         except MFARequired as exc:

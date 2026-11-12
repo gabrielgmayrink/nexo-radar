@@ -5,7 +5,7 @@ from radar.company_access import COMPANIES,AccessDenied,can_manage_company
 from radar.profiles import load_profiles,validate_profiles
 from radar.relevance import classification_version
 
-FIELDS={'enabled','services','terms','excludeTerms','synonyms','states','cities','modalities','minValue','maxValue'}
+FIELDS={'enabled','products','services','terms','excludeTerms','synonyms','states','cities','organizations','modalities','minValue','maxValue','notificationPreferences'}
 STATES=set('AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split())
 
 class ProfileConflict(ValueError):pass
@@ -18,6 +18,8 @@ def validate_configuration(configuration,current):
             if type(value) is not bool:raise ValueError('Invalid profile state')
         elif key in ('minValue','maxValue'):
             if value is not None and (type(value) not in (int,float) or not 0<=value<=10**15):raise ValueError('Invalid amount')
+        elif key=='notificationPreferences':
+            if not isinstance(value,dict) or set(value)-{'weeklyEmail','urgentEmail'} or any(type(v) is not bool for v in value.values()):raise ValueError('Invalid notification preferences')
         elif key=='synonyms':
             if not isinstance(value,dict) or len(value)>60:raise ValueError('Invalid synonyms')
             for term,alternatives in value.items():

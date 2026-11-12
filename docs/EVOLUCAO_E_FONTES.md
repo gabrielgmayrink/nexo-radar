@@ -1,6 +1,6 @@
 # Nexo Radar · evolução e fontes
 
-Revisão: 11/11/2026. Implementação em branch para revisão; não publicada nesta etapa.
+Revisão: 12/11/2026. Branch de revisão com preview; produção não promovida.
 O painel mantém **Public**. Gerico continua sem critérios comerciais confirmados.
 
 ## Cobertura demonstrável
@@ -25,12 +25,12 @@ capacidade de infraestrutura e acompanhamento de pendências.
 
 | Fonte | Evidência conferida | Situação desta versão | Limite |
 |---|---|---|---|
-| [PNCP Consulta](https://pncp.gov.br/api/consulta/swagger-ui/index.html) | Consulta individual HTTP200 e coleta existente | Conector principal e recibos brutos implementados; testes locais | Publicação depende do órgão; consistência explicitamente medida |
+| [PNCP Consulta](https://pncp.gov.br/api/consulta/swagger-ui/index.html) | Propostas, publicações, atualizações, quatro detalhes e modalidades reais HTTP200 | Conector principal e recibos brutos implementados; testes locais e amostras HTTP reais | Publicação depende do órgão; consistência explicitamente medida |
 | [PNCP itens/documentos](https://pncp.gov.br/manual/pt-br/latest/singlehtml/index.html) | Amostra real: 3 itens e 2 anexos para um identificador oficial | Enriquecimento paginado por itens e manifesto de anexos implementado | PDFs grandes, cifrados, digitalizados ou externos ficam pendentes |
-| [Compras.gov.br](https://dadosabertos.compras.gov.br/swagger-ui/index.html) | Lista histórica, consulta por ID e itens HTTP200; identidade oficial conferida | Complemento estruturado implementado, pendente implantação | Não representa todos os municípios nem substitui a cobertura PNCP |
+| [Compras.gov.br](https://dadosabertos.compras.gov.br/swagger-ui/index.html) | Consulta por ID, 3 itens e 3 resultados HTTP200; identidade oficial conferida | Complemento estruturado implementado, pendente implantação | Não representa todos os municípios nem substitui a cobertura PNCP |
 | [Querido Diário](https://docs.queridodiario.ok.org.br/pt-br/latest/utilizando/api-publica.html) | Documentação pública disponível; acesso de API sem sucesso neste ambiente | Conector preparado e desativado, pendente validação real | Diário não equivale a edital; associação requer identidade oficial |
 | [INLABS](https://github.com/Imprensa-Nacional/inlabs/tree/master/public/python) | Scripts oficiais exigem login e senha | Depende de autorização e credencial própria; não integrado | Não usar credenciais de terceiros nem presumir acesso anônimo |
-| [Dados MG](https://dados.mg.gov.br/pt_BR/dataset/portal_licitacoes_mg) | Catálogo público de licitações e itens por ano | Viável para avaliação de lacunas; não integrado | Medir atualidade, campos e sobreposição antes de habilitar |
+| [Dados MG](https://dados.mg.gov.br/pt_BR/dataset/portal_licitacoes_mg) | API CKAN respondeu com 52 recursos CSV/JSON por ano | Viável para avaliação de lacunas; não integrado | Medir atualidade, campos e sobreposição antes de habilitar |
 | [TCE-MG](https://dadosabertos.tce.mg.gov.br/) | Sem API validada nesta avaliação | Sem acesso técnico validado; não integrado | Não inventar endpoint ou cobertura |
 | Outros portais de disputa | Sem contrato de API validado nesta etapa | Não integrados | Avaliar lacuna e autorização individualmente |
 
@@ -71,11 +71,35 @@ escala indefinidamente. Documentos excessivos permanecem identificados para revi
 
 ## Liberação
 
-Aplicar primeiro em ambiente separado as migrações014–023, sem reexecutar as antigas.
+Aplicar primeiro em ambiente separado as migrações014–017 e019–027, sem reexecutar as antigas.
 Testar autenticação com o provedor real, MFA, TLS, escopos e envio simulado. O banco
 temporário validou sintaxe e fluxos SQL; ele não substitui a homologação Supabase.
-O código de backup foi preparado, mas cópia externa, agenda e restauração real
-dependem de configuração própria. Consultar [operação de segurança](SECURITY_OPERATIONS.md).
+Backup e restauração real foram validados em PostgreSQL local descartável; cópia externa e agenda dependem de configuração própria. Consultar [operação de segurança](SECURITY_OPERATIONS.md).
 
 Produção exige aprovação posterior ao resultado revisável; esta etapa não altera
 senhas, dispara mensagens, habilita serviços pagos nem modifica dados publicados.
+
+## Reavaliação individual dos portais
+
+| Fonte | Método identificado / tipo de dado | Estado e próxima ação |
+|---|---|---|
+| [Portal de Compras Públicas](https://www.portaldecompraspublicas.com.br/parceiros) | API de parceiros com token/aprovação; documentação anuncia escopo de processos finalizados | Novas solicitações informadas como temporariamente suspensas na página consultada. Não integrada; solicitar acesso autorizado quando reabrir e verificar escopo de abertas |
+| [BLL Compras](https://bll.org.br/) | Portal anuncia integração PNCP; acesso técnico via suporte | Sem API pública de leitura validada; não integrada; solicitar contrato técnico antes de implementar |
+| [BNC](https://bnc.org.br/) | Portal anuncia integração PNCP | Sem API pública autorizada validada; não integrada; verificar autorização e lacuna antes de desenvolver |
+| [BBMNET](https://bbmnet.com.br/cadastro-formulario-de-acesso-manual-de-integracao/) | Manual técnico condicionado a solicitação de acesso | Solicitação não enviada; não integrada; titular pode obter autorização/manual |
+| [Licitanet](https://licita-sso.licitanet.com.br/) | Acesso autenticado para contas autorizadas | Não há API pública de leitura validada nesta pesquisa; não integrada |
+| Licitar Digital | Nenhum contrato de leitura autorizado confirmado | Não integrada; confirmar interface oficial e escopo |
+| Licitações-e | Nenhum contrato de leitura autorizado confirmado | Não integrada; confirmar interface oficial e escopo |
+| TCE-MG | Catálogo de dados públicos, sem endpoint de coleta de abertas validado aqui | Não integrado; avaliar datasets e campos com evidência antes de implementar |
+| Portais municipais/estaduais | Avaliação individual; sem conector genérico anunciado | Não integrados indiscriminadamente; medir lacuna, acesso e identidade oficial por portal |
+
+As afirmações sobre interfaces acima refletem a documentação consultada, não ausência
+universal de uma API. Não foram usadas credenciais de terceiros, scraping de login
+ou endpoints privados. Publicação dos mesmos processos no PNCP não prova cobertura
+integral do portal: a lacuna deve ser medida, não presumida.
+
+Dados MG: metadados reais em
+[package_show](https://dados.mg.gov.br/api/3/action/package_show?id=portal_licitacoes_mg).
+Arquivos CSV foram identificados, mas não importados: falta medir atualidade, IDs,
+volume e ganho efetivo além do PNCP. Querido Diário continua desativado após nova
+falha de transporte. Nenhuma dessas fontes conta como cobertura operacional adicional.

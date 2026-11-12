@@ -45,8 +45,7 @@ Nenhum fator de contas existentes foi ativado automaticamente.
 
 ## Banco e privilégios
 
-O cliente exige TLS `verify-full`. O padrão usa a confiança do sistema com libpq
-moderno. Se o emissor do banco exigir uma CA específica, provisionar seu arquivo
+O cliente exige TLS `verify-full`. O padrão inclui o certificado público Supabase Root2021 disponibilizado no painel do provedor; a conexão com o banco existente foi conferida por leitura. Se o emissor do banco exigir uma CA específica, provisionar seu arquivo
 público e definir `RADAR_POSTGRES_CA_FILE` com caminho absoluto. Não há fallback
 para TLS sem verificação. Em staging, testar certificado válido e hostname/CA
 inválidos: os inválidos precisam falhar antes de qualquer consulta.
@@ -56,7 +55,7 @@ senhas. As tabelas privadas exigem contexto de empresa e vínculo para `radar_we
 `database_roles.company_transaction` habilita o papel por transação quando
 `RADAR_DB_ENFORCE_ROLES=1`. O titular deve criar credenciais independentes no
 provedor, conceder o papel adequado e conectar cada serviço com o menor privilégio
-necessário. Não ativar o sinalizador até validar o fluxo inteiro com esse papel.
+necessário. Não ativar o sinalizador até validar o fluxo inteiro com esse papel. O contexto restrito está ligado às consultas de perfil e exportação/escrita de avaliações; outras rotas mantêm autorização explícita no servidor.
 O acesso administrativo atual do servidor continua podendo ultrapassar RLS; a
 preparação dos papéis não equivale à troca das credenciais em produção.
 
@@ -114,3 +113,31 @@ nos ambientes autorizados, sem reenviá-los ao chat.
    aplicação, promover a implantação anterior e interromper os jobs novos. Manter
    tabelas e evidências novas: não apagar dados para reverter interface/código.
    Migrações destrutivas ou restauração sobre produção exigem plano específico.
+
+## Ensaio de recuperação e configuração externa
+
+Em 12/11/2026, backup cifrado de dados descartáveis e amostras públicas foi restaurado
+em outro PostgreSQL18 local vazio: 33 tabelas, 73 registros e hashes coincidentes.
+Isso valida o mecanismo de restauração; não é backup da produção nem prova de S3.
+A chave efêmera do ensaio não foi retida. Evidência em HOMOLOGACAO_AUTONOMA.md.
+
+O workflow `backup.yml` permanece desativado. No ambiente protegido `backup` do
+GitHub, provisionar os segredos `RADAR_BACKUP_DATABASE_URL`,
+`RADAR_BACKUP_ENCRYPTION_KEY`, `RADAR_BACKUP_AWS_ACCESS_KEY_ID`,
+`RADAR_BACKUP_AWS_SECRET_ACCESS_KEY`; nas variáveis, bucket, prefixo, endpoint
+opcional e região (`RADAR_BACKUP_S3_BUCKET`, `RADAR_BACKUP_S3_PREFIX`,
+`RADAR_BACKUP_S3_ENDPOINT`, `RADAR_BACKUP_AWS_REGION`). Credencial limitada a
+PutObject/GetObject no prefixo; bucket com acesso público bloqueado e criptografia.
+Configurar retenção com lifecycle conforme prazo aprovado pelo titular; o script
+não elimina arquivos. Chave AES guardada separada e com recuperação documentada.
+
+O runner precisa de AWS CLI e clientes PostgreSQL18 compatíveis, verificados antes
+por `aws --version` e `pg_dump --version`. O upload exige arquivo cifrado, compara
+metadados/tamanho e pode conferir download com `--verify-download`. Validar tudo no
+destino autorizado antes de definir `RADAR_BACKUP_ENABLED=1`. Ensaio mensal de
+restauração em ambiente isolado, sem restaurar sobre a produção.
+
+Para migrar, o bootstrap agora exige `--env-file` e `--project-ref`. O projeto
+produtivo conhecido é recusado sem `--production`; essa opção exige aprovação do
+titular para a versão exata. Não existe carregamento automático de dotenv produtivo
+no comando. Falhas retornam tipo de erro sem imprimir credenciais.

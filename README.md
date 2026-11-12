@@ -1,66 +1,76 @@
 # Nexo Radar
 
-Radar de licitações baseado no projeto GovPreços/iArquivo, com painel React/TypeScript, coletor Python para o PNCP e publicação na Vercel.
+Radar de licitações para Public e Gerico, com React/TypeScript, Python, PostgreSQL/Supabase e Vercel. A base pública é compartilhada; critérios, avaliações, responsáveis, checklist e histórico comercial são separados por empresa.
 
-Repositório privado: https://github.com/gabrielgmayrink/nexo-radar.
+Repositório privado: [gabrielgmayrink/nexo-radar](https://github.com/gabrielgmayrink/nexo-radar). A versão desta branch está em homologação; não foi promovida à produção.
 
-## Estado inicial
+## Funcionalidades
 
-O painel mantém listas, filtros, detalhes, exportação CSV, rascunhos locais e a estrutura de avaliação da equipe. A Public já tem critérios configurados para assessoria administrativa e de gestão, capacitação e EAD. O perfil do Gerico continua desativado até receber seus serviços. O catálogo começa vazio, aguardando a primeira coleta; a base, os exemplos e as credenciais anteriores não foram copiados.
+- Coleta nacional do que o PNCP disponibiliza como propostas abertas, sem filtro comercial na captura; incrementais de publicação e atualização com retomada.
+- Recibos brutos, quarentena, identificação oficial, histórico de mudanças e prova por duas passagens completas de identificadores e versões. Fonte em movimento pode permanecer com cobertura não confirmada.
+- Busca paginada no servidor por objeto e itens enriquecidos, UF, município, órgão, fonte complementar, valores, datas e situação.
+- Classificação explicável de objeto principal/contexto/escopo misto; revisão de descartes, sem apagar dados oficiais.
+- Perfis editáveis com produtos, serviços, expressões, sinônimos, exclusões, regiões, órgãos e preferência de resumo semanal.
+- Login separado por empresa, avaliação auditada e acompanhamento que preserva registros encerrados.
+- Itens, anexos e trechos de PDFs com fontes. Extração textual não representa análise jurídica nem OCR.
+- Diagnóstico das fontes para responsáveis; manutenção por jobs autenticados; backup criptografado e upload privado preparado.
 
-Empresas desativadas não recebem sugestões. Banco compartilhado e login usam um projeto Supabase independente. O acesso principal usa e-mail e senha, com convite pessoal para o primeiro acesso. O Gmail da plataforma envia resumos aos destinatários autorizados quando o envio estiver habilitado. A IA paga está desligada.
+Public mantém os quatro grupos confirmados de serviços administrativos, gestão, palestras/capacitação e EAD. TI está fora do perfil. Gerico permanece desativada até receber seus produtos/serviços; nenhum segmento foi inventado.
 
-## Identidade visual
-
-Marca: **Nexo Radar**. Logo vetorial em `web/public/brand/nexo-logo.svg` e símbolo em `web/public/brand/nexo-symbol.svg`. O login utiliza a versão 3D `web/public/brand/nexo-symbol-3d.png`. Paleta: grafite `#202823`, verde fechado `#315C43`, fundos neutros `#F5F5F2` e texto `#202923`. As cores são centralizadas em `web/src/theme.css`. Veja [identidade e interface](docs/identidade-e-interface.md) para os componentes React Bits e o prompt da imagem.
-
-## Executar
+## Instalação e testes
 
 ```powershell
 python -m venv .venv
-.venv\Scripts\python -m pip install -e .
+.venv\Scripts\python -m pip install --require-hashes -r requirements.lock
+.venv\Scripts\python -m pip install --no-build-isolation --no-deps -e .
 npm ci --prefix web
-npm run dev --prefix web
-```
-
-O painel de desenvolvimento usa o catálogo local vazio quando as APIs não estão disponíveis. Para exercitar as funções Python, use `vercel dev` com esta instalação configurada. Não carregue as variáveis do radar anterior.
-
-## Configurar empresas
-
-Edite [src/radar/companies.json](src/radar/companies.json). Para cada empresa:
-
-- `services`: produtos e serviços confirmados pela empresa.
-- `terms`: expressões específicas que devem aparecer no objeto da contratação.
-- `excludeTerms`: expressões que excluem a oportunidade desse perfil.
-- `enabled`: mude para `true` depois de preencher serviços e termos.
-
-Os termos são frases literais, sem distinção de acentos e maiúsculas. Não são expressões regulares. Uma correspondência no objeto indica candidata; uma menção apenas nas informações complementares pede revisão e não recomenda participação. A pontuação é uma regra de seleção, não uma probabilidade. Revise uma amostra de editais antes de ativar a operação.
-
-Depois de alterar os perfis, publique novamente o aplicativo e reprocesse o catálogo. O painel e o coletor usam o mesmo arquivo de perfis.
-
-## Publicação
-
-Importe o repositório na conta pessoal de **gabrielgmayrink** na Vercel, mantendo a raiz do repositório como Root Directory. `vercel.json` configura a compilação de `web` e as funções Python. A versão inicial pode ser publicada com o catálogo vazio, sem banco.
-
-Veja [docs/instalacao.md](docs/instalacao.md) para configurar banco, autenticação, coleta e e-mails quando os serviços estiverem definidos.
-
-## Verificação
-
-Busca por frases e exclusões, atalhos, paginação e detalhes de desempenho estão em [busca e desempenho](docs/busca-e-desempenho.md).
-
-```powershell
 $env:PYTHONPATH='src'
-python -m unittest discover -s tests -v
+.venv\Scripts\python -m unittest discover -s tests -v
 npm run build --prefix web
 node scripts/test_search_logic.mjs
+node scripts/test_login_token.mjs
+node scripts/test_catalog_search.mjs
 ```
 
-Os perfis em `tests/profile_fixtures.py` são exemplos sintéticos exclusivos dos testes. Não descrevem os serviços reais das empresas.
+O build inclui verificação TypeScript. A CI executa também PostgreSQL real, migrações, testes de integração, lint de sintaxe/nomes indefinidos, auditorias e scanner de padrões de credenciais. Testes não carregam dotenv de produção.
 
-## Acesso por empresa e cobertura
+## Homologação local reproduzível
 
-O painel exige autenticação. Public e Gerico têm contas, consultas, avaliações, exemplos e resumos separados no servidor. Apenas a administração tem vínculo com as duas empresas. Veja [isolamento e coleta](docs/isolamento-e-coleta.md).
+Use um PostgreSQL descartável em loopback com nome `radar_restore_test_*`. A CI cria esse banco automaticamente. Localmente, com o banco vazio criado:
 
-A coleta operacional percorre **todas as abertas do Brasil no PNCP**, sem filtro de modalidade, UF, empresa ou publicação. Só depois do recebimento os registros são classificados para cada empresa. A conclusão exige conferir páginas e registros únicos; o painel diferencia a cobertura nacional das candidatas por perfil.
+```powershell
+$env:RADAR_TEST_POSTGRES_DSN='postgresql://postgres:SENHA_LOCAL@127.0.0.1:55439/radar_restore_test_ci'
+.venv\Scripts\python tests/bootstrap_postgres.py
+.venv\Scripts\python scripts/seed_acceptance.py
+.venv\Scripts\python scripts/local_acceptance.py
+```
 
-A rotina semanal começa segunda às **07h de Brasília**. Domingo às **23h**, a manutenção arquiva vencidas, inativas e registros fora dos perfis no catálogo ativo, preservando o histórico. O resumo semanal depende da conclusão da coleta dessa segunda-feira. Veja `docs/isolamento-e-coleta.md`.
+Acesse `http://localhost:8000`. Contas exclusivamente fictícias: `public.qa@example.com`, `gerico.qa@example.com` e `admin.qa@example.com`; senha de teste `Homologacao-local@2026`. O servidor recusa banco remoto e não usa credenciais reais. O provedor Auth é uma fixture; este teste não equivale a homologar Supabase Auth/MFA. As licitações são snapshots públicos identificados, sem promessa de atualidade/cobertura. O quadro `/qa/mobile` verifica responsividade em390px.
+
+## Ambientes e migrações
+
+Configure um banco e segredos próprios de homologação, usando `.env.example` e as variáveis de Preview da branch. Não copie credenciais produtivas para preview. Nenhum arquivo `.env` com valores entra no Git.
+
+O comando de migração exige alvo explícito:
+
+```text
+python scripts/bootstrap_database.py --env-file .env.staging.local --project-ref REFERENCIA_DO_PROJETO_DE_HOMOLOGACAO
+```
+
+O arquivo deve apontar exatamente ao projeto informado. O projeto produtivo conhecido é recusado por padrão; a opção `--production` só pode ser usada pelo titular após aprovar a versão exata. As migrações são registradas e não devem ser reaplicadas manualmente. Coletores em andamento impedem o início da migração.
+
+Perfis são editados no painel por responsáveis autorizados e registrados no banco com versão. O arquivo `companies.json` fornece os padrões iniciais; não é necessário republicar para alterar preferências. A seleção por regras é triagem, não probabilidade de êxito ou elegibilidade.
+
+## Operação
+
+Coleta nacional: segunda07h; incremental diário09h17; manutenção: domingo23h, sempre Brasília. Agendamento GitHub pode atrasar. O monitor separado precisa ser habilitado após homologação. Arquivamento preserva os originais e as avaliações. O resumo semanal depende da conferência da coleta e do envio habilitado aos destinatários autorizados.
+
+O certificado público Supabase acompanha o pacote; conexões exigem `verify-full`. Privilégios restritos por papel são preparados e testados; `RADAR_DB_ENFORCE_ROLES` só deve ser habilitado após provisionamento e validação das credenciais próprias.
+
+Backup local: AES-GCM, validação do arquivo e restauração somente em banco local vazio. Upload S3 privado e agenda estão preparados, desativados até configurar destino, chave separada e retenção. Não existe serviço pago contratado por esta implementação.
+
+## Evidências e limites
+
+Veja [homologação](docs/HOMOLOGACAO_AUTONOMA.md), [fontes](docs/EVOLUCAO_E_FONTES.md), [segurança e backup](docs/SECURITY_OPERATIONS.md), [instalação](docs/instalacao.md) e [identidade visual](docs/identidade-e-interface.md).
+
+Não se presume um milhão de editais por semana. A aplicação mede identificadores distintos e pendências da fonte. Armazenamento gratuito, OCR, novas fontes e alta escala têm limites explícitos; nenhum limite atingido pode virar cobertura completa.

@@ -103,13 +103,16 @@ def _execute(db, job, http):
     if task in ('pncp_items', 'pncp_documents'):
         page = int(job['cursor'].get('page', 1))
         data = pncp.page(identifier, 'itens' if task == 'pncp_items' else 'arquivos', page)
+        fingerprint=_hash(json.dumps(data['rows'],sort_keys=True,ensure_ascii=False).encode())
+        if page>1 and job['cursor'].get('lastPageHash')==fingerprint:
+            raise SourceError('repeated_detail_page')
         # Raw response is already committed by the HTTP recorder, before parsing/linking.
         with db.transaction():
             _link(db, job, data['rows'], data['url'], task + ':' + str(page),
                   'item_page' if task == 'pncp_items' else 'document_manifest')
             if task == 'pncp_documents':
                 _manifest(db, job, data['rows'])
-        return {'page': data['nextPage']} if data['nextPage'] else None
+        return {'page': data['nextPage'],'lastPageHash':fingerprint} if data['nextPage'] else None
     if task in ('compras_details', 'compras_items'):
         rows, url = compras.details(identifier) if task == 'compras_details' else compras.items(identifier)
         _link(db, job, rows, url, identifier + ':' + task, 'official_id' if task == 'compras_details' else 'item_page')
@@ -192,7 +195,9 @@ def get_enrichment(db, identifier, company):
     scope = (identifier, version[0])
     links = db.execute('''select l.source_id,s.name,l.url,l.external_id,l.link_type,l.payload from radar_source_links l
       join radar_data_sources s using(source_id) where opportunity_id=%s and source_hash=%s
-      order by l.captured_at desc,l.id desc limit 200''', scope).fetchall()
+      order by l.captured_at desc,l.id desc limit 201''', scope).fetchall()
+    source_truncated=len(links)>200
+    links=links[:200]
     items, sources, seen = [], [], set()
     for source, name, url, external, kind, rows in links:
         sources.append({'id': source, 'name': name, 'url': url, 'externalId': external, 'linkType': kind})
@@ -202,15 +207,20 @@ def get_enrichment(db, identifier, company):
                 if key not in seen:
                     seen.add(key); items.append(item)
     docs = db.execute('''select document_key,title,url,content_hash,extraction_state,pages from radar_documents
-      where opportunity_id=%s and source_hash=%s order by id limit 100''', scope).fetchall()
+      where opportunity_id=%s and source_hash=%s order by id limit 101''', scope).fetchall()
+    document_truncated=len(docs)>100
+    docs=docs[:100]
     documents = [{'title': title, 'url': url, 'status': state, 'contentHash': sha, 'documentKey': key}
                  for key, title, url, sha, state, _ in docs]
     excerpts = [{'documentKey': key, 'page': page['page'], 'text': page['text'][:2000]}
-                for key, _, _, _, _, pages in docs for page in pages if page.get('text')][:30]
+                for key, _, _, _, _, pages in docs for page in pages if page.get('text')]
+    display_limits=[code for code,limited in [('display_excerpt_limit',len(excerpts)>30),('display_item_limit',len(items)>300),
+        ('display_source_limit',source_truncated or len(sources)>30),('display_document_limit',document_truncated)] if limited]
+    excerpts=excerpts[:30]
     statuses = db.execute('select status,count(*) from radar_enrichment_jobs where opportunity_id=%s and source_hash=%s group by status', scope).fetchall()
     counts = dict(statuses)
     incomplete_docs = {r[4] for r in docs if r[4] != 'text_available'}
     state = ('pending' if any(counts.get(s) for s in ('pending', 'processing', 'retry')) else
              'partial' if counts.get('blocked') or incomplete_docs else 'available' if counts else 'not_requested')
     return {'analysisStatus': state, 'items': items[:300], 'documents': documents, 'textExcerpts': excerpts,
-            'sources': sources[:30], 'limitations': sorted(incomplete_docs) + ['extractive_evidence_not_legal_analysis']}
+            'sources': sources[:30], 'limitations': sorted(incomplete_docs) + display_limits + ['extractive_evidence_not_legal_analysis']}

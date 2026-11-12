@@ -94,6 +94,10 @@ def filter_sql(config,profile=None):
     clauses=[];params=[]
     for word,excluded,phrase in parse_query(config['q']):
         alternatives=(word,) if phrase else ALIASES.get(word,(word,))
+        if profile and not phrase:
+            for term,synonyms in profile.get('synonyms',{}).items():
+                group=tuple(normalize(value) for value in (term,*synonyms))
+                if word in group:alternatives=tuple(dict.fromkeys((*alternatives,*group)))
         tests=[]
         for term in alternatives:
             padded=phrase or ' ' in term or len(term)<=2
@@ -121,6 +125,9 @@ def filter_sql(config,profile=None):
         for field,column in (('states','uf'),('modalities','modality')):
             if profile.get(field):clauses.append(column+'=any(%s)');params.append(profile[field])
         if profile.get('cities'):clauses.append('city=any(%s)');params.append([normalize(city) for city in profile['cities']])
+        if profile.get('organizations'):
+            clauses.append('exists(select 1 from unnest(%s::text[]) desired where position(desired in organization)>0)')
+            params.append([normalize(org) for org in profile['organizations']])
         for field,operator in (('minValue','>='),('maxValue','<=')):
             if profile.get(field) is not None:clauses.append('estimated'+operator+'%s');params.append(profile[field])
     if config['assessment']!='any':clauses.append("coalesce(review_offer,'')"+('=' if config['assessment']=='unreviewed' else '<>')+"''")

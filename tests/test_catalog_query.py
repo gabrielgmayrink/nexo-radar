@@ -3,6 +3,11 @@ from radar.catalog_query import options,filter_sql,private_card
 from radar.relevance import classify
 
 class CatalogQueryTests(unittest.TestCase):
+    def test_company_synonyms_and_organization_scope_are_parameterized(self):
+        sql,params=filter_sql(options({'q':['backoffice']}),{'synonyms':{'apoio administrativo':['backoffice']},'organizations':['Prefeitura de São Paulo']})
+        self.assertIn(' apoio administrativo ',params)
+        self.assertIn(['prefeitura de sao paulo'],params)
+        self.assertIn('radar_item_search',sql)
     def test_query_language_is_parameterized_and_preserves_exclusions(self):
         config=options({'q':['"apoio administrativo" -seguro'], 'city':["Belo Horizonte' or true --"],'minValue':['0'],'publishedTo':['2026-11-11']})
         sql,params=filter_sql(config)

@@ -1,0 +1,105 @@
+{
+  "scope": "public_historical_samples_not_live_coverage",
+  "capturedOn": "2026-11-11",
+  "records": [
+    {
+      "processo": "02001.018546/2025-07",
+      "anoCompra": 2026,
+      "usuarioNome": "Compras.gov.br",
+      "numeroCompra": "24",
+      "objetoCompra": "Contratação de empresa especializada para produção de cursos na modalidade de educação a distância (EaD) destinados a atender o Projeto Fortalecimento da Fiscalização Ambiental para o Controle do Desmatamento Ilegal na Amazônia - FORTFISC. ",
+      "unidadeOrgao": {
+        "ufNome": "Distrito Federal",
+        "ufSigla": "DF",
+        "codigoIbge": "5300108",
+        "nomeUnidade": "MMA-IBAMA - DEFIN/DF",
+        "codigoUnidade": "193099",
+        "municipioNome": "Brasília"
+      },
+      "orgaoEntidade": {
+        "cnpj": "03659166002156",
+        "poderId": "E",
+        "esferaId": "F",
+        "razaoSocial": "INSTITUTO BRASILEIRO DO MEIO AMBIENTE E DOS RECURSOS NATURAIS RENOVAVEIS-IBAMA"
+      },
+      "modalidadeNome": "Pregão - Eletrônico",
+      "dataAtualizacao": "2026-11-03T06:55:18",
+      "sequencialCompra": 138,
+      "situacaoCompraId": 1,
+      "dataPublicacaoPncp": "2026-10-29T04:00:36",
+      "numeroControlePNCP": "03659166002156-1-000138/2026",
+      "valorTotalEstimado": 1957310.0,
+      "dataAberturaProposta": "2026-11-03T08:00:00",
+      "dataAtualizacaoGlobal": "2026-11-03T06:55:18",
+      "informacaoComplementar": null,
+      "dataEncerramentoProposta": "2026-11-18T09:00:00",
+      "tipoInstrumentoConvocatorioCodigo": 1
+    },
+    {
+      "processo": "30193102024025229721",
+      "anoCompra": 2026,
+      "usuarioNome": "Licitações-E BB",
+      "numeroCompra": "IEP 03/26",
+      "objetoCompra": "Contratação de empresa especializada para isolamento e tratamento acústico da sala de edição e realização de aulas de ensino à distância do IEP.",
+      "unidadeOrgao": {
+        "ufNome": "Bahia",
+        "ufSigla": "BA",
+        "codigoIbge": "2927408",
+        "nomeUnidade": "PM - POLÍCIA MILITAR",
+        "codigoUnidade": "000000035",
+        "municipioNome": "Salvador"
+      },
+      "orgaoEntidade": {
+        "cnpj": "13937032000160",
+        "poderId": "N",
+        "esferaId": "E",
+        "razaoSocial": "ESTADO DA BAHIA"
+      },
+      "modalidadeNome": "Pregão - Eletrônico",
+      "dataAtualizacao": "2026-11-06T18:32:07",
+      "sequencialCompra": 3032,
+      "situacaoCompraId": 1,
+      "dataPublicacaoPncp": "2026-11-06T18:32:07",
+      "numeroControlePNCP": "13937032000160-1-003032/2026",
+      "valorTotalEstimado": 155429.32,
+      "dataAberturaProposta": "2026-11-10T10:00:00",
+      "dataAtualizacaoGlobal": "2026-11-06T18:32:08",
+      "informacaoComplementar": "",
+      "dataEncerramentoProposta": "2026-11-26T10:00:00",
+      "tipoInstrumentoConvocatorioCodigo": 1
+    },
+    {
+      "processo": "0209/2026",
+      "anoCompra": 2026,
+      "usuarioNome": "PORTAL GOV SERVICOS DIGITAIS LTDA / PORTAL GOV",
+      "numeroCompra": "004",
+      "objetoCompra": "Credenciamento de prestadores de serviços especializados para a realização de cursos de capacitação profissional, com fornecimento de instrutoria, materiais didáticos, insumos e estrutura necessária à execução das atividades formativas, destinados à qualificação técnica e ao estímulo ao empreendedorismo, no âmbito do Programa Empreender Mulher do Município de Brumado/BA.",
+      "unidadeOrgao": {
+        "ufNome": "Bahia",
+        "ufSigla": "BA",
+        "codigoIbge": "2904605",
+        "nomeUnidade": "Prefeitura Municipal de Brumado",
+        "codigoUnidade": "2560",
+        "municipioNome": "Brumado"
+      },
+      "orgaoEntidade": {
+        "cnpj": "14105704000133",
+        "poderId": "N",
+        "esferaId": "M",
+        "razaoSocial": "MUNICIPIO DE BRUMADO"
+      },
+      "modalidadeNome": "Credenciamento",
+      "dataAtualizacao": "2026-05-08T14:03:53",
+      "sequencialCompra": 67,
+      "situacaoCompraId": 1,
+      "dataPublicacaoPncp": "2026-05-08T14:03:53",
+      "numeroControlePNCP": "14105704000133-1-000067/2026",
+      "valorTotalEstimado": 89161.74,
+      "dataAberturaProposta": "2026-04-17T00:00:00",
+      "dataAtualizacaoGlobal": "2026-05-08T14:03:54",
+      "informacaoComplementar": null,
+      "dataEncerramentoProposta": "2027-04-07T00:00:00",
+      "tipoInstrumentoConvocatorioCodigo": 4
+    }
+  ]
+}

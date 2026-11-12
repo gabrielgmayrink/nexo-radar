@@ -27,3 +27,7 @@
 .workflow-checklist>label{display:grid;gap:7px;font-size:13px;margin:12px 0}
 .workflow-checklist small{color:var(--muted);font-size:12px;line-height:1.6}
 @media(max-width:650px){.profile-grid{grid-template-columns:1fr}.profile-editor{padding:18px}.profile-editor .heading-row{align-items:flex-start}.workflow-checklist>div{align-items:flex-start}}
+
+.profile-grid .checkbox-preference{flex-direction:row;align-items:center;gap:10px}.profile-grid .checkbox-preference input{width:18px;height:18px;padding:0;flex-shrink:0}
+.source-health{margin-top:24px;padding-top:18px;border-top:1px solid var(--border)}.source-health ul{padding:0;list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.source-health li{padding:14px;background:var(--surface-soft);border:1px solid var(--border);border-radius:9px;overflow-wrap:anywhere;font-size:13px}.source-health li p{margin-bottom:0}
+@media(max-width:650px){.source-health ul{grid-template-columns:1fr}}

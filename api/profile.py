@@ -7,6 +7,7 @@ from radar.company_profiles import get_profile,save_profile,ProfileConflict
 from radar.postgres_store import PostgresStore
 from radar.mail import APP_URL
 from radar.team_auth import session_token
+from radar.database_roles import company_transaction
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):self.handle_profile(False)
@@ -23,7 +24,8 @@ class handler(BaseHTTPRequestHandler):
             if not session_token(self.headers.get('Cookie')):raise AccessDenied(401)
             store=PostgresStore()
             email,company,_=resolve_access(store.db,self.headers.get('Cookie'),query.get('company',[None])[0])
-            result=save_profile(store.db,company,email,data) if write else get_profile(store.db,company,email)
+            with company_transaction(store.db,email,company):
+                result=save_profile(store.db,company,email,data) if write else get_profile(store.db,company,email)
             self.respond(200,result)
         except AccessDenied as exc:self.respond(exc.status,{'error':str(exc)})
         except ProfileConflict:self.respond(409,{'error':'O perfil foi alterado por outra pessoa. Recarregue antes de salvar.'})

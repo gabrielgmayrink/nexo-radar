@@ -7,6 +7,15 @@ from radar.profiles import load_profiles,profile_context
 from radar.relevance import classify,classification_version
 
 class CompanyProfileTests(unittest.TestCase):
+    def test_products_organizations_and_notifications_remain_tenant_configuration(self):
+        current=load_profiles()[1]
+        saved=validate_configuration({'products':['Produto informado pela própria empresa'],'organizations':['Município de teste'],
+            'notificationPreferences':{'weeklyEmail':False,'urgentEmail':True}},current)
+        self.assertEqual(saved['name'],'Gerico');self.assertFalse(saved['enabled'])
+        self.assertFalse(saved['notificationPreferences']['weeklyEmail'])
+        for data in ({'notificationPreferences':{'weeklyEmail':'true'}},{'notificationPreferences':{'recipients':['outsider@example.com']}}):
+            with self.assertRaises(ValueError):validate_configuration(data,current)
+
     def test_identity_policy_and_roles_are_not_client_configurable(self):
         current=load_profiles()[0]
         for malicious in ({'id':'gerico'},{'name':'Daltton'},{'role':'owner'},{'requireServiceIntent':False}):

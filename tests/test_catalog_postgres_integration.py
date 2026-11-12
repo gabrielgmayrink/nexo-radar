@@ -1,6 +1,7 @@
 """Full SQL acceptance on an explicitly disposable loopback database, always rolled back."""
 import os
 import unittest
+from unittest.mock import patch
 import psycopg
 from psycopg.types.json import Jsonb
 from radar.postgres_store import PostgresStore
@@ -48,3 +49,12 @@ class CatalogPostgresTests(unittest.TestCase):
         self.db.execute("update radar_opportunities set payload=jsonb_set(payload,'{situacaoCompraId}','4') where id=%s",(self.identifier,))
         self.assertEqual(self.page(q='homologação',situation='suspended')['total'],1)
         self.assertEqual(self.page(q='homologação',situation='open')['total'],0)
+
+    def test_restricted_role_blocks_cross_company_profile_write(self):
+        from radar.database_roles import company_transaction
+        self.db.execute("insert into radar_memberships(email,company_id,role) values('role.qa@example.com','public','owner') on conflict do nothing")
+        with patch.dict(os.environ,{'RADAR_DB_ENFORCE_ROLES':'1'}),company_transaction(self.db,'role.qa@example.com','public'):
+            self.assertEqual(self.db.execute('select current_user').fetchone()[0],'radar_web')
+            with self.assertRaises(psycopg.errors.InsufficientPrivilege),self.db.transaction():
+                self.db.execute("insert into radar_company_profiles(company_id,configuration,actor) values('gerico','{}','role.qa@example.com')")
+            self.assertEqual(self.db.execute("select count(*) from radar_company_profiles where company_id='gerico'").fetchone()[0],0)

@@ -8,7 +8,7 @@ A publicação inicial serve o painel e um catálogo vazio. A configuração ini
 
 ## Informações a reunir
 
-A Public já tem os serviços informados cadastrados, incluindo desenvolvimento de sistemas e TI. Faltam os serviços da empresa do Gerico. Para ambas, ainda podem ser detalhados exemplos de objetos desejados, objetos a excluir, estados atendidos e restrições operacionais. Os perfis atuais suportam expressões de inclusão e exclusão; abrangência geográfica e modalidade podem ser filtradas no painel.
+A Public mantém apenas os quatro grupos confirmados: apoio administrativo e documentos; assessoria em gestão; palestras e capacitação profissional/gerencial; ensino EAD. Desenvolvimento de sistemas e TI ficam fora do perfil. Faltam os serviços da empresa do Gerico. Para ambas, ainda podem ser detalhados exemplos de objetos desejados, objetos a excluir, estados atendidos e restrições operacionais. Os perfis atuais suportam expressões de inclusão e exclusão; abrangência geográfica e modalidade podem ser filtradas no painel.
 
 ## Banco e equipe
 

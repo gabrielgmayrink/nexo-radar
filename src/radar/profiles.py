@@ -22,7 +22,7 @@ def validate_profiles(companies):
             values = company.get(field)
             if not isinstance(values, list) or any(not isinstance(term, str) or not term.strip() for term in values):
                 raise ValueError('Invalid company criteria')
-        if company['enabled'] and (not company['services'] or not company['terms']):
+        if company['enabled'] and (not (company['services'] or company.get('products')) or not (company['terms'] or company.get('products'))):
             raise ValueError('Enabled companies require services and search phrases')
         for group in company.get('reviewGroups',[]):
             if not isinstance(group,dict) or not isinstance(group.get('label'),str) or not group['label'].strip():

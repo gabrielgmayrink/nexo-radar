@@ -44,7 +44,7 @@ def main():
         return {'user':{'id':str(uuid.uuid5(uuid.NAMESPACE_DNS,email)),'email':email,'email_confirmed_at':'2026-11-11T00:00:00Z','factors':[]}}
     password_auth.password_login=functools.partial(password_auth.password_login,provider=provider)
     routes={name:importlib.import_module('api.'+module).handler for name,module in
-            [('team','team'),('profile','profile'),('opportunities','index'),('detail','detail'),('status','status')]}
+            [('team','team'),('profile','profile'),('opportunities','index'),('detail','detail'),('status','status'),('health','health')]}
     class Router(SimpleHTTPRequestHandler):
         def __init__(self,*args,**kwargs):super().__init__(*args,directory=str(ROOT/'web'/'dist'),**kwargs)
         def dispatch(self):
