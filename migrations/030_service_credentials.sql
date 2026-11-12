@@ -4,6 +4,7 @@ do $$ begin
 end $$;
 grant usage on schema public to radar_api;
 grant radar_web to radar_api;
+grant execute on function public.radar_search_normalize(text),public.radar_safe_timestamp(text) to radar_collector;
 
 -- Session validation needs a credential-change fingerprint, never the password
 -- hash itself or write access to provider-managed Auth tables.

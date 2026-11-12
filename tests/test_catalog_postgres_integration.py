@@ -94,5 +94,5 @@ class CatalogPostgresTests(unittest.TestCase):
             self.assertFalse(self.db.execute("select has_table_privilege('radar_collector','public.radar_team_sessions','INSERT')").fetchone()[0])
         with self.db.transaction():
             self.db.execute('set local role radar_collector')
-            self.db.execute('update radar_opportunities set catalog_seen_at=now() where id=%s',(self.identifier,))
+            self.store.write_records([{**self.row,'objetoCompra':'Prestação de serviços de apoio administrativo com preparação de documentos'}])
             with self.assertRaises(psycopg.errors.InsufficientPrivilege),self.db.transaction():self.db.execute('select * from public.radar_auth_identities')
