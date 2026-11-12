@@ -67,6 +67,6 @@ jobs:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.RADAR_STAGE_BACKUP_BLOB_TOKEN }}
           RADAR_BACKUP_BLOB_STORE_ID: store_XOKlrw7kBJJ7KJcx
           RADAR_BACKUP_WORK_ROOT: /tmp/nexo-staging-backup
-          RADAR_RESTORE_TEST_URL: postgresql://postgres:disposable-local-fixture@127.0.0.1:5432/radar_restore_test_cloud
+          RADAR_RESTORE_TEST_URL: postgresql://supabase_admin:disposable-local-fixture@127.0.0.1:5432/radar_restore_test_cloud
           RADAR_BACKUP_PROOF_PATH: backup-proof.json
         run: python scripts/verify_staging_backup.py

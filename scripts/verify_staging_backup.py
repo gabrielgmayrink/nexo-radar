@@ -75,6 +75,8 @@ def main():
         decrypt_archive(downloaded,restored,key)
         local_options=pg_environment(restore_url,local=True)
         with psycopg.connect(restore_url,autocommit=True) as destination:
+            if not destination.execute('select rolsuper from pg_roles where rolname=current_user').fetchone()[0]:
+                raise ValueError('Compatible local restore administrator required')
             existing=destination.execute("""select count(*) from pg_tables where
               schemaname not in ('pg_catalog','information_schema')""").fetchone()[0]
             if existing:raise ValueError('Restore target is not empty')
