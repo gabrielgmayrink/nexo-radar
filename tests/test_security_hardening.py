@@ -13,7 +13,7 @@ from cryptography.exceptions import InvalidTag
 from radar.access_security import request_origin,throttle
 from radar.backup import encrypt_archive,decrypt_archive,backup_key
 from radar.database_tls import tls_parameters
-from radar.mfa import MFARequired,finish_first_factor,verify,enroll
+from radar.mfa import MFARequired,finish_first_factor,verify,enroll,authenticator_qr
 from radar.password_auth import AuthenticationFailed,password_login,setup_password
 from radar.team_auth import session_user,digest
 from radar.team_reviews import validate_review
@@ -97,6 +97,31 @@ class MFAFlowTests(unittest.TestCase):
         self.assertTrue(caught.exception.response['enrollmentRequired'])
         result=enroll(self.db,pending,provider=lambda *a,**k:{'id':FACTOR,'totp':{'qr_code':'<svg xmlns="http://www.w3.org/2000/svg"></svg>','secret':'never-return'}})
         self.assertTrue(result['qrCode'].startswith('data:image/svg+xml;base64,'));self.assertNotIn('secret',result)
+
+    def test_provider_xml_declaration_comments_and_large_qr_are_supported(self):
+        image='<?xml version="1.0"?>\n<!-- Provider QR -->\n<svg xmlns="http://www.w3.org/2000/svg"><g>'+('<rect width="1" height="1"/>'*6000)+'</g></svg>'
+        encoded=authenticator_qr(image)
+        self.assertEqual(base64.b64decode(encoded.split(',',1)[1]).decode(),image)
+        self.assertEqual(authenticator_qr(encoded),encoded)
+
+    def test_abandoned_registration_does_not_reuse_the_provider_factor_name(self):
+        used={'Nexo Radar'}
+        def provider(path,payload,**kwargs):
+            if payload['friendly_name'] in used:raise ValueError('Provider rejects duplicate factor names')
+            used.add(payload['friendly_name'])
+            return {'id':FACTOR,'totp':{'qr_code':'<svg xmlns="http://www.w3.org/2000/svg"/>'}}
+        for _ in range(2):
+            with patch.dict(os.environ,{'RADAR_MFA_REQUIRED_EMAILS':USER['email']}):
+                with self.assertRaises(MFARequired) as caught:
+                    finish_first_factor(self.db,{'user':USER,'access_token':'first-factor-token-value'},USER['email'],0)
+            enroll(self.db,caught.exception.response['pendingToken'],provider=provider)
+        self.assertEqual(len(used),3)
+
+    def test_enrollment_rejects_active_external_oversized_and_non_svg_images(self):
+        for image in ('<html></html>','<svg><script>alert(1)</script></svg>',
+                      '<svg onload="alert(1)"/>','<svg><image href="https://example.com/a"/></svg>',
+                      '<!DOCTYPE svg><svg/>','x'*750001,'data:image/svg+xml;base64,invalid!'):
+            with self.subTest(kind=image[:30]),self.assertRaises(ValueError):authenticator_qr(image)
 
 
 class SecurityBoundaryTests(unittest.TestCase):

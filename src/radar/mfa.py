@@ -5,6 +5,7 @@ import os
 import re
 import secrets
 import time
+from xml.etree import ElementTree
 from datetime import datetime,timedelta,timezone
 from urllib.request import Request,build_opener
 from urllib.error import HTTPError
@@ -15,6 +16,30 @@ from radar.mail import NoRedirect,email_list
 from radar.access_security import account_state,throttle
 
 UUID=r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+
+
+def authenticator_qr(value):
+    """Accept bounded provider SVGs, including XML declarations and comments."""
+    if not isinstance(value,str) or len(value)>750000:
+        raise ValueError('Invalid enrollment image')
+    prefix='data:image/svg+xml;base64,'
+    try:
+        raw=base64.b64decode(value[len(prefix):],validate=True) if value.startswith(prefix) else value.encode('utf-8')
+        if len(raw)>750000 or b'<!DOCTYPE' in raw.upper() or b'<!ENTITY' in raw.upper():
+            raise ValueError('Invalid enrollment image')
+        root=ElementTree.fromstring(raw)
+    except (ElementTree.ParseError,ValueError):
+        raise ValueError('Invalid enrollment image') from None
+    if root.tag not in ('svg','{http://www.w3.org/2000/svg}svg'):
+        raise ValueError('Invalid enrollment image')
+    for element in root.iter():
+        if element.tag.rsplit('}',1)[-1].lower() in ('script','foreignobject'):
+            raise ValueError('Invalid enrollment image')
+        for key,text in element.attrib.items():
+            local=key.rsplit('}',1)[-1].lower()
+            if local.startswith('on') or (local=='href' and not text.startswith('#')):
+                raise ValueError('Invalid enrollment image')
+    return prefix+base64.b64encode(raw).decode()
 
 
 class MFARequired(ValueError):
@@ -91,11 +116,12 @@ def enroll(db,token,*,origin='unknown',provider=auth_user_request):
     throttle(db,'mfa:'+str(token),origin)
     with db.transaction():row,access=_pending(db,token)
     if not row[5]:raise AuthenticationFailed('Enrollment unavailable')
-    result=provider('factors',{'factor_type':'totp','friendly_name':'Nexo Radar'},access_token=access)
+    # A previous abandoned registration may still be unverified at Supabase.
+    # Reusing its unique friendly name makes every later registration fail.
+    result=provider('factors',{'factor_type':'totp','friendly_name':'Nexo Radar '+secrets.token_hex(4)},access_token=access)
     factor=result.get('id');qr=(result.get('totp') or {}).get('qr_code')
-    if not re.fullmatch(UUID,str(factor)) or not isinstance(qr,str) or len(qr)>100000:raise ValueError('Invalid enrollment response')
-    if qr.lstrip().startswith('<svg'):qr='data:image/svg+xml;base64,'+base64.b64encode(qr.encode()).decode()
-    if not qr.startswith('data:image/svg+xml;base64,'):raise ValueError('Invalid enrollment image')
+    if not re.fullmatch(UUID,str(factor)):raise ValueError('Invalid enrollment response')
+    qr=authenticator_qr(qr)
     factors=[{'id':factor,'factor_type':'totp','friendly_name':'Nexo Radar'}]
     db.execute('update radar_mfa_pending set factors=%s::jsonb,enrollment_required=false where token_digest=%s and consumed_at is null',
                (json.dumps(factors),digest(token)))
