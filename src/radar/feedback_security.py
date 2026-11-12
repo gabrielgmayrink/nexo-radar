@@ -7,6 +7,7 @@ import json
 import re
 import time
 import uuid
+from radar.identifiers import parse_pncp_id
 
 LABELS = {'relevante','irrelevante','vai_participar','ganhou','perdeu'}
 PRODUCTS = {'public','gerico'}
@@ -26,7 +27,10 @@ def decode(value: str) -> bytes:
 
 
 def validate_claims(data: dict, now: int) -> None:
-    if not isinstance(data,dict) or not re.fullmatch(r'\d{14}-1-\d{1,10}/\d{4}',str(data.get('opportunity_id',''))):
+    try:
+        if not isinstance(data,dict):raise ValueError()
+        parse_pncp_id(data.get('opportunity_id'))
+    except ValueError:
         raise InvalidFeedbackToken('Identificador inválido')
     if data.get('product_id') not in PRODUCTS or data.get('label') not in LABELS:
         raise InvalidFeedbackToken('Produto ou ação inválida')

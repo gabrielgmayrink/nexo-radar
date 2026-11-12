@@ -12,11 +12,17 @@ USER={'id':'c39141b5-826d-41cc-95a5-35f16c57e657','email':'member@example.com','
 class PasswordAuthTests(unittest.TestCase):
     def setUp(self):
         self.env=patch.dict(os.environ,{'RADAR_TEAM_EMAILS':'member@example.com'});self.env.start();self.addCleanup(self.env.stop)
-        self.db=MagicMock();self.attempts=0;self.invite=('member@example.com',)
+        self.db=MagicMock();self.attempts=0;self.invite=('member@example.com',);self.generation=0
         def execute(sql,*args):
+            if 'select password_reset_required' in sql:return SimpleNamespace(fetchone=lambda:(getattr(self,'reset_required',False),))
+            if 'set password_reset_required=false' in sql:self.reset_required=False
+            if 'select generation,require_mfa' in sql:return SimpleNamespace(fetchone=lambda:(self.generation,False,None))
+            if 'insert into radar_account_security' in sql:
+                self.generation+=1
+                return SimpleNamespace(fetchone=lambda:(self.generation,))
             if 'select count(*)' in sql:return SimpleNamespace(fetchone=lambda:(self.attempts,))
             if 'select email from radar_account_invites' in sql:return SimpleNamespace(fetchone=lambda:self.invite)
-            if 'select id from auth.users' in sql:return SimpleNamespace(fetchone=lambda:None)
+            if 'select id from public.radar_auth_identities' in sql:return SimpleNamespace(fetchone=lambda:None)
             return MagicMock()
         self.db.execute.side_effect=execute
         self.provider=Mock(return_value={'user':USER})
@@ -41,11 +47,32 @@ class PasswordAuthTests(unittest.TestCase):
         self.provider.side_effect=None;self.provider.return_value={'user':{**USER,'email':'other@example.com'}}
         with self.assertRaises(AuthenticationFailed):password_login(self.db,'member@example.com','test-password',provider=self.provider)
 
+    def test_exposed_password_is_rejected_before_provider_when_reset_required(self):
+        self.reset_required=True
+        with self.assertRaises(AuthenticationFailed):password_login(self.db,'member@example.com','old-exposed-password',provider=self.provider)
+        self.provider.assert_not_called()
+
+    def test_invite_clears_reset_gate_only_after_validated_provider_identity(self):
+        self.reset_required=True
+        email,_=setup_password(self.db,'a'*43,'new-private-password-123',provider=self.provider)
+        self.assertEqual(email,USER['email']);self.assertFalse(self.reset_required)
+
+    def test_concurrent_revocation_cannot_clear_a_new_password_reset_gate(self):
+        self.reset_required=True
+        def changed_account(*args,**kwargs):
+            self.generation+=1
+            return {'user':USER}
+        self.provider.side_effect=changed_account
+        with self.assertRaises(AuthenticationFailed):setup_password(self.db,'a'*43,'new-private-password-123',provider=self.provider)
+        self.assertTrue(self.reset_required)
+
     def test_setup_uses_server_invite_identity_and_consumes_it(self):
         email,_=setup_password(self.db,'a'*43,'a-test-password-123',provider=self.provider)
         self.assertEqual(email,'member@example.com')
         self.provider.assert_called_once_with('admin/users',{'email':'member@example.com','password':'a-test-password-123','email_confirm':True})
-        self.assertTrue(any('set consumed_at=now()' in call.args[0] for call in self.db.execute.call_args_list))
+        for table in ('radar_account_invites','radar_login_requests','radar_mfa_pending'):
+            self.assertTrue(any('update '+table in call.args[0] and 'consumed_at' in call.args[0] for call in self.db.execute.call_args_list))
+        self.assertEqual(self.generation,1)
 
     def test_expired_invite_and_weak_password_cannot_create_an_account(self):
         with self.assertRaises(AuthenticationFailed):setup_password(self.db,'a'*43,'short',provider=self.provider)

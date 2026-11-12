@@ -9,6 +9,7 @@ import "./workbench.css";
 import "./login.css";
 import "./usability.css";
 import "./brand.css";
+import "./company-tools.css";
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

@@ -1,5 +1,6 @@
 """Small, deduplicated digests. Rule suggestions are never labelled AI-validated."""
 import html
+import os
 import re
 from datetime import datetime,timedelta,timezone
 from radar.mail import APP_URL,email_list,reserve,send_reserved
@@ -8,6 +9,17 @@ from radar.learning import apply_examples
 from radar.company_access import memberships,visible_card,COMPANIES
 from radar.profiles import load_profiles
 from radar.verification import verify_shortlist,fetch_record
+
+
+def send_delivery_test(db,*,sender=send_reserved):
+    recipient=os.environ.get('RADAR_DELIVERY_TEST_EMAIL','').strip().lower()
+    if recipient not in email_list('RADAR_TEAM_EMAILS'):raise ValueError('Authorized test recipient required')
+    identifier=reserve(db,recipient,'test','delivery-test-v1:'+recipient)
+    if not identifier:return {'sent':0,'skipped':1,'kind':'delivery_test'}
+    text='Este é o teste de envio autorizado do Nexo Radar. Acesse seu painel: '+APP_URL
+    sender(db,identifier,recipient,'Nexo Radar — teste de envio',
+           '<h1>Nexo Radar</h1><p>Este é o teste de envio autorizado.</p><p><a href="'+html.escape(APP_URL,quote=True)+'">Abrir meu painel</a></p>',text)
+    return {'sent':1,'skipped':0,'kind':'delivery_test'}
 
 
 def future_deadline(card,now):
@@ -46,7 +58,7 @@ def render_onboarding():
         ('Resumos e acompanhamento','Resumos e avisos dependem de configurar o envio e ativar o agendamento desta instalação. Avisos de oportunidades exigem uma coleta recente; o Radar evita enviar informações antigas. Usem Vou participar para acompanhar o que pretendem disputar.'),
     ]
     contents=''.join(f'<section style="margin-top:24px"><h2 style="font-size:17px;color:#315139;margin:0 0 8px">{html.escape(heading)}</h2><p style="margin:0;line-height:1.75;font-size:14px">{html.escape(text)}</p></section>' for heading,text in sections)
-    body=f'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"></head><body style="margin:0;background:#f3f6f0;font-family:Arial,sans-serif;color:#334a3b"><main style="max-width:640px;margin:24px auto;background:white;padding:28px;border-radius:16px"><p style="letter-spacing:2px;color:#64804c;font-size:12px;font-weight:bold">RADAR DE LICITAÇÕES</p><h1 style="font-size:26px;line-height:1.3">{title}</h1><p style="line-height:1.7">Olá! Este é o e-mail de apresentação e teste do Radar para sua equipe.</p><p><a href="{APP_URL}/" style="display:inline-block;background:#284d3c;color:white;padding:14px 22px;border-radius:9px;text-decoration:none">Abrir o Radar</a></p>{contents}<p style="margin-top:26px;padding-top:16px;border-top:1px solid #e1e8db;font-size:12px;line-height:1.7;color:#718067">A seleção usa regras e exemplos da equipe; não confirma elegibilidade nem substitui a leitura do edital. Este envio de apresentação é único. Para ajustar os avisos, responda este e-mail.</p></main></body></html>'
+    body=f'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"></head><body style="margin:0;background:#f3f6f0;font-family:Arial,sans-serif;color:#334a3b"><main style="max-width:640px;margin:24px auto;background:white;padding:28px;border-radius:16px"><p style="letter-spacing:2px;color:#64804c;font-size:12px;font-weight:bold">NEXO RADAR</p><h1 style="font-size:26px;line-height:1.3">{title}</h1><p style="line-height:1.7">Olá! Este é o e-mail de apresentação e teste do Radar para sua equipe.</p><p><a href="{APP_URL}/" style="display:inline-block;background:#284d3c;color:white;padding:14px 22px;border-radius:9px;text-decoration:none">Abrir o Radar</a></p>{contents}<p style="margin-top:26px;padding-top:16px;border-top:1px solid #e1e8db;font-size:12px;line-height:1.7;color:#718067">A seleção usa regras e exemplos da equipe; não confirma elegibilidade nem substitui a leitura do edital. Este envio de apresentação é único. Para ajustar os avisos, responda este e-mail.</p></main></body></html>'
     text='Olá!\n\n'+title+'\n\nAbrir o Radar: '+APP_URL+'\n\n'+'\n\n'.join(heading+'\n'+content for heading,content in sections)
     return 'Radar de Licitações: como usar e melhorar as buscas',body,text
 
@@ -65,8 +77,21 @@ def render_digest(cards,kind,now):
         texts.append(f'{label} | {card.get("organization","")}\n{obj}\nEncerramento: {deadline} (Brasília)\n{card["pncpUrl"]}')
     if not cards and kind=='weekly':
         items.append('<p>Nenhuma candidata com prazo futuro foi selecionada neste resumo. Consulte o painel para ampliar os filtros.</p>')
-    body=f'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"></head><body style="margin:0;background:#f3f6fa;font-family:Arial,sans-serif;color:#20344a"><main style="max-width:640px;margin:24px auto;background:white;padding:28px;border-radius:16px"><p style="letter-spacing:2px;color:#6852b5;font-weight:bold">RADAR DE LICITAÇÕES</p><h1 style="font-size:25px">{title}</h1><p style="line-height:1.6">{intro}</p>{"".join(items)}<p style="margin-top:26px"><a href="{APP_URL}/" style="background:#283e56;color:white;padding:13px 20px;border-radius:8px;display:inline-block;text-decoration:none">Abrir meu Radar</a></p><p style="font-size:12px;color:#62758a">As sugestões não confirmam elegibilidade. Situação e prazos podem mudar; confira sempre o PNCP. Para ajustar os avisos, responda este e-mail.</p></main></body></html>'
+    body=f'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"></head><body style="margin:0;background:#f5f6f1;font-family:Arial,sans-serif;color:#233128"><main style="max-width:640px;margin:24px auto;background:white;padding:28px;border-radius:16px"><p style="letter-spacing:2px;color:#315b45;font-weight:bold">NEXO RADAR</p><h1 style="font-size:25px">{title}</h1><p style="line-height:1.6">{intro}</p>{"".join(items)}<p style="margin-top:26px"><a href="{APP_URL}/" style="background:#315b45;color:white;padding:13px 20px;border-radius:8px;display:inline-block;text-decoration:none">Abrir meu Radar</a></p><p style="font-size:12px;color:#637166">As sugestões não confirmam elegibilidade. Situação e prazos podem mudar; confira sempre o PNCP. Para ajustar os avisos, responda este e-mail.</p></main></body></html>'
     return 'Radar · '+title,body,'\n\n'.join(texts)+'\n\nAbrir Radar: '+APP_URL
+
+
+def profile_accepts(card,profile):
+    from radar.relevance import normalize
+    if profile.get('states') and card.get('state') not in profile['states']:return False
+    if profile.get('cities') and normalize(card.get('city','')) not in [normalize(city) for city in profile['cities']]:return False
+    if profile.get('modalities') and card.get('modality') not in profile['modalities']:return False
+    if profile.get('organizations') and not any(normalize(org) in normalize(card.get('organization','')) for org in profile['organizations']):return False
+    value=card.get('estimatedValue')
+    for key,minimum in (('minValue',True),('maxValue',False)):
+        limit=profile.get(key)
+        if limit is not None and (type(value) not in (int,float) or (value<limit if minimum else value>limit)):return False
+    return True
 
 
 def _notify_company(db,kind,company,recipients,*,now=None,sender=send_reserved,fetcher=fetch_record,writer=None,dry_run=False):
@@ -77,9 +102,11 @@ def _notify_company(db,kind,company,recipients,*,now=None,sender=send_reserved,f
     keys=[f'{kind}:{period}:{recipient}' for recipient in recipients]
     handled=db.execute('select count(*) from radar_mail_outbox where dedupe_key=any(%s)',(keys,)).fetchone()[0]
     if not dry_run and handled==len(recipients):return {'sent':0,'skipped':handled,'candidates':0,'kind':kind,'verified':0}
-    cards=[];verified=0;check_errors=0
+    cards=[];verified=0;check_errors=0;coverage_complete=False
     if kind!='test':
+        profile=next(profile for profile in load_profiles() if profile['id']==company)
         state=db.execute("select content from radar_catalog_state where id='open'").fetchone()
+        coverage_complete=bool(state and state[0].get('coverageComplete') is True)
         completed=datetime.fromisoformat(state[0]['completedAt'].replace('Z','+00:00')) if state else None
         if completed and completed.tzinfo is None:completed=completed.replace(tzinfo=TZ)
         stale=not completed or now-completed>timedelta(hours=72)
@@ -97,7 +124,7 @@ def _notify_company(db,kind,company,recipients,*,now=None,sender=send_reserved,f
         examples=db.execute('select opportunity_id,offer,reason_code,object_hash,example_object,example_additional from radar_learning_examples where company_id=%s',(company,)).fetchall()
         if len(examples)>1000:raise ValueError('Learning example budget exceeded')
         examples=[dict(zip(('opportunity_id','offer','reason_code','object_hash','example_object','example_additional'),row)) for row in examples]
-        rows=[(scoped,row[1],row[2]) for row in rows if (scoped:=visible_card(row[0],company)) is not None]
+        rows=[(scoped,row[1],row[2]) for row in rows if (scoped:=visible_card(row[0],company)) is not None and profile_accepts(scoped,profile)]
         learned=apply_examples([row[0] for row in rows],examples)
         rows=[(card,row[1],row[2]) for card,row in zip(learned,rows)]
         cards=select_cards(rows,kind,now)
@@ -107,7 +134,7 @@ def _notify_company(db,kind,company,recipients,*,now=None,sender=send_reserved,f
             fresh,changed,check_errors=verify_shortlist(cards,reviews,fetcher=fetcher,writer=writer,now=now)
             verified=len(fresh)
             usable=[example for example in examples if example['opportunity_id'] not in changed]
-            fresh=[(scoped,row[1],row[2]) for row in fresh if (scoped:=visible_card(row[0],company)) is not None]
+            fresh=[(scoped,row[1],row[2]) for row in fresh if (scoped:=visible_card(row[0],company)) is not None and profile_accepts(scoped,profile)]
             learned=apply_examples([row[0] for row in fresh],usable)
             decision_time=datetime.now(timezone.utc) if live_clock else now
             cards=select_cards([(card,row[1],row[2]) for card,row in zip(learned,fresh)],kind,decision_time)
@@ -116,6 +143,10 @@ def _notify_company(db,kind,company,recipients,*,now=None,sender=send_reserved,f
             raise ValueError('Collection is stale and no verified candidates are available')
         if kind=='urgent' and not cards:return {'sent':0,'skipped':len(recipients),'reason':'no_urgent_candidates'}
     subject,body,text=render_digest(cards,kind,now)
+    if kind!='test' and not coverage_complete:
+        notice='A cobertura nacional ainda não foi confirmada. As oportunidades listadas são conferidas individualmente no PNCP; este resumo não representa todos os editais disponíveis nem confirma a inexistência de outros processos.'
+        body=body.replace('</h1>','</h1><p>'+notice+'</p>',1)
+        text=notice+'\n\n'+text
     if dry_run:return {'sent':0,'candidates':len(cards),'kind':kind,'verified':verified,'verificationErrors':check_errors,'dryRun':True}
     sent,skipped=0,0
     for recipient in sorted(recipients):
@@ -126,7 +157,7 @@ def _notify_company(db,kind,company,recipients,*,now=None,sender=send_reserved,f
     return {'sent':sent,'skipped':skipped,'candidates':len(cards),'kind':kind,'verified':verified,'verificationErrors':check_errors}
 
 
-def notify(db,kind,*,now=None,sender=send_reserved,fetcher=fetch_record,writer=None,dry_run=False):
+def _notify_scoped(db,kind,*,now=None,sender=send_reserved,fetcher=fetch_record,writer=None,dry_run=False):
     recipients=email_list('RADAR_NOTIFY_EMAILS')
     if not recipients or not recipients<=email_list('RADAR_TEAM_EMAILS'):raise ValueError('Invalid team configuration')
     groups={}
@@ -135,11 +166,21 @@ def notify(db,kind,*,now=None,sender=send_reserved,fetcher=fetch_record,writer=N
         # A digest recipient must belong to exactly one company: never mix data.
         if len(allowed)!=1:raise ValueError('Digest recipient needs one company')
         groups.setdefault(allowed[0],set()).add(recipient)
-    enabled={company['id'] for company in load_profiles() if company['enabled']}
+    profiles={company['id']:company for company in load_profiles()}
+    enabled={company['id'] for company in profiles.values() if company['enabled']}
     results=[]
     for company,addresses in groups.items():
         if company not in enabled:
             results.append({'sent':0,'skipped':len(addresses),'candidates':0,'verified':0,'reason':'company_profile_pending'})
             continue
+        preference='weeklyEmail' if kind=='weekly' else 'urgentEmail' if kind=='urgent' else None
+        if preference and not profiles[company].get('notificationPreferences',{}).get(preference,True):
+            results.append({'sent':0,'skipped':len(addresses),'reason':'company_notifications_disabled'})
+            continue
         results.append(_notify_company(db,kind,company,addresses,now=now,sender=sender,fetcher=fetcher,writer=writer,dry_run=dry_run))
     return {**{key:sum(item.get(key,0) for item in results) for key in ('sent','skipped','candidates','verified','verificationErrors')},'kind':kind,**({'dryRun':True} if dry_run else {})}
+
+
+def notify(db,kind,**kwargs):
+    from radar.profiles import profile_context
+    with profile_context(db):return _notify_scoped(db,kind,**kwargs)

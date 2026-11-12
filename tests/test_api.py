@@ -1,65 +1,38 @@
 import unittest
-import json
-from unittest.mock import patch
+from unittest.mock import patch,MagicMock
 from api.index import handler
-from api.detail import handler as DetailHandler
+from radar.company_access import AccessDenied
 
 class APITests(unittest.TestCase):
-    def setUp(self):
-        for target in ('api.index.request_access','api.detail.request_access'):
-            item=patch(target,return_value=('member@example.com','public',['public']));item.start();self.addCleanup(item.stop)
-        env=patch.dict('os.environ',{'RADAR_CATALOG_STORE':'supabase'});env.start();self.addCleanup(env.stop)
-        load=patch('api.index.load_database_catalog',side_effect=lambda snapshot,**kwargs:snapshot);load.start();self.addCleanup(load.stop)
-
-    def invoke(self, cls, path):
-        instance=object.__new__(cls)
-        instance.path=path
-        instance.headers={}
-        result=[]
-        instance.respond=lambda status,payload:result.append((status,payload))
-        instance.do_GET()
+    def invoke(self,path):
+        instance=object.__new__(handler);instance.path=path;instance.headers={}
+        result=[];instance.respond=lambda status,payload:result.append((status,payload));instance.do_GET()
         return result[0]
 
-    def test_catalog_pagination(self):
-        fixture={'metrics':{},'opportunities':[{'id':str(i),'object':'Fixture','organization':'Test','city':'Test','suggestedOffer':'Public'} for i in range(5)]}
-        with patch('pathlib.Path.read_text',return_value=json.dumps(fixture)):
-            status,payload=self.invoke(handler,'/api/opportunities?limit=2')
-        self.assertEqual(status,200)
-        self.assertEqual(len(payload['opportunities']),2)
-        self.assertGreater(payload['total'],2)
+    def test_pagination_is_delegated_to_authorized_server_query(self):
+        fixture={'metrics':{},'opportunities':[{'id':'1'}],'total':2401,'page':101,'pages':201}
+        with patch('api.index.session_token',return_value='token'),patch('api.index.PostgresStore') as store,patch('api.index.resolve_access',return_value=('member@example.com','public',['public'])),patch('api.index.load_catalog_page',return_value=fixture) as load:
+            status,payload=self.invoke('/api/opportunities?company=public&page=101&limit=12&uf=MG&q=treinamento')
+            self.assertEqual((status,payload),(200,fixture))
+            self.assertEqual(load.call_args.args[1],'public')
+            self.assertEqual(load.call_args.args[2]['page'],['101'])
+            self.assertIs(load.call_args.args[3],store.return_value.db)
+            store.return_value.close.assert_called_once()
 
-    def test_initial_catalog_is_empty_and_explicitly_pending(self):
-        status,payload=self.invoke(handler,'/api/opportunities')
-        self.assertEqual(status,200)
-        self.assertEqual(payload['opportunities'],[])
-        self.assertFalse(payload['setupPending'])
+    def test_invalid_filters_do_not_connect_to_database(self):
+        for query in ('page=abc','page=0','limit=101','uf=INVALID','minValue=-2','publishedFrom=2026-02-31','bulk=1','sort=unsafe'):
+            with self.subTest(query=query),patch('api.index.PostgresStore') as store:
+                self.assertEqual(self.invoke('/api/opportunities?'+query)[0],400);store.assert_not_called()
 
-    def test_invalid_page(self):
-        self.assertEqual(self.invoke(handler,'/api/opportunities?page=abc')[0],400)
+    def test_anonymous_requests_do_not_connect(self):
+        with patch('api.index.PostgresStore') as store:
+            self.assertEqual(self.invoke('/api/opportunities')[0],401);store.assert_not_called()
 
-    def test_detail_rejects_arbitrary_destination(self):
-        self.assertEqual(self.invoke(DetailHandler,'/api/detail?id=https://example.com')[0],400)
+    def test_membership_failure_never_loads_catalog(self):
+        with patch('api.index.session_token',return_value='token'),patch('api.index.PostgresStore'),patch('api.index.resolve_access',side_effect=AccessDenied()),patch('api.index.load_catalog_page') as load:
+            self.assertEqual(self.invoke('/api/opportunities?company=gerico')[0],403);load.assert_not_called()
 
-    def test_bulk_catalog_is_returned_in_one_response(self):
-        fixture={'metrics':{},'opportunities':[{'id':str(i),'object':'Desenvolvimento de sistemas','suggestedOffer':'Public'} for i in range(125)]}
-        with patch('pathlib.Path.read_text',return_value=json.dumps(fixture)):
-            status,payload=self.invoke(handler,'/api/opportunities?bulk=1')
-        self.assertEqual(status,200)
-        self.assertEqual(len(payload['opportunities']),125)
-        self.assertEqual(payload['total'],125)
-
-    def test_invalid_pagination_never_loads_the_database(self):
-        with patch.dict('os.environ',{'RADAR_CATALOG_STORE':'supabase'}),patch('api.index.load_database_catalog') as load:
-            self.assertEqual(self.invoke(handler,'/api/opportunities?page=invalid')[0],400)
-        load.assert_not_called()
-
-    def test_api_search_uses_the_same_phrase_and_exclusion_semantics(self):
-        fixture={'opportunities':[{'id':'1','object':'Desenvolvimento de sistemas','city':'Belo Horizonte','suggestedOffer':'Public'},
-                                  {'id':'2','object':'Equipamentos de informática','city':'Belo Horizonte','suggestedOffer':'Public'}]}
-        from urllib.parse import urlencode
-        with patch('pathlib.Path.read_text',return_value=json.dumps(fixture)):
-            status,payload=self.invoke(handler,'/api/opportunities?'+urlencode({'q':'"desenvolvimento de sistemas" horizonte -equipamentos'}))
-        self.assertEqual(status,200)
-        self.assertEqual([row['id'] for row in payload['opportunities']],['1'])
-
-if __name__=='__main__':unittest.main()
+    def test_storage_error_is_redacted_and_connection_closed(self):
+        with patch('api.index.session_token',return_value='token'),patch('api.index.PostgresStore') as store,patch('api.index.resolve_access',side_effect=RuntimeError('secret connection value')):
+            status,body=self.invoke('/api/opportunities')
+            self.assertEqual(status,503);self.assertNotIn('secret',str(body));store.return_value.close.assert_called_once()

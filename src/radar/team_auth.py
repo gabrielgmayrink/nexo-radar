@@ -32,8 +32,10 @@ def auth_request(path,payload,*,opener=None,method='POST'):
         return {} if method=='DELETE' and not body.strip() else json.loads(body)
 
 
-def request_login(db,email,*,provider=auth_request,sender=send_reserved):
+def request_login(db,email,*,provider=auth_request,sender=send_reserved,origin='unknown'):
+    from radar.access_security import throttle
     email=email.strip().lower()
+    throttle(db,email,origin)
     if email not in email_list('RADAR_TEAM_EMAILS'):return
     identifier=reserve(db,email,'login','login:'+secrets.token_hex(16))
     if not identifier:return
@@ -71,14 +73,14 @@ def confirm_login(db,token,*,provider=auth_request):
     user=result.get('user') or {}
     if user.get('email','').lower()!=email or not user.get('email_confirmed_at') or not user.get('id'):
         raise ValueError('Unverified identity')
-    session=secrets.token_urlsafe(32)
     with db.transaction():
         consumed=db.execute('''update radar_login_requests set consumed_at=now()
             where token_digest=%s and consumed_at is null and expires_at>now() returning email''',(digest(token),)).fetchone()
         if not consumed:raise ValueError('Login already confirmed')
-        db.execute('insert into radar_team_sessions(token_digest,user_id,email,expires_at) values(%s,%s,%s,%s)',
-                   (digest(session),user['id'],email,datetime.now(timezone.utc)+timedelta(days=7)))
-    return email,session
+        from radar.access_security import account_state
+        generation=account_state(db,email)[0]
+    from radar.mfa import finish_first_factor
+    return finish_first_factor(db,result,email,generation)
 
 
 def session_cookie(token,*,clear=False):
@@ -97,11 +99,19 @@ def session_token(header):
 def session_user(db,header):
     token=session_token(header)
     if not token:return None
-    row=db.execute('select email from radar_team_sessions where token_digest=%s and expires_at>now()',
-                   (digest(token),)).fetchone()
+    row=db.execute('''select s.email from radar_team_sessions s join public.radar_auth_identities u on u.id=s.user_id
+        left join radar_account_security a on a.email=s.email
+        where s.token_digest=%s and s.expires_at>now() and s.auth_generation=coalesce(a.generation,0)
+        and a.disabled_at is null and (u.banned_until is null or u.banned_until<=now())
+        and not coalesce(a.password_reset_required,false)
+        and s.credential_fingerprint is not distinct from u.credential_fingerprint
+        and (not coalesce(a.require_mfa,false) or s.assurance_level='aal2')
+        and (s.assurance_level='aal2' or not exists(select 1 from public.radar_verified_mfa_users f where f.user_id=u.id))
+        and (not (s.email=any(%s::text[])) or s.assurance_level='aal2')''',
+                   (digest(token),sorted(email_list('RADAR_MFA_REQUIRED_EMAILS')))).fetchone()
     return row[0] if row and row[0] in email_list('RADAR_TEAM_EMAILS') else None
 
 
 def revoke_session(db,header):
     token=session_token(header)
-    if token:db.execute('delete from radar_team_sessions where token_digest=%s',(digest(token),))
+    if token:db.execute('update radar_team_sessions set expires_at=least(expires_at,now()) where token_digest=%s',(digest(token),))

@@ -6,6 +6,7 @@ __pycache__/
 .env
 work/phase0/
 web/node_modules/
+scripts/node_modules/
 web/dist/
 web/.vercel/
 /.vercel/
@@ -24,3 +25,5 @@ scripts/adapt_project.py
 scripts/finish_adaptation.py
 scripts/rebrand.py
 .local/
+*.nexo-backup
+*.dump

@@ -3,11 +3,12 @@ on:
   schedule:
     - cron: '0 10 * * 1' # Segunda, 07h de Brasília
     - cron: '0 2 * * 1' # Domingo, 23h de Brasília
+    - cron: '17 12 * * *' # Diário, 09h17 de Brasília: publicações e atualizações
   workflow_dispatch:
     inputs:
       kind:
         type: choice
-        options: [national_open, cleanup, cleanup_preview, diagnostic, incremental, backfill, open]
+        options: [national_open, cleanup, cleanup_preview, diagnostic, incremental, backfill, open, reclassify, enrich, quarantine]
         default: national_open
       budget:
         description: 'Tempo máximo: coleta normal ou checagem curta com progresso salvo'
@@ -26,8 +27,11 @@ concurrency:
   cancel-in-progress: false
 jobs:
   collect:
-    if: vars.RADAR_COLLECTION_ENABLED == '1' && github.event.schedule != '0 2 * * 1' && inputs.kind != 'cleanup' && inputs.kind != 'cleanup_preview'
+    if: vars.RADAR_COLLECTION_ENABLED == '1' && (github.event.schedule == '0 10 * * 1' || (github.event_name == 'workflow_dispatch' && (inputs.kind == 'national_open' || inputs.kind == 'diagnostic' || inputs.kind == 'backfill' || inputs.kind == 'open')))
     runs-on: ubuntu-latest
+    outputs:
+      coverage_verified: ${{ steps.national.outputs.coverage_verified }}
+      capture_ready: ${{ steps.national.outputs.capture_ready }}
     timeout-minutes: 330 # Até três tentativas de 90 min, retomando o mesmo cursor
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -39,6 +43,7 @@ jobs:
       - if: inputs.kind == 'diagnostic'
         run: python scripts/probe_pncp_source.py
       - if: github.event_name == 'schedule' || inputs.kind == 'national_open'
+        id: national
         run: python scripts/run_national_collection.py
         env:
           PYTHONPATH: src
@@ -50,6 +55,54 @@ jobs:
           RADAR_APP_URL: ${{ vars.RADAR_APP_URL }}
           RADAR_SYNC_KIND: ${{ inputs.kind || 'incremental' }}
           RADAR_SYNC_BUDGET_SECONDS: ${{ inputs.budget || '480' }}
+  incremental:
+    if: vars.RADAR_COLLECTION_ENABLED == '1' && (github.event.schedule == '17 12 * * *' || inputs.kind == 'incremental')
+    runs-on: ubuntu-latest
+    timeout-minutes: 125
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - run: python scripts/run_incremental_collection.py
+        env:
+          PYTHONPATH: src
+          RADAR_APP_URL: ${{ vars.RADAR_APP_URL }}
+          RADAR_INCREMENTAL_BUDGET_SECONDS: '7200'
+  quality:
+    needs: [collect, incremental]
+    if: always() && vars.RADAR_COLLECTION_ENABLED == '1' && (needs.collect.result == 'success' || needs.incremental.result == 'success' || inputs.kind == 'reclassify' || inputs.kind == 'enrich' || inputs.kind == 'quarantine')
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - run: python scripts/run_collection_task.py
+        env:
+          PYTHONPATH: src
+          RADAR_APP_URL: ${{ vars.RADAR_APP_URL }}
+          RADAR_COLLECTION_TASK: ${{ inputs.kind == 'enrich' && 'enrich' || inputs.kind == 'quarantine' && 'quarantine' || 'reclassify' }}
+          RADAR_TASK_BUDGET_SECONDS: '75'
+      - if: needs.collect.result == 'success' || needs.incremental.result == 'success'
+        run: python scripts/run_collection_task.py
+        env:
+          PYTHONPATH: src
+          RADAR_APP_URL: ${{ vars.RADAR_APP_URL }}
+          RADAR_COLLECTION_TASK: enrich
+          RADAR_TASK_BUDGET_SECONDS: '75'
+      - if: needs.collect.result == 'success' || needs.incremental.result == 'success'
+        run: python scripts/run_collection_task.py
+        env:
+          PYTHONPATH: src
+          RADAR_APP_URL: ${{ vars.RADAR_APP_URL }}
+          RADAR_COLLECTION_TASK: quarantine
+          RADAR_TASK_BUDGET_SECONDS: '30'
   cleanup:
     if: vars.RADAR_COLLECTION_ENABLED == '1' && (github.event.schedule == '0 2 * * 1' || inputs.kind == 'cleanup' || inputs.kind == 'cleanup_preview')
     runs-on: ubuntu-latest
@@ -69,7 +122,7 @@ jobs:
           RADAR_TASK_DRY_RUN: ${{ inputs.kind == 'cleanup_preview' && '1' || '0' }}
   weekly-summary:
     needs: collect
-    if: needs.collect.result == 'success' && github.event_name == 'schedule' && github.event.schedule == '0 10 * * 1' && vars.RADAR_EMAIL_ENABLED == '1'
+    if: needs.collect.result == 'success' && needs.collect.outputs.capture_ready == 'true' && github.event_name == 'schedule' && github.event.schedule == '0 10 * * 1' && vars.RADAR_EMAIL_ENABLED == '1'
     runs-on: ubuntu-latest
     timeout-minutes: 6
     concurrency:

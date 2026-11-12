@@ -67,10 +67,16 @@ class FeedbackTests(unittest.TestCase):
             def __enter__(self):return self
             def __exit__(self,*args):pass
         def opener(request,**kwargs):requests.append(request);return Response()
-        with patch.dict(os.environ,{'SUPABASE_URL':'https://unit-test.supabase.co','SUPABASE_SECRET_KEY':'unit-test-only'}):
+        with patch.dict(os.environ,{'SUPABASE_URL':'https://unit-test.supabase.co','SUPABASE_SECRET_KEY':'unit-test-only'}),patch('radar.postgres_store.PROJECT_REF','unit-test'):
             save_feedback(claims,opener=opener)
         self.assertIn('on_conflict=event_id',requests[0].full_url)
         self.assertEqual(json.loads(requests[0].data)['event_id'],claims['event_id'])
         self.assertNotIn('token',json.loads(requests[0].data))
+
+    def test_other_project_is_rejected_before_transmitting_credentials(self):
+        claims=verify_feedback(sign_feedback(IDENTIFIER,'public','irrelevante',SECRET),SECRET)
+        with patch.dict(os.environ,{'SUPABASE_URL':'https://another-project.supabase.co','SUPABASE_SECRET_KEY':'unit-test-only'}),patch('radar.postgres_store.PROJECT_REF','unit-test'),patch('api.feedback.build_opener') as opener:
+            with self.assertRaises(ValueError):save_feedback(claims)
+            opener.assert_not_called()
 
 if __name__=='__main__':unittest.main()

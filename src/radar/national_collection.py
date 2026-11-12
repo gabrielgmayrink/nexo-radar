@@ -1,10 +1,13 @@
 """All open PNCP procurements: no company, UF, modality or publication-date filter."""
 import hashlib
 import json
-import re
+import base64
+import gzip
+import io
 from datetime import datetime,timedelta,timezone
 from radar.sync import upgrade_cursor,page_query,advance,public_progress
 from radar.relevance import TZ
+from radar.identifiers import parse_pncp_id
 
 KIND='national_open'
 SOURCE_PATH='/v1/contratacoes/proposta'
@@ -13,7 +16,26 @@ SOURCE_PATH='/v1/contratacoes/proposta'
 class StalePage(ValueError):pass
 
 
-def validate_payload(payload,page):
+def decode_wire(body):
+    encoded=body.get('wireGzipBase64')
+    if encoded is None:return None
+    if not isinstance(encoded,str) or len(encoded)>2_800_000:raise ValueError('Invalid wire capture')
+    compressed=base64.b64decode(encoded,validate=True)
+    with gzip.GzipFile(fileobj=io.BytesIO(compressed)) as stream:wire=stream.read(4_000_002)
+    if len(wire)>4_000_001:raise ValueError('Wire capture too large')
+    return wire
+
+
+def validate_wire_payload(wire,payload):
+    if wire is None:return
+    # A documented 204 has no bytes and is normalized to an empty data list.
+    if not wire and payload=={'data':[]}:return
+    try:original=json.loads(wire)
+    except (ValueError,UnicodeError):raise ValueError('Invalid captured JSON') from None
+    if original!=payload:raise ValueError('Captured response differs from supplied page')
+
+
+def validate_payload(payload,page,*,strict_records=True):
     if not isinstance(payload,dict) or not isinstance(payload.get('data'),list) or len(payload['data'])>50:
         raise ValueError('Invalid national page')
     total, pages, number=(payload.get(key) for key in ('totalRegistros','totalPaginas','numeroPagina'))
@@ -23,12 +45,11 @@ def validate_payload(payload,page):
     rows=payload['data']
     expected=min(50,max(0,total-(page-1)*50))
     if len(rows)!=expected:raise ValueError('Incomplete national page')
-    for row in rows:
-        # Preserve source IDs verbatim, including a mistyped year observed in
-        # PNCP (20226). One upstream anomaly cannot prevent the national scan.
-        if not isinstance(row,dict) or not re.fullmatch(r'[0-9]{14}-1-[0-9]{1,10}/[0-9]{4,10}',str(row.get('numeroControlePNCP',''))):
-            raise ValueError('Invalid national procurement')
-    if len({row['numeroControlePNCP'] for row in rows})!=len(rows):raise ValueError('Duplicate IDs within national page')
+    if strict_records:
+        identifiers=[]
+        for row in rows:
+            identifiers.append(parse_pncp_id(row.get('numeroControlePNCP') if isinstance(row,dict) else None).canonical)
+        if len(set(identifiers))!=len(identifiers):raise ValueError('Duplicate IDs within national page')
     return rows,total,pages
 
 
@@ -44,39 +65,34 @@ def plan(cursor,execution_id):
 
 def finish_if_ready(store,cursor,execution_id):
     if cursor['status']=='ok':return cursor
-    if cursor['pending_tasks'] and not cursor.get('basePagesComplete'):return cursor
+    if cursor['pending_tasks']:return cursor
     pass_number=cursor.get('passNumber',1)
-    unique,covered=store.national_counts(execution_id,pass_number)
-    complete_fresh_pass=covered==max(1,cursor['expectedPages'])
-    cursor.setdefault('fullPassNumber',1)
-    cursor.setdefault('tailCheckedForFullPass',1 if cursor.get('tailChecked') else 0)
-    if complete_fresh_pass:cursor['fullPassNumber']=pass_number
-    if cursor.get('basePagesComplete') and complete_fresh_pass:
-        unique,_=store.national_counts(execution_id,pass_number,True)
-    cursor.update(uniqueRecords=unique)
-    # Recheck the head, then the tail: proposals are returned oldest-first in
-    # production, so new publications can arrive after the scanned tail. Keep
-    # every ID and retain the count gate; a remaining gap still triggers a full
-    # verification pass rather than being declared complete.
-    if cursor.get('basePagesComplete') and cursor.get('passPages',0)>0 and unique>=cursor['expectedRecords']:
-        cursor.update(status='ok',coverageComplete=True,pending_tasks=[],partition=1,
-                      minimumPass=pass_number if complete_fresh_pass else 1)
+    evidence=store.pass_evidence(execution_id,pass_number)
+    if not evidence['complete']:
+        raise ValueError('National coverage ledger has missing pages')
+    previous=cursor.get('previousPassEvidence')
+    consistent=bool(previous and previous.get('stableWithinPass') and evidence['stableWithinPass']
+                    and previous['count']==evidence['count'] and previous['fingerprint']==evidence['fingerprint']
+                    and previous.get('quarantined',0)==evidence['quarantined']==0)
+    cursor.update(uniqueRecords=evidence['count'],captureComplete=True,basePagesComplete=True,
+                  indexingComplete=evidence['quarantined']==0,quarantinedRecords=evidence['quarantined'],
+                  verificationPolicy='stable_sets_v1',coverageComplete=consistent,
+                  previousPassEvidence=evidence)
+    # A complete capture and a stable source snapshot are different outcomes.
+    # Stop after two bounded full observations; an unstable live source remains
+    # explicitly pending instead of being called loss-free or replayed forever.
+    completed=cursor.get('completedFullPasses',0)+1
+    cursor['completedFullPasses']=completed
+    if consistent or completed>=2:
+        cursor.update(status='ok',consistency='stable_sets' if consistent else
+                      'quarantine_pending' if evidence['quarantined'] else 'source_changed',
+                      # A moving page list is not evidence that an earlier ID
+                      # ceased to exist. Preserve the union until a stable scan.
+                      pending_tasks=[],partition=1,minimumPass=pass_number if consistent else 1)
         store.complete(execution_id,KIND,cursor)
-    elif (cursor.get('basePagesComplete') and cursor.get('passPages',0)>0 and cursor['pending_tasks']
-          and cursor['tailCheckedForFullPass']!=cursor['fullPassNumber'] and cursor.get('expectedPages',0)>3):
-        gap=max(0,cursor['expectedRecords']-unique)
-        window=max(3,(gap+49)//50+2)
-        first=max(1,cursor['expectedPages']-window+1)
-        cursor.update(passNumber=pass_number+1,passPages=0,tailChecked=True,tailCheckedForFullPass=cursor['fullPassNumber'],
-                      pending_tasks=[{'mode':'proposta','modality':0,'page':first,'fingerprints':[]}],
-                      partition=0,page=first,fingerprints=[],status='running',error='coverage_gap')
-        store.save_failure(execution_id,KIND,cursor)
-    elif not cursor['pending_tasks']:
-        if not cursor.get('basePagesComplete') and covered!=max(1,cursor['expectedPages']):
-            raise ValueError('National coverage ledger has missing pages')
+    else:
         cursor.update(passNumber=pass_number+1,passPages=0,pending_tasks=[{'mode':'proposta','modality':0,'page':1,'fingerprints':[]}],
-                      partition=0,page=1,fingerprints=[],status='running',basePagesComplete=True,
-                      error='coverage_gap' if unique<cursor['expectedRecords'] else None)
+                      partition=0,page=1,fingerprints=[],status='running',consistency='verifying',error=None)
         store.save_failure(execution_id,KIND,cursor)
     return cursor
 
@@ -88,11 +104,26 @@ def handle_national(store,action,body,run_key):
         if requested is not None and (type(requested) is not int or requested<1):raise ValueError('Invalid execution')
         execution_id,cursor=store.start_or_resume(KIND,run_key,requested,datetime.now(TZ).date())
         cursor=upgrade_cursor(cursor)
+        # The proposal route is live and unbounded by publication date. This is
+        # the observation day, including a resumed capture started on another day.
+        cursor['end']=datetime.now(TZ).date().isoformat()
         cursor['last_run_key']=run_key
         cursor=finish_if_ready(store,cursor,execution_id)
         if action=='national_plan':return plan(cursor,execution_id)
         page=body.get('page');pass_number=body.get('passNumber')
         if type(page) is not int or page<1 or type(pass_number) is not int or pass_number<1:raise ValueError('Invalid page reference')
+        if action=='national_capture':
+            if cursor['status']=='ok':return plan(cursor,execution_id)
+            if pass_number!=cursor.get('passNumber',1):raise StalePage('National pass changed')
+            wire=decode_wire(body)
+            if wire is None:raise ValueError('Missing wire capture')
+            status=body.get('transportStatus');truncated=body.get('truncated',False)
+            if status is not None and (type(status) is not int or not 100<=status<=599):raise ValueError('Invalid transport status')
+            if type(truncated) is not bool:raise ValueError('Invalid truncation flag')
+            capture_id=store.capture_page(execution_id,pass_number,page,None,wire=wire,
+                transport_status=status,truncated=truncated)
+            store.quarantine_page(capture_id,'transport_or_page_contract')
+            return {**plan(cursor,execution_id),'rawCaptured':True}
         if action=='national_reconcile':
             if cursor['status']=='ok':return plan(cursor,execution_id)
             if page!=page_query(cursor)[2]['pagina'] or pass_number!=cursor.get('passNumber',1):raise StalePage('National page changed')
@@ -107,7 +138,15 @@ def handle_national(store,action,body,run_key):
             store.save_failure(execution_id,KIND,cursor)
             return plan(cursor,execution_id)
         if action=='national_commit':
-            rows,total,pages=validate_payload(body.get('payload'),page)
+            # This durable capture survives row-level parser and transaction failures.
+            wire=decode_wire(body)
+            capture_id=store.capture_page(execution_id,pass_number,page,body.get('payload'),wire=wire)
+            try:
+                validate_wire_payload(wire,body.get('payload'))
+                rows,total,pages=validate_payload(body.get('payload'),page,strict_records=False)
+            except ValueError:
+                store.quarantine_page(capture_id,'page_contract')
+                raise
             digest=hashlib.sha256(json.dumps(body['payload'],sort_keys=True,ensure_ascii=False).encode()).hexdigest()
             previous=store.national_page(execution_id,pass_number,page)
             if previous:
@@ -115,10 +154,13 @@ def handle_national(store,action,body,run_key):
                 return {**plan(cursor,execution_id),'alreadyCommitted':True}
             if cursor['status']=='ok' or pass_number!=cursor.get('passNumber',1) or page!=page_query(cursor)[2]['pagina']:
                 raise StalePage('National page changed')
-            cursor=advance(cursor,rows,body['payload'])
+            # Metadata drives pagination; malformed rows are indexed independently.
+            pagination_rows=[row if isinstance(row,dict) and row.get('numeroControlePNCP') else
+                             {'numeroControlePNCP':'quarantined-row-'+str(index)} for index,row in enumerate(rows)]
+            cursor=advance(cursor,pagination_rows,body['payload'])
             cursor.update(expectedRecords=total,expectedPages=pages,passPages=page,status='running',coverageComplete=False)
             cursor.pop('error',None);cursor.pop('next_attempt_at',None)
-            store.commit_national_page(execution_id,rows,cursor,page,digest,total,pages)
+            store.commit_national_page(execution_id,rows,cursor,page,digest,total,pages,capture_id=capture_id)
             cursor=finish_if_ready(store,cursor,execution_id)
             return plan(cursor,execution_id)
         if action=='national_failure':

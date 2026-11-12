@@ -8,7 +8,7 @@ from radar.canonical import to_card
 from radar.notifications import notify
 
 
-@patch('radar.profiles.load_profiles', lambda: TEST_PROFILES)
+@patch('radar.profiles.load_profiles', lambda *args: TEST_PROFILES)
 class NotificationFlowTests(unittest.TestCase):
     def setUp(self):
         self.now=datetime(2026,11,5,15,tzinfo=timezone.utc)
@@ -38,6 +38,7 @@ class NotificationFlowTests(unittest.TestCase):
         self.assertEqual(result['sent'],1);self.assertEqual(result['verified'],1)
         writer.assert_called_once();sender.assert_called_once()
         self.assertIn('conferida individualmente',sender.call_args.args[4])
+        self.assertIn('cobertura nacional ainda não foi confirmada',sender.call_args.args[4])
 
     def test_cancelled_candidate_is_not_sent_from_a_stale_cached_card(self):
         sender=Mock()
@@ -61,3 +62,15 @@ class NotificationFlowTests(unittest.TestCase):
             result=notify(self.database(),'weekly',now=self.now,sender=Mock())
         self.assertEqual(result['sent'],2)
         self.assertEqual({call.args[2]:call.args[3] for call in scoped.call_args_list},{'public':{'public@example.com'},'gerico':{'gerico@example.com'}})
+
+    def test_company_can_disable_weekly_email_before_any_query_or_reservation(self):
+        with patch('radar.notifications.load_profiles',return_value=[{'id':'public','enabled':True,'notificationPreferences':{'weeklyEmail':False}}]),patch('radar.notifications._notify_company') as send:
+            result=notify(self.database(),'weekly',now=self.now)
+        send.assert_not_called();self.assertEqual(result['sent'],0);self.assertEqual(result['skipped'],1)
+
+    def test_notification_scope_matches_regional_and_organization_preferences(self):
+        from radar.notifications import profile_accepts
+        card={'state':'MG','city':'Timóteo','organization':'PREFEITURA DE TIMÓTEO','estimatedValue':2000}
+        self.assertTrue(profile_accepts(card,{'states':['MG'],'cities':['TIMOTEO'],'organizations':['Prefeitura'],'minValue':1000}))
+        self.assertFalse(profile_accepts(card,{'states':['BA']}))
+        self.assertFalse(profile_accepts(card,{'maxValue':1000}))

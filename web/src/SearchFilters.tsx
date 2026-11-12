@@ -3,15 +3,16 @@ import { useEffect, useMemo, type RefObject } from 'react';
 import { EMPTY_FILTERS, type Filters, type Row } from './opportunities';
 import { BRAZIL_STATES, stateLabel } from './states';
 const DEADLINES: Record<string, string> = { any: 'Qualquer prazo', '7': 'Próximos 7 dias', '15': 'Próximos 15 dias', '30': 'Próximos 30 dias', unknown: 'Prazo não informado' };
-export default function SearchFilters({ companyName, filters, rows, onChange, open, onToggle, searchRef, total, pending=false }: {
-  companyName: string; filters: Filters; rows: Row[]; onChange: (change: Partial<Filters>) => void; open: boolean; onToggle: () => void; searchRef: RefObject<HTMLInputElement | null>; total: number; pending?: boolean;
+export default function SearchFilters({ companyName, filters, rows, facets, onChange, open, onToggle, searchRef, total, pending=false }: {
+  companyName: string; filters: Filters; rows: Row[]; facets?:{states:Record<string,number>;modalities:string[]}; onChange: (change: Partial<Filters>) => void; open: boolean; onToggle: () => void; searchRef: RefObject<HTMLInputElement | null>; total: number; pending?: boolean;
 }) {
   const stateCounts=useMemo(() => {
+    if(facets)return new Map(Object.entries(facets.states));
     const counts=new Map<string,number>();
     for (const row of rows) counts.set(row.state,(counts.get(row.state) || 0)+1);
     return counts;
-  },[rows]);
-  const modalities=useMemo(() => [...new Set(rows.map(row => row.modality).filter(Boolean))].sort().map(value => [value,value]),[rows]);
+  },[rows,facets]);
+  const modalities=useMemo(() => (facets?.modalities || [...new Set(rows.map(row => row.modality).filter(Boolean))].sort()).map(value => [value,value]),[rows,facets]);
   useEffect(() => {
     const shortcut=(event: KeyboardEvent) => {
       if (event.defaultPrevented || searchRef.current?.closest('[inert]')) return;
@@ -28,11 +29,14 @@ export default function SearchFilters({ companyName, filters, rows, onChange, op
     { key: 'product', label: 'Empresa', aria: 'Filtrar empresa', options: [['Todos',companyName]] },
     { key: 'deadline', label: 'Encerramento', aria: 'Filtrar encerramento', options: Object.entries(DEADLINES) },
     { key: 'modality', label: 'Modalidade', aria: 'Filtrar modalidade', options: [['Todas','Todas as modalidades'], ...modalities] },
+    { key: 'source', label: 'Fonte complementar', aria: 'Filtrar fonte', options: [['all','Todas as fontes'],['pncp','PNCP'],['compras_gov','Com dados do Compras.gov.br']] },
+    { key: 'situation', label: 'Situação oficial', aria: 'Filtrar situação', options: [['open','Abertas'],['all','Todas as situações no acervo'],['closed','Prazo encerrado'],['suspended','Suspensas']] },
     { key: 'assessment', label: 'Avaliação', aria: 'Filtrar avaliação', options: [['any','Todas as avaliações'],['unreviewed','Ainda não avaliadas'],['reviewed','Já avaliadas']] },
   ] as const;
-  const chip = (key: keyof Filters) => key === 'uf' ? `Estado: ${stateLabel(filters.uf)}` : key === 'query' ? `Busca: ${filters.query}` : key === 'deadline' ? DEADLINES[filters.deadline] : key === 'assessment' ? filters.assessment === 'reviewed' ? 'Já avaliadas' : 'Ainda não avaliadas' : filters[key];
+  const labels:Record<keyof Filters,string>={product:'empresa',uf:'estado',query:'busca',deadline:'encerramento',modality:'modalidade',assessment:'avaliação',city:'município',organization:'órgão',minValue:'valor mínimo',maxValue:'valor máximo',publishedFrom:'publicação desde',publishedTo:'publicação até',source:'fonte',situation:'situação'};
+  const chip = (key: keyof Filters) => key === 'uf' ? `Estado: ${stateLabel(filters.uf)}` : key === 'query' ? `Busca: ${filters.query}` : key === 'deadline' ? DEADLINES[filters.deadline] : key === 'assessment' ? filters.assessment === 'reviewed' ? 'Já avaliadas' : 'Ainda não avaliadas' : labels[key]+': '+filters[key];
   return <div className="search-workbench">
-    <div className="search-tools"><label className="search-field"><Search size={20}/><input ref={searchRef} type="search" aria-label="Buscar licitações" aria-describedby="search-guidance" autoComplete="off" spellCheck={false} maxLength={240} placeholder="Objeto, órgão, cidade, UF ou número PNCP" value={filters.query} onChange={event => onChange({ query: event.target.value })}/>
+    <div className="search-tools"><label className="search-field"><Search size={20}/><input ref={searchRef} type="search" aria-label="Buscar licitações" aria-describedby="search-guidance" autoComplete="off" spellCheck={false} maxLength={240} placeholder="Objeto, itens, órgão, cidade ou número PNCP" value={filters.query} onChange={event => onChange({ query: event.target.value })}/>
       {pending && <LoaderCircle className="spinning search-pending" size={16} aria-label="Atualizando busca"/>}
       {!filters.query && <kbd className="search-shortcut" title="Pressione / ou Ctrl+K para buscar">/</kbd>}
       {filters.query && <button type="button" className="clear-search" aria-label="Limpar busca" onClick={() => { onChange({ query: '' }); searchRef.current?.focus(); }}><X size={17}/></button>}
@@ -47,9 +51,9 @@ export default function SearchFilters({ companyName, filters, rows, onChange, op
       <span>{field.label}</span><span className="select-surface"><select aria-label={field.aria} value={filters[field.key]} onChange={event => onChange({ [field.key]: event.target.value })}>
         {field.options.map(([value,label]) => <option key={value} value={value}>{label}</option>)}
       </select><ChevronDown size={16} aria-hidden="true"/></span>
-    </label>)}</div>
+    </label>)}{([{key:'city',label:'Município',type:'text'},{key:'organization',label:'Órgão contratante',type:'text'},{key:'minValue',label:'Valor mínimo (R$)',type:'number'},{key:'maxValue',label:'Valor máximo (R$)',type:'number'},{key:'publishedFrom',label:'Publicado a partir de',type:'date'},{key:'publishedTo',label:'Publicado até',type:'date'}] as const).map(field=><label key={field.key} className="filter-field"><span>{field.label}</span><input type={field.type} min={field.type==='number'?'0':undefined} step={field.type==='number'?'0.01':undefined} maxLength={160} value={filters[field.key]} onChange={event=>onChange({[field.key]:event.target.value})}/></label>)}</div>
     <div className="active-filters"><span className="result-summary" role="status" aria-live="polite">{pending ? 'Atualizando resultados…' : `${total} ${total===1?'licitação nesta lista':'licitações nesta lista'}`}</span>
-      {active.map(key => <button key={key} className="filter-chip" aria-label={'Remover filtro de ' + ({ product: 'empresa', uf: 'estado', query: 'busca', deadline: 'encerramento', modality: 'modalidade', assessment: 'avaliação' }[key])} onClick={() => onChange({ [key]: EMPTY_FILTERS[key] })}>{chip(key)}<X size={13}/></button>)}
+      {active.map(key => <button key={key} className="filter-chip" aria-label={'Remover filtro de ' + labels[key]} onClick={() => onChange({ [key]: EMPTY_FILTERS[key] })}>{chip(key)}<X size={13}/></button>)}
       {!!active.length && <button className="reset-filters" onClick={() => onChange(EMPTY_FILTERS)}>Limpar filtros</button>}
     </div>
   </div>;

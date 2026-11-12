@@ -15,7 +15,9 @@ from urllib.request import Request, urlopen
 
 
 BASE_URL = "https://pncp.gov.br/api/consulta"
-PUBLICATION_MODALITIES = (9, 6, 7, 8, 4, 5, 12, 2, 10, 11, 15)
+# Official PNCP domain includes international modalities 16–19. The national
+# proposal scan has no modality filter; publication/update routes require it.
+PUBLICATION_MODALITIES = (9, 6, 7, 8, 4, 5, 12, 2, 10, 11, 15, 1, 3, 13, 14, 16, 17, 18, 19)
 PAGE_SIZE = 50
 USER_AGENT = "Mozilla/5.0 (compatible; RadarLicitacoes/0.1; public-data-research)"
 

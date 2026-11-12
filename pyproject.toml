@@ -7,7 +7,7 @@ name = "nexo-radar"
 version = "0.1.0"
 description = "Radar PNCP para Public e Gerico"
 requires-python = ">=3.12"
-dependencies = ["psycopg[binary]>=3.2,<4", "PyJWT[crypto]>=2.10,<3", "tzdata>=2025.1"]
+dependencies = ["psycopg[binary]>=3.2,<4", "PyJWT[crypto]>=2.10,<3", "tzdata>=2025.1", "cryptography>=50.0.2,<51", "pypdf>=7.0.1,<8"]
 
 [project.optional-dependencies]
 postgres = ["psycopg[binary]>=3.2,<4"]
@@ -19,7 +19,7 @@ radar = "radar.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-radar = ["companies.json"]
+radar = ["companies.json", "certificates/*.crt"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

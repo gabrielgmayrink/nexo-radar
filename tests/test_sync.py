@@ -13,7 +13,7 @@ class MemoryStore:
     def start_or_resume(self,kind,run_key,execution_id,today):
         self.cursor=self.cursor or initial_cursor(kind,today)
         return 1,copy.deepcopy(self.cursor)
-    def commit_page(self,execution_id,kind,records,cursor):
+    def commit_page(self,execution_id,kind,records,cursor,**kwargs):
         if self.fail_commit:raise RuntimeError('simulated database interruption')
         self.rows.update({r['numeroControlePNCP']:r for r in records})
         self.cursor=copy.deepcopy(cursor)
@@ -35,7 +35,7 @@ class SyncTests(unittest.TestCase):
     def test_backfill_covers_thirty_days_and_open_uses_future_horizon(self):
         cursor=initial_cursor('backfill',date(2026,11,5))
         self.assertEqual(cursor['start'],'2026-10-07')
-        self.assertEqual(len(partitions('backfill')),33)
+        self.assertEqual(len(partitions('backfill')),57)
         self.assertIn(('publicacao',9),partitions('backfill'))
         self.assertIn(('proposta',9),partitions('backfill'))
         self.assertEqual(page_query(cursor)[2]['dataFinal'],'20261105')
@@ -102,6 +102,7 @@ class SyncTests(unittest.TestCase):
 
     def test_legacy_checkpoint_retains_page_and_fingerprint_after_upgrade(self):
         cursor=initial_cursor('incremental',date(2026,11,5))
+        cursor.pop('pending_tasks');cursor.pop('queue_version')
         cursor.update(partition=0,page=29,fingerprints=['saved'],pages=28,received=1400)
         updated=upgrade_cursor(cursor)
         task=next(t for t in updated['pending_tasks'] if t['mode']=='publicacao' and t['modality']==6)
@@ -109,7 +110,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(task['fingerprints'],['saved'])
         self.assertEqual(updated['received'],1400)
         self.assertEqual(page_query(updated)[1],9)
-        self.assertEqual(page_query(updated)[0],'proposta')
+        self.assertEqual(page_query(updated)[0],'publicacao')
 
     def test_concurrent_batch_is_rejected_without_accessing_provider(self):
         store=MemoryStore();store.locked=True

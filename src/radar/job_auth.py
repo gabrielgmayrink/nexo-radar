@@ -17,10 +17,12 @@ _keys = jwt.PyJWKClient(ISSUER + '/.well-known/jwks', cache_keys=True, lifespan=
 
 
 def verify_claims(claims,*,purpose='collect'):
-    workflow=WORKFLOW if purpose=='collect' else REPOSITORY+'/.github/workflows/notify.yml@refs/heads/main'
+    workflows={'collect':WORKFLOW,'notify':REPOSITORY+'/.github/workflows/notify.yml@refs/heads/main',
+               'health':REPOSITORY+'/.github/workflows/health.yml@refs/heads/main'}
+    workflow=workflows.get(purpose)
     if (not REPOSITORY_ID or claims.get('repository_id') != REPOSITORY_ID or claims.get('repository_owner_id') != OWNER_ID
             or claims.get('repository') != REPOSITORY or claims.get('ref') != 'refs/heads/main'
-            or purpose not in ('collect','notify') or claims.get('workflow_ref') != workflow or claims.get('sub') not in SUBJECTS
+            or purpose not in workflows or claims.get('workflow_ref') != workflow or claims.get('sub') not in SUBJECTS
             or claims.get('event_name') not in ('schedule', 'workflow_dispatch')
             or claims.get('repository_visibility') != 'private'):
         raise ValueError('Untrusted job identity')
@@ -35,8 +37,8 @@ def authenticate(header, *, key_client=None,purpose='collect'):
         raise ValueError('Job authentication required')
     token = header[7:]
     key = (key_client or _keys).get_signing_key_from_jwt(token).key
-    if purpose not in ('collect','notify'):raise ValueError('Invalid job purpose')
-    audience=AUDIENCE if purpose=='collect' else AUDIENCE.rsplit('/',1)[0]+'/notify'
+    if purpose not in ('collect','notify','health'):raise ValueError('Invalid job purpose')
+    audience=AUDIENCE if purpose in ('collect','health') else AUDIENCE.rsplit('/',1)[0]+'/notify'
     claims = jwt.decode(token, key, algorithms=['RS256'], issuer=ISSUER, audience=audience, leeway=15,
                         options={'require': ['exp', 'iat', 'nbf', 'iss', 'aud', 'sub', 'repository_id',
                                              'repository_owner_id', 'ref', 'workflow_ref', 'event_name']})

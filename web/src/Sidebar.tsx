@@ -1,5 +1,5 @@
 import { useEffect, useRef, type RefObject } from 'react';
-import { ArrowUpRight, BookmarkCheck, NotebookPen, CalendarClock, ListChecks, Building2, CircleHelp, LayoutGrid, PanelLeftClose, PanelLeftOpen, ShieldCheck, ArchiveX, X } from 'lucide-react';
+import { ArrowUpRight, BookmarkCheck, NotebookPen, CalendarClock, ListChecks, Building2, CircleHelp, LayoutGrid, PanelLeftClose, PanelLeftOpen, ShieldCheck, ArchiveX, FileSearch, X } from 'lucide-react';
 import { Brand } from './Brand';
 import { useDialogFocus } from './useDialogFocus';
 import { VIEWS, type View } from './opportunities';
@@ -11,6 +11,7 @@ const views = [
   { key: 'review', icon: CircleHelp },
   { key: 'tracked', icon: BookmarkCheck },
   { key: 'dismissed', icon: ArchiveX },
+  { key: 'discover', icon: FileSearch },
   { key: 'learning', icon: NotebookPen },
 ] as const;
 

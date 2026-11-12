@@ -1,0 +1,230 @@
+{
+  "checkedAt": "2026-11-12T02:03:45.811214+00:00",
+  "scope": "bounded_live_samples_not_full_coverage",
+  "checks": [
+    {
+      "name": "pncp_open_page_1",
+      "ok": true,
+      "detail": {
+        "url": "https://pncp.gov.br/api/consulta/v1/contratacoes/proposta?pagina=1&tamanhoPagina=50&dataFinal=99991231",
+        "received": 50,
+        "sourceTotal": 38138,
+        "sourcePages": 763,
+        "idsHash": "294275d43e671bd0793613628470df4cdf75c48d75b66e2fc1d00f4280b998c5",
+        "ids": [
+          "00394460000141-1-000224/2022",
+          "18715615000160-1-000225/2022",
+          "88349238000178-1-000001/2023"
+        ]
+      },
+      "elapsedMs": 10703
+    },
+    {
+      "name": "pncp_open_page_2",
+      "ok": true,
+      "detail": {
+        "url": "https://pncp.gov.br/api/consulta/v1/contratacoes/proposta?pagina=2&tamanhoPagina=50&dataFinal=99991231",
+        "received": 50,
+        "sourceTotal": 38138,
+        "sourcePages": 763,
+        "idsHash": "1d25cddf53b0e223d74f3574f0c44f3a76f0ca60de85a8efaaf873748ff40fe1",
+        "ids": [
+          "73449977000164-1-000078/2023",
+          "73449977000164-1-000079/2023",
+          "73449977000164-1-000080/2023"
+        ]
+      },
+      "elapsedMs": 4734
+    },
+    {
+      "name": "pncp_publicacao",
+      "ok": true,
+      "detail": {
+        "url": "https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao?pagina=1&tamanhoPagina=50&dataInicial=20251101&dataFinal=20251107&codigoModalidadeContratacao=6",
+        "received": 50,
+        "sourceTotal": 9192,
+        "sourcePages": 184,
+        "idsHash": "cf409600cd0fddd4af68f7c573de20210d9eb43fc9786fc2286c0c46ebcf8a3d",
+        "ids": [
+          "01610566000106-1-000072/2025",
+          "07854402000100-1-000130/2025",
+          "01610566000106-1-000073/2025"
+        ]
+      },
+      "elapsedMs": 8141
+    },
+    {
+      "name": "pncp_atualizacao",
+      "ok": false,
+      "error": "transport_unavailable",
+      "elapsedMs": 15062
+    },
+    {
+      "name": "modalities",
+      "ok": true,
+      "detail": {
+        "ids": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ]
+      },
+      "elapsedMs": 94
+    },
+    {
+      "name": "pncp_detail_00394460000141-1-000224/2022",
+      "ok": true,
+      "detail": {
+        "id": "00394460000141-1-000224/2022",
+        "uf": "PR",
+        "city": "Foz do Iguaçu",
+        "officialUrl": "https://pncp.gov.br/app/editais/00394460000141/2022/224",
+        "valueMissing": false,
+        "deadlineMissing": false,
+        "status": 1,
+        "listVersionChanged": false
+      },
+      "elapsedMs": 1188
+    },
+    {
+      "name": "pncp_detail_18715615000160-1-000225/2022",
+      "ok": true,
+      "detail": {
+        "id": "18715615000160-1-000225/2022",
+        "uf": "MG",
+        "city": "Carmo do Rio Claro",
+        "officialUrl": "https://pncp.gov.br/app/editais/18715615000160/2022/225",
+        "valueMissing": false,
+        "deadlineMissing": false,
+        "status": 1,
+        "listVersionChanged": false
+      },
+      "elapsedMs": 3328
+    },
+    {
+      "name": "pncp_detail_88349238000178-1-000001/2023",
+      "ok": true,
+      "detail": {
+        "id": "88349238000178-1-000001/2023",
+        "uf": "RS",
+        "city": "Encantado",
+        "officialUrl": "https://pncp.gov.br/app/editais/88349238000178/2023/1",
+        "valueMissing": false,
+        "deadlineMissing": false,
+        "status": 1,
+        "listVersionChanged": false
+      },
+      "elapsedMs": 1312
+    },
+    {
+      "name": "pncp_detail_46634507000106-1-000144/2023",
+      "ok": true,
+      "detail": {
+        "id": "46634507000106-1-000144/2023",
+        "uf": "SP",
+        "city": "Salto",
+        "officialUrl": "https://pncp.gov.br/app/editais/46634507000106/2023/144",
+        "valueMissing": false,
+        "deadlineMissing": false,
+        "status": 1,
+        "listVersionChanged": false
+      },
+      "elapsedMs": 2657
+    },
+    {
+      "name": "pncp_itens",
+      "ok": true,
+      "detail": {
+        "received": 3
+      },
+      "elapsedMs": 109
+    },
+    {
+      "name": "pncp_arquivos",
+      "ok": true,
+      "detail": {
+        "received": 2
+      },
+      "elapsedMs": 1031
+    },
+    {
+      "name": "compras_detail",
+      "ok": true,
+      "detail": {
+        "received": 1,
+        "identity": "00394502000144-1-010615/2025"
+      },
+      "elapsedMs": 1000
+    },
+    {
+      "name": "compras_items",
+      "ok": true,
+      "detail": {
+        "received": 3,
+        "identity": "00394502000144-1-010615/2025"
+      },
+      "elapsedMs": 1063
+    },
+    {
+      "name": "compras_results",
+      "ok": true,
+      "detail": {
+        "received": 3
+      },
+      "elapsedMs": 2093
+    }
+  ],
+  "followup": [
+    {
+      "source": "pncp_update_narrow",
+      "ok": true,
+      "rows": 23,
+      "total": 23,
+      "elapsedMs": 3906
+    },
+    {
+      "source": "querido_diario",
+      "ok": false,
+      "error": "transport_unavailable",
+      "elapsedMs": 125
+    },
+    {
+      "source": "compras_mg_metadata",
+      "ok": true,
+      "resourcesCount": 52
+    }
+  ],
+  "backup": {
+    "restoreValidated": true,
+    "tables": 33,
+    "rows": 73,
+    "archiveBytes": 2139225,
+    "archiveSha256": "95966ada2bbbb2738a3b10a3788f41748d0963e9e7fbbeb193e730688260f7e9",
+    "scope": "disposable_local_fixture_and_public_samples",
+    "externalStorageConfigured": false
+  },
+  "documents": {
+    "items": 1,
+    "documents": 1,
+    "states": [
+      "text_available"
+    ],
+    "textPages": 30
+  }
+}

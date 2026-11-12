@@ -6,7 +6,7 @@ on:
     inputs:
       kind:
         type: choice
-        options: [weekly, urgent, test, verify, verify_smtp]
+        options: [weekly, urgent, test, verify, verify_smtp, delivery_test]
         default: verify
 permissions:
   contents: read
@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   notify:
-    if: vars.RADAR_EMAIL_ENABLED == '1' || (github.event_name == 'workflow_dispatch' && (inputs.kind == 'verify' || inputs.kind == 'verify_smtp'))
+    if: vars.RADAR_EMAIL_ENABLED == '1' || (github.event_name == 'workflow_dispatch' && (inputs.kind == 'verify' || inputs.kind == 'verify_smtp' || inputs.kind == 'delivery_test'))
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:

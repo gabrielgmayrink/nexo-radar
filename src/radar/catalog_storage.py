@@ -32,17 +32,26 @@ def database_get(path, *, opener=urlopen):
     return data
 
 
-def load_collection_status(*, opener=urlopen):
-    states=database_get('radar_catalog_state?select=id,content',opener=opener)
-    executions=database_get('radar_executions?select=id,task,status,metrics,started_at,finished_at&task=like.sync%3A%25&order=started_at.desc&limit=6',opener=opener)
-    checkpoints=database_get('radar_checkpoints?select=key,updated_at&key=like.sync%3A%25',opener=opener)
+def load_collection_status(*, opener=urlopen,db=None):
+    if db is None:
+        states=database_get('radar_catalog_state?select=id,content',opener=opener)
+        executions=database_get('radar_executions?select=id,task,status,metrics,started_at,finished_at&task=like.sync%3A%25&order=started_at.desc&limit=6',opener=opener)
+        checkpoints=database_get('radar_checkpoints?select=key,updated_at&key=like.sync%3A%25',opener=opener)
+    else:
+        states=[dict(zip(('id','content'),row)) for row in db.execute('select id,content from radar_catalog_state').fetchall()]
+        executions=[dict(zip(('id','task','status','metrics','started_at','finished_at'),row)) for row in db.execute("select id,task,status,metrics,started_at,finished_at from radar_executions where task like 'sync:%' order by started_at desc limit 6").fetchall()]
+        checkpoints=[dict(zip(('key','updated_at'),row)) for row in db.execute("select key,updated_at from radar_checkpoints where key like 'sync:%'").fetchall()]
+        for row in executions:
+            for key in ('started_at','finished_at'):
+                if row[key] is not None:row[key]=row[key].isoformat()
+        for row in checkpoints:row['updated_at']=row['updated_at'].isoformat()
     activity={row['key'][5:]:row['updated_at'] for row in checkpoints if str(row.get('key','')).startswith('sync:')}
     collections={}
     for row in states:
         if row.get('id') not in ('publications','open') or not isinstance(row.get('content'),dict):continue
         content=row['content']
         # Coverage is public-source metadata; company selection totals are private.
-        collections[row['id']]={key:content[key] for key in ('completedAt','source','window','scope','coverageComplete','executionId','passNumber','expectedRecords','expectedPages') if key in content}
+        collections[row['id']]={key:content[key] for key in ('completedAt','source','window','scope','coverageComplete','captureComplete','indexingComplete','consistency','quarantinedRecords','executionId','passNumber','expectedRecords','expectedPages') if key in content}
         collections[row['id']]['metrics']={'unique':content.get('metrics',{}).get('unique',0)}
     jobs=[]
     for row in executions:
@@ -57,7 +66,7 @@ def load_collection_status(*, opener=urlopen):
                      'pages':metrics.get('pages',0),'recordsReceived':metrics.get('recordsReceived',0),
                      'completedPartitions':metrics.get('completedPartitions',0),
                      'totalPartitions':metrics.get('totalPartitions',0),
-                     **{key:metrics.get(key) for key in ('scope','expectedRecords','expectedPages','passPages','uniqueRecords','coverageComplete','passNumber')}})
+                     **{key:metrics.get(key) for key in ('scope','expectedRecords','expectedPages','passPages','uniqueRecords','coverageComplete','captureComplete','indexingComplete','consistency','quarantinedRecords','passNumber','completedFullPasses')}})
     return {'enabled':os.environ.get('RADAR_COLLECTION_ENABLED')=='1',
             'scope':'all_open_brazil','collections':collections,'executions':jobs}
 

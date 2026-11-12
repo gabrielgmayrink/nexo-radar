@@ -11,24 +11,28 @@ class handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         started=time.monotonic()
+        # Read only a bounded envelope before choosing the scoped OIDC purpose.
+        try:
+            length=int(self.headers.get('Content-Length','0'))
+            if not 1<=length<=3_500_000:raise ValueError('Invalid size')
+            body=json.loads(self.rfile.read(length))
+            if not isinstance(body,dict):raise ValueError('Invalid body')
+        except (ValueError,TypeError):
+            self.respond(400,{'error':'Parâmetros inválidos.'});return
         from radar.job_auth import authenticate
         try:
-            run_key = authenticate(self.headers.get('Authorization', ''))
+            run_key = authenticate(self.headers.get('Authorization', ''),purpose='health' if body.get('action')=='health' else 'collect')
         except Exception:
             self.respond(403, {'error': 'Execução não autorizada.'})
             return
-        if os.environ.get('RADAR_COLLECTION_ENABLED') != '1':
+        if body.get('action')!='health' and os.environ.get('RADAR_COLLECTION_ENABLED') != '1':
             self.respond(503, {'error': 'Coleta automática não habilitada.'})
             return
         try:
-            length = int(self.headers.get('Content-Length', '0'))
-            if not 1 <= length <= 3_500_000:
-                raise ValueError('Invalid request size')
-            body = json.loads(self.rfile.read(length))
-            if not isinstance(body, dict):raise ValueError('Invalid request')
-            national=body.get('action') in ('national_plan','national_commit','national_failure','national_reconcile')
-            maintenance=body.get('action') in ('cleanup','weekly_summary')
-            if 'action' in body and not (national or maintenance):raise ValueError('Invalid operation')
+            national=body.get('action') in ('national_plan','national_commit','national_failure','national_reconcile','national_capture')
+            incremental=body.get('action') in ('incremental_plan','incremental_commit','incremental_failure','incremental_capture')
+            maintenance=body.get('action') in ('cleanup','weekly_summary','reclassify','enrich','quarantine','health')
+            if 'action' in body and not (national or incremental or maintenance):raise ValueError('Invalid operation')
             if maintenance and type(body.get('dryRun',False)) is not bool:raise ValueError('Invalid preview')
             if not national and body.get('kind', 'incremental') not in ('incremental', 'open', 'backfill'):
                 raise ValueError('Invalid request')
@@ -46,16 +50,31 @@ class handler(BaseHTTPRequestHandler):
         from radar.national_collection import handle_national,StalePage
         store = None
         try:
-            store = PostgresStore()
+            store = PostgresStore(service='collector')
             if maintenance:
                 from radar.catalog_maintenance import cleanup,weekly_summary
+                if body['action']=='health':
+                    from radar.source_health import health_report
+                    self.respond(200,health_report(store));return
+                if body['action']=='reclassify':
+                    from radar.reclassification import reclassify_batch
+                    self.respond(200,reclassify_batch(store,limit=200,deadline_seconds=45));return
+                if body['action']=='enrich':
+                    from radar.enrichment import enrich_batch
+                    self.respond(200,enrich_batch(store,limit=2,deadline_seconds=45));return
+                if body['action']=='quarantine':
+                    if not store.acquire():self.respond(200,{'done':False,'reason':'collection_busy'});return
+                    try:result=store.reprocess_quarantine(limit=5)
+                    finally:store.release()
+                    self.respond(200,result);return
                 if body['action']=='weekly_summary' and os.environ.get('RADAR_EMAIL_ENABLED')!='1':
                     self.respond(503,{'error':'Resumos não habilitados.'});return
                 result=cleanup(store,dry_run=body.get('dryRun',False),run_key=run_key) if body['action']=='cleanup' else weekly_summary(store,run_key,dry_run=body.get('dryRun',False))
                 print(json.dumps({'event':'catalog_maintenance','task':body['action'],'done':result.get('done'),
                                   'removedFromActive':result.get('removedFromActive'),'receiverMs':round((time.monotonic()-started)*1000)}))
                 self.respond(200,result);return
-            result = handle_national(store,body['action'],body,run_key) if national else run_chunk(store, body.get('kind', 'incremental'), run_key=run_key,
+            from radar.incremental_collection import handle_incremental
+            result = handle_national(store,body['action'],body,run_key) if national else handle_incremental(store,body['action'],body,run_key) if incremental else run_chunk(store, body.get('kind', 'incremental'), run_key=run_key,
                                                                                               execution_id=execution_id, budget_seconds=budget_seconds)
             if national and body['action']=='national_commit':
                 print(json.dumps({'event':'national_page_received','page':body.get('page'),
