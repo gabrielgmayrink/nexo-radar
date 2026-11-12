@@ -12,7 +12,7 @@ Public conserva o nome e os quatro grupos confirmados: apoio administrativo/docu
 
 ## Infraestrutura e configuração
 
-- Projeto Supabase de homologação: `odntvxflshrwxhdqtepm`, PostgreSQL 17.11, Free, região São Paulo. Migrações 001–028 aplicadas somente nele; não existe migração 018.
+- Projeto Supabase de homologação: `odntvxflshrwxhdqtepm`, PostgreSQL 17.11, Free, região São Paulo. Migrações 001–029 aplicadas somente nele; não existe migração 018.
 - Prévia Vercel com 28 variáveis próprias da branch, incluindo as substituições das configurações da integração de banco. Chaves de servidor protegidas; identificadores públicos de Auth não são segredos.
 - Contas QA exclusivas de Public, Gerico e administrador vinculado às duas. Criação confirmada pelo provedor sem envio de e-mail.
 - E-mail, IA e agendamentos de coleta da prévia desabilitados. A coleta de teste foi iniciada explicitamente com conexão limitada ao projeto de homologação, sem usar o receptor produtivo.
@@ -40,6 +40,7 @@ Correções encontradas na integração real:
 - O Supabase retorna QR SVG com declaração XML e tamanho superior ao limite antigo. O código valida estrutura, tamanho e elementos perigosos antes de gerar a imagem; não executa SVG recebido como HTML.
 - Uma inscrição MFA abandonada reservava o nome amigável. Novas inscrições recebem nome único, sem apagar fatores existentes.
 - No PostgreSQL 17 do provedor, `postgres` tinha administração do papel sem permissão de `SET ROLE`. O vínculo foi corrigido **em homologação** e o contexto `radar_web` foi validado com leituras e escrita cruzadas negadas.
+- A gravação da avaliação falhava com o papel restrito: `FOR SHARE` exige permissão de atualização mesmo numa leitura. A migração 029 fornece uma função de leitura/bloqueio estritamente sobre a fonte pública, sem conceder `UPDATE` ao papel web na tabela canônica. A função tem caminho de busca fixo, sem acesso anônimo, e não consulta dados privados. A avaliação versão 2 foi gravada no painel; critérios também tiveram escrita validada com reversão do teste.
 
 `RADAR_DB_ENFORCE_ROLES=1` está ativo na prévia para os caminhos conectados a `company_transaction`: perfis e avaliações. **Ainda há conexão administrativa no servidor e caminhos protegidos pela autorização explícita da aplicação.** Não se afirma que todas as consultas usam credenciais independentes de menor privilégio. Esse endurecimento e a troca das credenciais produtivas permanecem itens de liberação.
 
@@ -48,6 +49,25 @@ Correções encontradas na integração real:
 A rota oficial utilizada é `/v1/contratacoes/proposta`, com `dataFinal=99991231`, páginas de 50 e sem filtro de empresa, UF, modalidade ou publicação. O limite de 50 foi conferido no [schema oficial](https://pncp.gov.br/api/consulta/v3/api-docs). O PNCP informou aproximadamente 38,3 mil contratações abertas durante o ensaio; não há fundamento para prometer um milhão por semana.
 
 O progresso e os totais finais desta execução são registrados na evidência sanitizada vinculada ao fim deste relatório. Há duas leituras completas: terminar a captura não basta para provar cobertura. Os conjuntos de identificadores e hashes precisam coincidir. Mudanças durante a leitura mantêm `coverageComplete=false`.
+
+Resultado da execução 1, concluída às 11h56 de Brasília:
+
+| Medida | Resultado |
+|---|---:|
+| Páginas por leitura completa | 767 |
+| Páginas confirmadas nas duas leituras | 1.534 |
+| Leituras de registros, incluindo conferência | 76.645 |
+| Identificadores únicos na primeira leitura | 38.313 |
+| Identificadores únicos na segunda leitura | 38.330 |
+| Último total anunciado pelo PNCP | 38.331 |
+| União preservada e visível no catálogo | 38.370 |
+| Encontrados somente na primeira leitura, preservados | 40 |
+| Registros em quarentena na evidência das passagens | 0 |
+| Pendências de reclassificação após a conclusão | 0 |
+
+Ambas as passagens cobriram as páginas, mas os totais/conteúdos variaram durante a leitura. Resultado: `captureComplete=true`, `indexingComplete=true`, `coverageComplete=false`, `consistency=source_changed`. Não há afirmação de perda zero ou de que a união equivale ao conjunto de abertos no instante atual. A guarda de originais e a próxima reconciliação continuam necessárias.
+
+Uso observado depois da reclassificação: **409.507.507 bytes** no banco (aproximadamente 390,5MiB). Existe pouca margem para acúmulo indefinido de novas capturas completas no plano gratuito; não desabilitar as proteções de capacidade para forçar a coleta.
 
 Foi corrigida uma perda de visibilidade: quando duas passagens divergem, a conclusão preserva a **união dos identificadores observados**, em vez de ocultar os encontrados apenas na primeira. A alteração tem regressão com PostgreSQL real, verificando os três identificadores do exemplo A/B → B/C no catálogo. Não se conclui que um registro foi encerrado apenas por não aparecer numa página móvel.
 
@@ -97,9 +117,9 @@ Após o sucesso, o gatilho automático do ensaio foi desligado para evitar novas
 
 ## Validação e arquivos
 
-CI com PostgreSQL 18 real, migrações, testes de integração, Ruff de sintaxe/nomes indefinidos, auditorias Python/npm, scanner de credenciais, TypeScript, build Vite e verificações de busca/cache/token. Resultados finais e capturas são vinculados na evidência da entrega.
+CI com PostgreSQL 18 real, migrações, **262 testes Python**, Ruff de sintaxe/nomes indefinidos, auditorias Python/npm, scanner de credenciais, TypeScript, build Vite e verificações de busca/cache/token. [Validação do código f1f9c52](https://github.com/gabrielgmayrink/nexo-radar/actions/runs/43238439659) aprovada. Localmente, 11 testes de PostgreSQL são ignorados quando o banco descartável não está configurado; isso não é confundido com a execução completa da CI.
 
-Arquivos novos principais: `migrations/028_catalog_search_projection.sql`, `scripts/backup_blob.py`, `scripts/blob_transport.mjs`, `scripts/verify_staging_backup.py`, dependências operacionais com lock e `.github/workflows/backup-staging.yml`. Também foram alterados MFA, triagem do objeto, catálogo SQL e texto do progresso. Não há segredos nos arquivos versionados.
+Arquivos novos principais: `migrations/028_catalog_search_projection.sql`, `migrations/029_review_source_lock.sql`, `scripts/backup_blob.py`, `scripts/blob_transport.mjs`, `scripts/verify_staging_backup.py`, dependências operacionais com lock e `.github/workflows/backup-staging.yml`. Também foram alterados MFA, triagem do objeto, catálogo SQL e texto do progresso. Não há segredos nos arquivos versionados.
 
 [Capturas reais desta rodada](screenshots/2026-11-12/). Os testes responsivos locais em quadro 390×844 permanecem documentados no relatório anterior; não se afirma teste físico de todos os dispositivos.
 

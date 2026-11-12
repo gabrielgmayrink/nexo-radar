@@ -57,6 +57,7 @@ jobs:
           echo "$RUNNER_TEMP/pg-tools" >> "$GITHUB_PATH"
           docker exec -e PGPASSWORD=disposable-local-fixture "$RESTORE_CONTAINER" psql -U postgres -h 127.0.0.1 -v ON_ERROR_STOP=1 -c 'create database radar_restore_test_cloud template template0'
       - name: Snapshot, encrypt, upload, download and restore
+        # Includes the final national capture and migrations 028/029 when rerun.
         env:
           PYTHONPATH: src
           RESTORE_CONTAINER: ${{ job.services.postgres.id }}
