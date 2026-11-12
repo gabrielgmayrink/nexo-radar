@@ -96,7 +96,7 @@ São observações pontuais, sem carga concorrente de usuários, com fonte e cac
 
 ## Backup externo e restauração
 
-[Ensaio aprovado no GitHub Actions](https://github.com/gabrielgmayrink/nexo-radar/actions/runs/43232137572), somente na branch de revisão e com banco de homologação:
+[Primeiro ensaio aprovado no GitHub Actions](https://github.com/gabrielgmayrink/nexo-radar/actions/runs/43232137572), somente na branch de revisão e com banco de homologação:
 
 - Snapshot de origem **somente de leitura**, transacional e compartilhado com `pg_dump`.
 - Cópia SQL completa de 73 tabelas dos schemas auth/public/realtime/storage/vault, somando **96.149 linhas** naquele snapshot. Linhas de tabelas não equivalem a licitações.
@@ -104,6 +104,8 @@ São observações pontuais, sem carga concorrente de usuários, com fonte e cac
 - Download independente, checksum conferido, descriptografia e restauração em banco local vazio e descartável no runner.
 - Mesmas contagens e hashes de conteúdo em todas as tabelas verificadas.
 - SHA256 do arquivo cifrado: `3692ba14fef75a42a36f4c1dc72eb7d71bbcc781112069178a825411a311fbf1`.
+
+[Ensaio final aprovado após a captura nacional e migrações 028/029](https://github.com/gabrielgmayrink/nexo-radar/actions/runs/43277280969): **73 tabelas / 157.345 linhas**, arquivo cifrado de **111.237.838 bytes**, novamente com upload privado, download, descriptografia, restauração e hashes/contagens coincidentes. SHA256 `88c1bbf3aaa4a894af4cbcd6a70b2ec58d1a629b4bd63b1c1ec84339c5bb94d4`. O snapshot foi iniciado depois da reclassificação final; nenhuma escrita na origem pelo ensaio.
 
 O teste encontrou e corrigiu dois problemas operacionais: uso da CLI que exigia identidade geral Vercel no runner, substituída pelo SDK com token limitado ao Blob; e falta de privilégios de restauração no banco descartável, corrigida com usuário administrativo **somente no destino local**. A origem permaneceu intacta. A dependência transitiva vulnerável do SDK foi atualizada e a auditoria passou sem alertas conhecidos.
 
@@ -117,11 +119,17 @@ Após o sucesso, o gatilho automático do ensaio foi desligado para evitar novas
 
 ## Validação e arquivos
 
-CI com PostgreSQL 18 real, migrações, **262 testes Python**, Ruff de sintaxe/nomes indefinidos, auditorias Python/npm, scanner de credenciais, TypeScript, build Vite e verificações de busca/cache/token. [Validação do código f1f9c52](https://github.com/gabrielgmayrink/nexo-radar/actions/runs/43238439659) aprovada. Localmente, 11 testes de PostgreSQL são ignorados quando o banco descartável não está configurado; isso não é confundido com a execução completa da CI.
+CI com PostgreSQL 18 real, migrações, **262 testes Python, zero ignorados**, Ruff de sintaxe/nomes indefinidos, auditorias Python/npm, scanner de credenciais, TypeScript, build Vite e verificações de busca/cache/token. [Validação do código a71e143](https://github.com/gabrielgmayrink/nexo-radar/actions/runs/43277280976) aprovada. Localmente, 11 testes de PostgreSQL são ignorados quando o banco descartável não está configurado; isso não é confundido com a execução completa da CI.
 
 Arquivos novos principais: `migrations/028_catalog_search_projection.sql`, `migrations/029_review_source_lock.sql`, `scripts/backup_blob.py`, `scripts/blob_transport.mjs`, `scripts/verify_staging_backup.py`, dependências operacionais com lock e `.github/workflows/backup-staging.yml`. Também foram alterados MFA, triagem do objeto, catálogo SQL e texto do progresso. Não há segredos nos arquivos versionados.
 
 [Capturas reais desta rodada](screenshots/2026-11-12/). Os testes responsivos locais em quadro 390×844 permanecem documentados no relatório anterior; não se afirma teste físico de todos os dispositivos.
+
+Na prévia final, o filtro MG retornou 52 oportunidades da Public e foi limpo para restaurar a visão nacional. A avaliação versão 2 foi publicada com checklist e permissão restrita ativos. A tentativa de viewport de 390px continuou retornando 1280×720 na ferramenta; a dimensão não foi anunciada como aplicada. A sobrescrita foi removida após o teste.
+
+[Evidência consolidada sem credenciais](validation/2026-11-12-cloud.json): Auth, RLS, coleta, reclassificação, enriquecimento, tempos observados, testes e as duas restaurações. A CI conserva os logs e o PR conserva o diff. A coleta de teste terminou; não há worker local desta execução deixado em andamento. O gatilho de backup de homologação foi desligado após iniciar o último ensaio, que terminou com sucesso.
+
+Produção consultada novamente após o ensaio: deploy Ready no commit `d10525f5c5e5ef763b2f937f797dc6e5aaa453ae`, branch `main`. O código funcional de homologação está em `a71e1436e14a1f945c8622f04f2b91f3bf37dac1`; documentação e capturas posteriores não promovem essa versão.
 
 ## Pendências para liberação
 

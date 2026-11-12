@@ -1,0 +1,259 @@
+{
+  "date": "2026-11-12",
+  "environment": "independent_staging",
+  "auth": {
+    "publicCrossAccessDenied": true,
+    "publicRealLogin": true,
+    "gericoCrossAccessDenied": true,
+    "gericoRealLogin": true,
+    "mfaBlocksPasswordOnly": true,
+    "wrongMfaCodeDenied": true,
+    "mfaVerifiedAal2": true,
+    "dualCompanyAdmin": true,
+    "revokedSessionDenied": true,
+    "environment": "odntvxflshrwxhdqtepm",
+    "realAuthProvider": true,
+    "emailsSent": 0,
+    "productionChanges": 0
+  },
+  "rls": {
+    "project": "odntvxflshrwxhdqtepm",
+    "productionChanges": 0,
+    "rlsHidesOtherCompany": true,
+    "rlsBlocksCrossCompanyWrite": true,
+    "restrictedRoleActive": true,
+    "anonymousPrivateTablesDenied": [
+      "radar_company_profiles",
+      "radar_review_state",
+      "radar_memberships"
+    ]
+  },
+  "nationalCollection": {
+    "checkedAt": "2026-11-12T18:08:58.614109+00:00",
+    "environment": "odntvxflshrwxhdqtepm",
+    "progress": {
+      "executionId": 1,
+      "kind": "national_open",
+      "done": true,
+      "completedAt": "2026-11-12T14:56:26.838057+00:00",
+      "indexingComplete": true,
+      "quarantinedRecords": 0,
+      "scope": "all_open_brazil",
+      "passNumber": 2,
+      "passPages": 767,
+      "expectedRecords": 38331,
+      "expectedPages": 767,
+      "uniqueRecords": 38330,
+      "coverageComplete": false,
+      "captureComplete": true,
+      "consistency": "source_changed",
+      "verificationPolicy": "stable_sets_v1",
+      "completedFullPasses": 2,
+      "status": "ok",
+      "window": {
+        "start": "2026-11-12",
+        "end": "2026-11-12"
+      },
+      "completedPartitions": 1,
+      "totalPartitions": 1,
+      "pages": 1534,
+      "recordsReceived": 76645,
+      "requests": 0,
+      "requestErrors": 0,
+      "latencyMeanMs": null,
+      "latencyMaxMs": 0,
+      "httpStatuses": {},
+      "error": null,
+      "retryAfterSeconds": 0
+    },
+    "catalog": {
+      "done": true,
+      "kind": "national_open",
+      "error": null,
+      "pages": 1534,
+      "scope": "all_open_brazil",
+      "status": "ok",
+      "window": {
+        "end": "2026-11-12",
+        "start": "2026-11-12"
+      },
+      "metrics": {
+        "unique": 38370,
+        "discarded": 38058,
+        "candidates": 312
+      },
+      "requests": 0,
+      "passPages": 767,
+      "passNumber": 2,
+      "completedAt": "2026-11-12T14:56:26.838057+00:00",
+      "consistency": "source_changed",
+      "executionId": 1,
+      "minimumPass": 1,
+      "httpStatuses": {},
+      "latencyMaxMs": 0,
+      "catalogWindow": {
+        "scope": "all_open_brazil",
+        "publicationDateFilter": null
+      },
+      "expectedPages": 767,
+      "latencyMeanMs": null,
+      "requestErrors": 0,
+      "uniqueRecords": 38330,
+      "captureComplete": true,
+      "expectedRecords": 38331,
+      "recordsReceived": 76645,
+      "totalPartitions": 1,
+      "coverageComplete": false,
+      "indexingComplete": true,
+      "basePagesComplete": true,
+      "retryAfterSeconds": 0,
+      "quarantinedRecords": 0,
+      "verificationPolicy": "stable_sets_v1",
+      "completedFullPasses": 2,
+      "completedPartitions": 1
+    },
+    "passes": {
+      "1": {
+        "complete": true,
+        "count": 38313,
+        "fingerprint": "be3c9fadb3f9b01ded1105c70fe232ad929fa7a78f4b1886c3a700634056ad83",
+        "quarantined": 0,
+        "stableWithinPass": false
+      },
+      "2": {
+        "complete": true,
+        "count": 38330,
+        "fingerprint": "b7f4d59fc500257ebd4d62d1aa879c4064f0f8c35a697b91e73553120ddacb0e",
+        "quarantined": 0,
+        "stableWithinPass": false
+      }
+    },
+    "classification": {
+      "done": true,
+      "updated": 740,
+      "remaining": 0,
+      "version": "2026-11-12.2:368a8aed8b00b83a"
+    },
+    "reclassifiedThisCheck": 18740,
+    "productionChanges": 0,
+    "storedUniqueRecords": 38370,
+    "visibleCapturedRecords": 38370,
+    "firstPassOnlyPreserved": 40,
+    "databaseBytes": 409507507
+  },
+  "enrichmentSample": {
+    "id": "46694121000181-1-000121/2026",
+    "items": 12,
+    "documents": 2,
+    "excerpts": 30,
+    "sources": 2,
+    "limitations": [
+      "partial",
+      "pending",
+      "display_excerpt_limit",
+      "extractive_evidence_not_legal_analysis"
+    ],
+    "productionChanges": 0
+  },
+  "searchTimingAfter": [
+    {
+      "case": "selection",
+      "elapsedMs": 1765,
+      "total": 303,
+      "returned": 24
+    },
+    {
+      "case": "state",
+      "elapsedMs": 2250,
+      "total": 52,
+      "returned": 24
+    },
+    {
+      "case": "search",
+      "elapsedMs": 1532,
+      "total": 50,
+      "returned": 24
+    },
+    {
+      "case": "other_objects",
+      "elapsedMs": 2031,
+      "total": 37076,
+      "returned": 24
+    }
+  ],
+  "ci": {
+    "run": 43277280976,
+    "commit": "a71e1436e14a1f945c8622f04f2b91f3bf37dac1",
+    "url": "https://github.com/gabrielgmayrink/nexo-radar/actions/runs/43277280976",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "frontend",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "python",
+        "status": "completed",
+        "conclusion": "success",
+        "testSummary": [
+          "2026-11-12T18:12:11.3727155Z Ran 262 tests in 1.472s",
+          "2026-11-12T18:12:11.3727796Z OK"
+        ]
+      }
+    ]
+  },
+  "externalBackupInitial": {
+    "checkedAt": "2026-11-12T13:58:55.559078+00:00",
+    "sourceProject": "odntvxflshrwxhdqtepm",
+    "readOnlySource": true,
+    "tables": 73,
+    "rows": 96149,
+    "privateExternalUpload": true,
+    "downloadVerified": true,
+    "restoreValidated": true,
+    "archiveSha256": "3692ba14fef75a42a36f4c1dc72eb7d71bbcc781112069178a825411a311fbf1",
+    "archiveBytes": 71527227,
+    "sourceSnapshotConsistent": true,
+    "productionChanges": 0
+  },
+  "productionChanged": false,
+  "emailsSent": 0,
+  "externalBackupFinal": {
+    "checkedAt": "2026-11-12T18:14:09.424047+00:00",
+    "sourceProject": "odntvxflshrwxhdqtepm",
+    "readOnlySource": true,
+    "tables": 73,
+    "rows": 157345,
+    "privateExternalUpload": true,
+    "downloadVerified": true,
+    "restoreValidated": true,
+    "archiveSha256": "88c1bbf3aaa4a894af4cbcd6a70b2ec58d1a629b4bd63b1c1ec84339c5bb94d4",
+    "archiveBytes": 111237838,
+    "sourceSnapshotConsistent": true,
+    "productionChanges": 0
+  },
+  "production": {
+    "checkedAt": "2026-11-12T18:12:30.758Z",
+    "deployment": "dpl_AGW3ZDF2LvCNR23qJqMxLhmhT9yf",
+    "state": "READY",
+    "commit": "d10525f5c5e5ef763b2f937f797dc6e5aaa453ae",
+    "branch": "main",
+    "changed": false
+  },
+  "deployedUi": {
+    "publicLogin": true,
+    "gericoLogin": true,
+    "crossCompanyDeniedBothDirections": true,
+    "adminMfaAndSwitch": true,
+    "restrictedReviewSavedVersion": 2,
+    "ownProfileWriteRolledBack": true,
+    "stateFilter": "MG",
+    "filteredOpportunitiesObserved": 52,
+    "nationalCapturedUnique": 38370,
+    "classificationPending": 0,
+    "emailsSent": 0,
+    "mobileViewportApplied": false
+  }
+}
