@@ -140,3 +140,15 @@ Branch `codex/seguranca-cobertura-qualidade`, repositório privado [gabrielgmayr
 ### Opcionais / posteriores
 
 OCR, fontes adicionais após medir lacunas reais, WhatsApp com infraestrutura autorizada, monitor independente dos provedores atuais, armazenamento de objetos, benchmark em escala, mais empresas e testes físicos em mais dispositivos. Não anunciados como operacionais nem contratados nesta versão.
+
+## Encerramento da entrega
+
+- Código final: `79c463a39532bbb70581caa5bd2a9f8600a1a53a`, enviado à mesma branch privada.
+- [CI final do código aprovada](https://github.com/gabrielgmayrink/nexo-radar/actions/runs/43148277835), incluindo PostgreSQL18, testes, Ruff, auditorias e build.
+- [Preview final do código](https://nexo-radar-bxbxtpklf-gabriels-projects-6ec97526.vercel.app/): Vercel Ready; login visual alcançado, com indisponibilidade de Auth por falta do ambiente de staging documentado.
+- [PR #1 em rascunho](https://github.com/gabrielgmayrink/nexo-radar/pull/1), sem merge. `main` conferida em `d10525f5c5e5ef763b2f937f797dc6e5aaa453ae`.
+- Instalação das migrações e carga dos três snapshots públicos reproduzidas em um segundo banco local vazio, com sucesso e zero mensagens externas.
+- Servidor HTTP e PostgreSQL temporários encerrados. Binários e dados descartáveis removidos depois dos testes; arquivos de código, capturas e evidências preservados.
+- Documentação/capturas finais serão enviadas no commit seguinte, sem alteração do código já aprovado. Estado do workspace e sincronismo remoto conferidos na entrega.
+
+Precisões adicionais da conferência: a lista privada “Vou participar” registra interesse/acompanhamento; não foi criada uma estrela de favorito independente. Alternância entre empresas para usuário vinculado às duas existe, mas não foi exercitada visualmente nesta rodada; foram conferidos os logins separados e o isolamento. Reprocessamento de integrações permanece em rotinas autenticadas, sem botão administrativo de mutação no painel. Esses limites não são apresentados como recursos adicionais validados.
