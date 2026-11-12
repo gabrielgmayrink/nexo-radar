@@ -40,4 +40,4 @@ PR #1 integrado e produção publicada. Testes HTTP no domínio canônico: pági
 
 Após autorização específica, sessões antigas foram encerradas e as três contas receberam bloqueio de senha até definição por convite individual. Convites locais privados criados para Public, Gerico e administrador, sem envio a clientes. Cabe a cada responsável definir sua senha; o administrador deverá configurar MFA. Os arquivos e tokens não entram no repositório.
 
-A nova varredura nacional está em andamento; não é apresentada como concluída. E-mail agendado e monitor dependem ainda da validação operacional final. Esses estados devem ser atualizados após as execuções observadas.
+A nova varredura nacional está em andamento; não é apresentada como concluída. O monitor independente está habilitado; a atualização incremental foi enfileirada para executar após a varredura nacional. Envios reais às empresas aguardam autorização específica; resumo semanal e avisos diários de prazo têm ativação separada. Esses estados devem ser atualizados após as execuções observadas.

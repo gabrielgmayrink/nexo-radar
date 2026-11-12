@@ -16,7 +16,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   notify:
-    if: vars.RADAR_EMAIL_ENABLED == '1' || (github.event_name == 'workflow_dispatch' && (inputs.kind == 'verify' || inputs.kind == 'verify_smtp' || inputs.kind == 'delivery_test'))
+    # Weekly digests are dispatched by collect.yml. Daily deadline notices need
+    # their own explicit opt-in and do not follow from authorizing weekly mail.
+    if: (vars.RADAR_EMAIL_ENABLED == '1' && (github.event_name != 'schedule' || vars.RADAR_URGENT_EMAIL_ENABLED == '1')) || (github.event_name == 'workflow_dispatch' && (inputs.kind == 'verify' || inputs.kind == 'verify_smtp' || inputs.kind == 'delivery_test'))
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:
