@@ -116,6 +116,8 @@ nos ambientes autorizados, sem reenviá-los ao chat.
 
 ## Ensaio de recuperação e configuração externa
 
+O registro abaixo descreve os ensaios anteriores. Após autorização, foi validado também o backup produtivo no Blob privado e foram provisionados logins SQL próprios por serviço. Estado atual e limites em [Publicação de produção](PUBLICACAO_PRODUCAO.md).
+
 Atualização de 12/11, posterior ao ensaio local abaixo: o [ensaio em nuvem](HOMOLOGACAO_CLOUD.md) validou backup somente de leitura do Supabase independente, upload/download no Blob privado e restauração SQL integral com contagens e hashes de 73 tabelas. O gatilho do ensaio foi desligado após o sucesso; agenda produtiva continua desabilitada. Chaves de plataforma e arquivos binários externos exigem procedimentos próprios.
 
 Para o destino Blob, instalar `npm ci --prefix scripts --ignore-scripts` e configurar `BLOB_READ_WRITE_TOKEN` e `RADAR_BACKUP_BLOB_STORE_ID` exclusivamente do armazenamento privado dedicado. A chave AES é separada. Depois de gerar e validar o arquivo cifrado fora do Git, executar:

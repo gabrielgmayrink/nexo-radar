@@ -50,9 +50,9 @@ BASE='''with records as (
  r.expected_scope,r.actor,r.version,r.updated_at,r.owner,r.checklist,r.opportunity_id as review_source_id,
  n.proposal_deadline as deadline,
  n.publication_time as published,
- case when jsonb_typeof(n.payload->'valorTotalEstimado')='number' then (n.payload->>'valorTotalEstimado')::numeric else null end as estimated,
+ n.estimated_value as estimated,n.source_status,
  n.search_text,
- n.payload->'unidadeOrgao'->>'ufSigla' as uf,n.payload->>'modalidadeNome' as modality,
+ n.state_code as uf,n.modality_name as modality,
  n.city_text as city,
  n.organization_text as organization
  from public.radar_opportunities n left join lateral (
@@ -65,12 +65,12 @@ BASE='''with records as (
  where (n.id in (select id from public.radar_catalog_source)
    or exists(select 1 from public.radar_review_state own where own.opportunity_id=n.id and own.company_id=%s
        and own.status in ('Vou participar','Descartada','Ganhou','Perdeu')))
- and n.payload->>'tipoInstrumentoConvocatorioCodigo' in ('1','2','4')
+ and n.instrument_code in ('1','2','4')
 ), classified as (
  select *, coalesce(rule_score>=40 or review_offer=%s or review_offer='Revisar' or review_status='Vou participar',false) as selected,
  coalesce(review_offer='Nenhuma' or review_status='Descartada',false) as dismissed,
  case when review_offer=%s then greatest(rule_score,70) else rule_score end as effective_score
- ,coalesce(payload->>'situacaoCompraId'='1' and (deadline is null or deadline>%s),false) as active
+ ,coalesce(source_status='1' and (deadline is null or deadline>%s),false) as active
  from records
 )'''
 
@@ -110,7 +110,7 @@ def filter_sql(config,profile=None):
     situation=config.get('situation','open')
     if situation=='open' and config.get('view') not in ('tracked','dismissed','learning'):clauses.append('active')
     elif situation=='closed':clauses.append("deadline<=now()")
-    elif situation=='suspended':clauses.append("payload->>'situacaoCompraId'='4'")
+    elif situation=='suspended':clauses.append("source_status='4'")
     if config.get('source','all')=='compras_gov':
         clauses.append("exists(select 1 from public.radar_source_links l where l.opportunity_id=classified.id and l.source_hash=classified.source_hash and l.source_id='compras_gov')")
     for field in ('city','organization'):

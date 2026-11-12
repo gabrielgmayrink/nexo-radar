@@ -58,6 +58,18 @@ class CatalogPostgresTests(unittest.TestCase):
         self.assertEqual(self.page(q='homologação',situation='suspended')['total'],1)
         self.assertEqual(self.page(q='homologação',situation='open')['total'],0)
 
+    def test_scalar_filters_follow_payload_updates_and_preserve_numeric_types(self):
+        changed={**self.row,'unidadeOrgao':{'ufSigla':'ES','municipioNome':'Cidade de homologação'},
+                 'modalidadeNome':'Dispensa','valorTotalEstimado':1234.5}
+        self.db.execute('update radar_opportunities set payload=%s where id=%s',(Jsonb(changed),self.identifier))
+        self.assertEqual(self.page(q='homologação',uf='MG')['total'],0)
+        self.assertEqual(self.page(q='homologação',uf='ES',modality='Dispensa',minValue=1200,maxValue=1300)['total'],1)
+        self.db.execute("update radar_opportunities set payload=jsonb_set(payload,'{valorTotalEstimado}','\"1234.5\"') where id=%s",(self.identifier,))
+        self.assertIsNone(self.db.execute('select estimated_value from radar_opportunities where id=%s',(self.identifier,)).fetchone()[0])
+        self.assertEqual(self.page(q='homologação',minValue=1200)['total'],0)
+        self.db.execute("update radar_opportunities set payload=jsonb_set(payload,'{tipoInstrumentoConvocatorioCodigo}','3') where id=%s",(self.identifier,))
+        self.assertEqual(self.page(q='homologação')['total'],0)
+
     def test_restricted_role_blocks_cross_company_profile_write(self):
         from radar.database_roles import company_transaction
         self.db.execute("insert into radar_memberships(email,company_id,role) values('role.qa@example.com','public','owner') on conflict do nothing")

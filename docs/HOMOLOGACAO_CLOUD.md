@@ -1,5 +1,7 @@
 # Homologação em nuvem · 12/11/2026
 
+> Registro do ensaio anterior à autorização produtiva. O andamento posterior, com backup real e migrações de produção, está em [Publicação de produção](PUBLICACAO_PRODUCAO.md).
+
 ## Estado da entrega
 
 Ambiente independente de homologação provisionado na conta pessoal Vercel, com Supabase Free em São Paulo, migrações e contas fictícias. Login real, segundo fator, isolamento entre empresas, avaliação persistida e backup externo restaurado foram efetivamente testados. O código está na branch `codex/seguranca-cobertura-qualidade`, no [PR #1 em rascunho](https://github.com/gabrielgmayrink/nexo-radar/pull/1).
