@@ -2,9 +2,9 @@
 
 Radar de licitações para Public e Gerico, com React/TypeScript, Python, PostgreSQL/Supabase e Vercel. A base pública é compartilhada; critérios, avaliações, responsáveis, checklist e histórico comercial são separados por empresa.
 
-Repositório privado: [gabrielgmayrink/nexo-radar](https://github.com/gabrielgmayrink/nexo-radar). A versão desta branch está em homologação; não foi promovida à produção.
+Repositório privado: [gabrielgmayrink/nexo-radar](https://github.com/gabrielgmayrink/nexo-radar). [Produção](https://nexo-radar-taupe.vercel.app) publicada após autorização do titular.
 
-Estado mais recente e evidências de Auth/MFA real, isolamento, coleta nacional e restauração externa: [homologação em nuvem](docs/HOMOLOGACAO_CLOUD.md).
+Estado atual, backup produtivo restaurado e limites: [publicação de produção](docs/PUBLICACAO_PRODUCAO.md). Ensaios anteriores de Auth/MFA, isolamento e coleta nacional: [homologação em nuvem](docs/HOMOLOGACAO_CLOUD.md).
 
 ## Funcionalidades
 
@@ -15,7 +15,7 @@ Estado mais recente e evidências de Auth/MFA real, isolamento, coleta nacional 
 - Perfis editáveis com produtos, serviços, expressões, sinônimos, exclusões, regiões, órgãos e preferência de resumo semanal.
 - Login separado por empresa, avaliação auditada e acompanhamento que preserva registros encerrados.
 - Itens, anexos e trechos de PDFs com fontes. Extração textual não representa análise jurídica nem OCR.
-- Diagnóstico das fontes para responsáveis; manutenção por jobs autenticados; backup cifrado com restauração externa validada em homologação.
+- Diagnóstico das fontes para responsáveis; manutenção por jobs autenticados; backup cifrado com restauração externa validada em homologação e produção.
 
 Public mantém os quatro grupos confirmados de serviços administrativos, gestão, palestras/capacitação e EAD. TI está fora do perfil. Gerico permanece desativada até receber seus produtos/serviços; nenhum segmento foi inventado.
 
@@ -66,11 +66,11 @@ Perfis são editados no painel por responsáveis autorizados e registrados no ba
 
 ## Operação
 
-Coleta nacional: segunda07h; incremental diário09h17; manutenção: domingo23h, sempre Brasília. Agendamento GitHub pode atrasar. O monitor separado precisa ser habilitado após homologação. Arquivamento preserva os originais e as avaliações. O resumo semanal depende da conferência da coleta e do envio habilitado aos destinatários autorizados.
+Coleta nacional: segunda07h; incremental diário09h17; manutenção: domingo23h, sempre Brasília. Agendamento GitHub pode atrasar. O monitor separado verifica atualidade, quarentena, enriquecimento e capacidade. Arquivamento preserva os originais e as avaliações. O resumo semanal depende de captura indexada em duas passagens e do envio habilitado aos destinatários autorizados; fonte em movimento continua com cobertura não confirmada.
 
-O certificado público Supabase acompanha o pacote; conexões exigem `verify-full`. Privilégios restritos por papel são preparados e testados; `RADAR_DB_ENFORCE_ROLES` só deve ser habilitado após provisionamento e validação das credenciais próprias.
+O certificado público Supabase acompanha o pacote; conexões exigem `verify-full`. API e coletor usam logins próprios, provisionados e validados, com `RADAR_DB_SERVICE_CREDENTIALS=1` e `RADAR_DB_ENFORCE_ROLES=1`. Variáveis administrativas antigas foram retiradas de Production; a chave administrativa do provedor Auth permanece necessária no servidor para operações de contas.
 
-Backup local: AES-GCM, validação do arquivo e restauração somente em banco local vazio. Upload S3 privado e agenda estão preparados, desativados até configurar destino, chave separada e retenção. Não existe serviço pago contratado por esta implementação.
+Backup produtivo: AES-GCM e Blob privado, segunda03h41, com download e restauração em banco isolado. Credencial SQL somente de leitura, chave separada, orçamento de 512MiB e sem exclusão automática. Ao esgotar capacidade, conserva as cópias e exige ação; não há retenção ilimitada nem recuperação contínua garantida. O workflow S3 legado permanece manual e desativado. Não existe serviço pago contratado por esta implementação.
 
 ## Evidências e limites
 

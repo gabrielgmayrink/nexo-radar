@@ -89,7 +89,7 @@ def finish_if_ready(store,cursor,execution_id):
                       # A moving page list is not evidence that an earlier ID
                       # ceased to exist. Preserve the union until a stable scan.
                       pending_tasks=[],partition=1,
-                      minimumPass=pass_number if consistent else max(1,pass_number-completed+1))
+                      minimumPass=pass_number if consistent else cursor.get('firstReceiptPass',1))
         store.complete(execution_id,KIND,cursor)
     else:
         cursor.update(passNumber=pass_number+1,passPages=0,pending_tasks=[{'mode':'proposta','modality':0,'page':1,'fingerprints':[]}],
@@ -110,7 +110,7 @@ def handle_national(store,action,body,run_key):
             # observations. Preserve their captures, but restart a new numbered
             # pass so they cannot be mistaken for complete receipt evidence.
             number=cursor.get('passNumber',1)+(1 if cursor.get('pages',0) else 0)
-            cursor.update(verificationPolicy='stable_sets_v1',passNumber=number,passPages=0,
+            cursor.update(verificationPolicy='stable_sets_v1',passNumber=number,firstReceiptPass=number,passPages=0,
                           completedFullPasses=0,captureComplete=False,basePagesComplete=False,indexingComplete=False,
                           coverageComplete=False,quarantinedRecords=0,consistency='verifying',
                           pending_tasks=[{'mode':'proposta','modality':0,'page':1,'fingerprints':[]}],

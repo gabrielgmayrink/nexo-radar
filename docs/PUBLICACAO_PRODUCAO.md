@@ -6,7 +6,7 @@ Endereço canônico: https://nexo-radar-taupe.vercel.app. A liberação foi expr
 
 - Backup produtivo anterior à migração restaurado em banco isolado no [GitHub Actions](https://github.com/gabrielgmayrink/nexo-radar/actions/runs/43302849254): 59 tabelas, 92.305 linhas, 74.851.499 bytes cifrados, download conferido e hashes/contagens iguais. Origem somente de leitura; nenhuma escrita produtiva pelo ensaio.
 - Armazenamento produtivo dedicado `nexo-radar-backups-producao`, privado, São Paulo, Hobby. As três credenciais autorizadas estão separadas: login SQL somente de leitura, chave AES e token do armazenamento. A conexão administrativa não foi enviada ao job.
-- Migrações até 032 aplicadas em produção. Não existe migração 018. Reclassificação concluída de 43.676 registros, sem exclusões. Compactação concluída em 69,97s com limite de 120s e espera de bloqueio de 3s; contagem preservada.
+- Migrações até 033 aplicadas em produção. Não existe migração 018. Reclassificação concluída de 43.676 registros, sem exclusões. Após a projeção de filtros, a compactação final preservou os 43.679 registros existentes naquele instante e reduziu o banco de 346.175.155 para 284.939.955 bytes em 49,31s, com limite de 120s e espera de bloqueio de 3s. O aumento de três registros veio da coleta iniciada anteriormente.
 - API e coletor possuem logins SQL independentes. API não pode alterar a fonte oficial, ler fontes brutas ou hashes de senha. Coletor não pode ler identidades de autenticação. Perfis/avaliações continuam com autorização por empresa e contexto SQL restrito; não se afirma que todas as leituras privadas são isoladas exclusivamente pelo banco.
 - Na homologação, o login real, MFA, revogação, escrita de perfis/avaliações e negação de acesso cruzado passaram com as novas credenciais. A prévia contém apenas usuários fictícios.
 
@@ -15,6 +15,10 @@ Endereço canônico: https://nexo-radar-taupe.vercel.app. A liberação foi expr
 A busca produtiva lia repetidamente documentos JSON completos para contagens e filtros, chegando a 57,7s e excedendo o limite de uma das consultas. A migração 033 mantém projeções escalares de situação, instrumento, UF, modalidade e valor, sincronizadas pelo mesmo gatilho da gravação oficial. Não altera a fonte nem as decisões da empresa. O documento completo continua disponível na página selecionada.
 
 Na amostra de homologação com 38.370 registros, a consulta completa com paginação e facetas levou 828ms; filtro de UF 531ms, texto 485ms e descoberta 781ms. São medições pontuais, não SLA. Os testes exercitam também alterações do documento, suspensão, mudança de UF/modalidade, valores não numéricos e exclusão de instrumentos incompatíveis.
+
+Em produção, a primeira leitura após migração levou 12.703ms; UF 1.313ms, texto 1.562ms e perfil Gerico desativado 328ms. API autenticada com login próprio recusou alteração canônica, fonte bruta e hash de senha; coletor escreveu com reversão e não leu identidades Auth. Configurações `POSTGRES_*` e `SUPABASE_JWT_SECRET` não têm mais destino Production; as configurações de Auth e SMTP necessárias foram mantidas.
+
+Na retomada, o checkpoint marcado `legacy_count_check` começa uma nova passagem numerada desde a página 1 e zera somente a prova de conferência. Documentos e recibos históricos permanecem. A união visível começa na primeira passagem do novo modelo; se a fonte encurta durante a leitura e exige outra passagem, o limite inicial não avança nem oculta os registros já observados. Testes reproduzem o checkpoint migrado e essa redução da lista.
 
 ## Operação prevista e limites
 
@@ -28,4 +32,12 @@ Senhas anteriormente compartilhadas devem ser substituídas por convites individ
 
 ## Estado da conclusão
 
-Publicação, medição produtiva da migração 033, retirada das configurações administrativas antigas, teste de e-mail e primeira coleta produtiva permanecem em validação. Atualizar esta seção somente com resultados observados.
+PR #1 integrado e produção publicada. Testes HTTP no domínio canônico: página 200, catálogo privado anônimo 401, sessão anônima sem dados, gravação de outra origem 403 e job sem identidade 403. Login visual verificado no domínio produtivo; o fluxo real completo com senha, MFA e negação cruzada foi exercitado na homologação, sem representar como concluída a definição das senhas pessoais em produção.
+
+[Backup após publicação](https://github.com/gabrielgmayrink/nexo-radar/actions/runs/43309462418): 73 tabelas, 92.331 linhas, arquivo cifrado de 87.302.378 bytes, SHA256 `e55dbef799286438896bc6869d8c6ea502f6abe52c7d1a7a4fa62551c1dba904`, restauração e hashes/contagens conferidos. Nenhuma escrita produtiva pelo job.
+
+[Envio de teste autorizado](https://github.com/gabrielgmayrink/nexo-radar/actions/runs/43309553384): exatamente uma mensagem aceita e encontrada na conta destinatária do proprietário, classificada pelo Gmail como spam. Nenhum reenvio nem alteração na caixa postal. Entrega aceita não garante classificação na caixa de entrada.
+
+Após autorização específica, sessões antigas foram encerradas e as três contas receberam bloqueio de senha até definição por convite individual. Convites locais privados criados para Public, Gerico e administrador, sem envio a clientes. Cabe a cada responsável definir sua senha; o administrador deverá configurar MFA. Os arquivos e tokens não entram no repositório.
+
+A nova varredura nacional está em andamento; não é apresentada como concluída. E-mail agendado e monitor dependem ainda da validação operacional final. Esses estados devem ser atualizados após as execuções observadas.

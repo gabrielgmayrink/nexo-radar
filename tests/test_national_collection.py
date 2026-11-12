@@ -99,6 +99,17 @@ class LegacyReceiptTransitionTests(unittest.TestCase):
         self.assertFalse(result['coverageComplete']);self.assertEqual(store.cursor['minimumPass'],7)
         self.assertEqual(result['completedFullPasses'],2)
 
+    def test_shortened_source_between_full_passes_keeps_first_receipt_membership(self):
+        from datetime import date
+        store=Store();store.cursor=initial_cursor('national_open',date(2026,11,12))
+        store.cursor.update(passNumber=6,pages=100,consistency='legacy_count_check')
+        handle_national(store,'national_plan',{},'release')
+        full_pass(store,120,7);commit(store,payload(1,120),8)
+        handle_national(store,'national_reconcile',{'executionId':1,'page':2,'passNumber':8,'payload':payload(1,20)},'release')
+        result=full_pass(store,20,9)
+        self.assertFalse(result['coverageComplete']);self.assertEqual(store.cursor['minimumPass'],7)
+        self.assertEqual(result['completedFullPasses'],2)
+
 
 class NationalTests(unittest.TestCase):
     def test_plan_has_no_business_or_state_filter(self):
