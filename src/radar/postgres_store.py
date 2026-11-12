@@ -22,11 +22,15 @@ PROJECT_REF = os.environ.get('RADAR_SUPABASE_PROJECT_REF', '')
 LOCK_ID = 739241663
 
 
-def connection_string():
+def connection_string(*,service=None):
     url = os.environ.get('SUPABASE_URL', '')
     if not PROJECT_REF or urlparse(url).hostname != PROJECT_REF + '.supabase.co':
         raise ValueError('Unexpected Radar database')
-    raw = os.environ.get('POSTGRES_URL_NON_POOLING') or os.environ.get('POSTGRES_URL')
+    if service not in (None,'api','collector'):raise ValueError('Invalid database service')
+    raw=os.environ.get('RADAR_'+service.upper()+'_DATABASE_URL') if service else None
+    if service and not raw and os.environ.get('RADAR_DB_SERVICE_CREDENTIALS')=='1':
+        raise ValueError('Dedicated service credential required')
+    raw = raw or os.environ.get('POSTGRES_URL_NON_POOLING') or os.environ.get('POSTGRES_URL')
     parsed = urlparse(raw or '')
     if parsed.scheme not in ('postgres', 'postgresql') or not parsed.password:
         raise ValueError('Postgres connection unavailable')
@@ -78,8 +82,11 @@ def capture_observations(records):
 
 
 class PostgresStore:
-    def __init__(self, connection=None):
-        self.db = connection or psycopg.connect(connection_string(), autocommit=True)
+    def __init__(self, connection=None,*,service='api'):
+        if service not in ('api','collector'):raise ValueError('Invalid database service')
+        self.db = connection or psycopg.connect(connection_string(service=service), autocommit=True)
+        if connection is None and os.environ.get('RADAR_DB_SERVICE_CREDENTIALS')=='1':
+            self.db.execute('set role '+{'api':'radar_api','collector':'radar_collector'}[service])
         self.db.execute("set statement_timeout='25s'")
         self.db.execute("set lock_timeout='5s'")
 

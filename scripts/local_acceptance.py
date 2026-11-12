@@ -35,7 +35,7 @@ def main():
     team_auth.COOKIE='radar_qa_session'
     team_auth.session_cookie=lambda token,clear=False:'radar_qa_session='+('' if clear else token)+'; Path=/; HttpOnly; SameSite=Strict; Max-Age='+('0' if clear else '604800')
     class LocalStore(postgres_store.PostgresStore):
-        def __init__(self):super().__init__(psycopg.connect(dsn,autocommit=True,connect_timeout=5))
+        def __init__(self,**kwargs):super().__init__(psycopg.connect(dsn,autocommit=True,connect_timeout=5),**kwargs)
     postgres_store.PostgresStore=LocalStore
     def provider(path,payload,**kwargs):
         email=payload.get('email','')

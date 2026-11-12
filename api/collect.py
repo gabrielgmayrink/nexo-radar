@@ -50,7 +50,7 @@ class handler(BaseHTTPRequestHandler):
         from radar.national_collection import handle_national,StalePage
         store = None
         try:
-            store = PostgresStore()
+            store = PostgresStore(service='collector')
             if maintenance:
                 from radar.catalog_maintenance import cleanup,weekly_summary
                 if body['action']=='health':

@@ -38,7 +38,9 @@ class handler(BaseHTTPRequestHandler):
                 self.respond(404, {'error': 'Contratação não encontrada no acervo oficial.'}); return
             row = existing[0] if metadata else fetch_record(identifier, timeout=12)
             if not metadata:
-                store.write_records([row])
+                writer=PostgresStore(service='collector')
+                try:writer.write_records([row])
+                finally:writer.close()
             with profile_context(store.db):
                 classification = classify(row.get('objetoCompra') or '', row.get('informacaoComplementar') or '')
             saved = store.db.execute('''select offer from radar_review_state where company_id=%s and opportunity_id=%s

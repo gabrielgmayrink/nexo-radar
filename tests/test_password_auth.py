@@ -20,7 +20,7 @@ class PasswordAuthTests(unittest.TestCase):
                 return SimpleNamespace(fetchone=lambda:(self.generation,))
             if 'select count(*)' in sql:return SimpleNamespace(fetchone=lambda:(self.attempts,))
             if 'select email from radar_account_invites' in sql:return SimpleNamespace(fetchone=lambda:self.invite)
-            if 'select id from auth.users' in sql:return SimpleNamespace(fetchone=lambda:None)
+            if 'select id from public.radar_auth_identities' in sql:return SimpleNamespace(fetchone=lambda:None)
             return MagicMock()
         self.db.execute.side_effect=execute
         self.provider=Mock(return_value={'user':USER})

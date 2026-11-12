@@ -82,3 +82,17 @@ class CatalogPostgresTests(unittest.TestCase):
                 self.db.execute('update radar_opportunities set score=100 where id=%s',(self.identifier,))
             with self.assertRaises(AccessDenied),self.db.transaction():
                 save_review(self.db,{**review,'offer':'Gerico'},'review.qa@example.com','public')
+
+    def test_api_and_collector_have_separate_database_privileges(self):
+        with self.db.transaction():
+            self.db.execute('set local role radar_api')
+            result=self.page(q='homologação')
+            self.assertEqual(result['total'],1)
+            for statement in ("update radar_opportunities set score=100",'select encrypted_password from auth.users','select * from radar_raw'):
+                with self.assertRaises(psycopg.errors.InsufficientPrivilege),self.db.transaction():self.db.execute(statement)
+            self.assertEqual(self.db.execute('select count(*) from public.radar_auth_identities').fetchone()[0],0)
+            self.assertFalse(self.db.execute("select has_table_privilege('radar_collector','public.radar_team_sessions','INSERT')").fetchone()[0])
+        with self.db.transaction():
+            self.db.execute('set local role radar_collector')
+            self.db.execute('update radar_opportunities set catalog_seen_at=now() where id=%s',(self.identifier,))
+            with self.assertRaises(psycopg.errors.InsufficientPrivilege),self.db.transaction():self.db.execute('select * from public.radar_auth_identities')

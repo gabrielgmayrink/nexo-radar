@@ -20,7 +20,7 @@ def create_session(db,user,email,*,expected_generation=None,assurance='aal1'):
         if (required or email in email_list('RADAR_MFA_REQUIRED_EMAILS')) and assurance!='aal2':raise AuthenticationFailed('Second factor required')
         token=secrets.token_urlsafe(32)
         db.execute('''insert into radar_team_sessions(token_digest,user_id,email,expires_at,auth_generation,assurance_level,credential_fingerprint)
-            values(%s,%s,%s,%s,%s,%s,(select md5(encrypted_password) from auth.users where id=%s))''',
+            values(%s,%s,%s,%s,%s,%s,(select credential_fingerprint from public.radar_auth_identities where id=%s))''',
                    (digest(token),user['id'],email,datetime.now(timezone.utc)+timedelta(days=7),generation,assurance,user['id']))
     return email,token
 
@@ -59,7 +59,7 @@ def setup_password(db,token,password,*,provider=auth_request,origin='unknown'):
         row=db.execute('select email from radar_account_invites where token_digest=%s and consumed_at is null and expires_at>now() for update',(digest(token),)).fetchone()
         if not row or row[0] not in email_list('RADAR_TEAM_EMAILS'):raise AuthenticationFailed('Expired invite')
         email=row[0]
-        existing=db.execute('select id from auth.users where lower(email)=%s',(email,)).fetchone()
+        existing=db.execute('select id from public.radar_auth_identities where lower(email)=%s',(email,)).fetchone()
         generation=revoke_account(db,email)
     # Keep the revocation committed even if the remote provider or a later
     # insert fails. Retrying then requires a new invite, never an old session.

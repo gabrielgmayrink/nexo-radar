@@ -153,7 +153,7 @@ class SecurityBoundaryTests(unittest.TestCase):
         db=MagicMock();db.execute.return_value.fetchone.return_value=None
         self.assertIsNone(session_user(db,'__Host-radar_session='+'x'*43))
         sql=db.execute.call_args.args[0]
-        for guard in ('s.auth_generation','a.disabled_at','u.banned_until','md5(u.encrypted_password)','auth.mfa_factors'):
+        for guard in ('s.auth_generation','a.disabled_at','u.banned_until','u.credential_fingerprint','radar_verified_mfa_users'):
             self.assertIn(guard,sql)
         self.assertIsInstance(db.execute.call_args.args[1][1],list)
 

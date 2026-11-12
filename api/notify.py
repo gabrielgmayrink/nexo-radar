@@ -27,7 +27,7 @@ class handler(BaseHTTPRequestHandler):
             if body['kind']=='verify_smtp':
                 from radar.mail import verify_gmail
                 self.respond(200,verify_gmail());return
-            store=PostgresStore()
+            store=PostgresStore(service='collector')
             if body['kind']=='verify':
                 def probe(records):
                     try:
