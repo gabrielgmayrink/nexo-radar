@@ -1,6 +1,6 @@
 """Encrypted archives in a dedicated private Blob store, with a hard byte budget.
 
-The CLI receives its token through the environment, never process arguments.
+The SDK helper receives its token through the environment, never process arguments.
 Pruning is opt-in, limited to this script's immutable archive paths, and retains
 at least two newer copies. Production scheduling remains a separate owner action.
 """
@@ -43,11 +43,12 @@ class PrivateBlob:
         self.hostname=store.removeprefix('store_').lower()+'.private.blob.vercel-storage.com'
         # The desktop/CI may provide an unrelated deployment OIDC identity.
         self.env.pop('VERCEL_OIDC_TOKEN',None);self.env.pop('BLOB_STORE_ID',None)
-        self.cli=shutil.which('vercel.cmd') or shutil.which('vercel') or 'vercel'
+        self.node=shutil.which('node') or 'node'
+        self.transport=Path(__file__).with_name('blob_transport.mjs')
         self.runner=runner
 
     def execute(self,args):
-        result=self.runner([self.cli,'blob',*args],env=self.env,capture_output=True,text=True,timeout=600)
+        result=self.runner([self.node,str(self.transport),*args],env=self.env,capture_output=True,text=True,timeout=600)
         if result.returncode:raise RuntimeError('Private Blob operation failed')
         return result.stdout
 

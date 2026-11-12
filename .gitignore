@@ -6,6 +6,7 @@ __pycache__/
 .env
 work/phase0/
 web/node_modules/
+scripts/node_modules/
 web/dist/
 web/.vercel/
 /.vercel/

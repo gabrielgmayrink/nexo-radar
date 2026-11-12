@@ -1,0 +1,12 @@
+{
+  "name": "nexo-radar-operations",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@vercel/blob": "2.9.0"
+  },
+  "overrides": {
+    "@vercel/cli-config": "0.3.8"
+  }
+}
