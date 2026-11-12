@@ -73,6 +73,12 @@ class IngestionIntegrationTests(unittest.TestCase):
             cursor=finish_if_ready(self.store,cursor,self.execution)
         self.assertTrue(cursor['captureComplete']);self.assertFalse(cursor['coverageComplete'])
         self.assertEqual(cursor['consistency'],'source_changed')
+        self.assertEqual(cursor['minimumPass'],1)
+        content=self.db.execute("select content from radar_catalog_state where id='open'").fetchone()[0]
+        self.assertEqual(content['metrics']['unique'],3)
+        identifiers=[row(930001)['numeroControlePNCP'],row(930002)['numeroControlePNCP'],row(930003)['numeroControlePNCP']]
+        visible=self.db.execute('select id from radar_catalog_source where id=any(%s)',(identifiers,)).fetchall()
+        self.assertEqual({value[0] for value in visible},set(identifiers))
 
     def test_official_changes_are_transactional_idempotent_and_stale_safe(self):
         original=row(940001,dataEncerramentoProposta='2026-11-20T12:00:00')

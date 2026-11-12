@@ -86,7 +86,9 @@ def finish_if_ready(store,cursor,execution_id):
     if consistent or completed>=2:
         cursor.update(status='ok',consistency='stable_sets' if consistent else
                       'quarantine_pending' if evidence['quarantined'] else 'source_changed',
-                      pending_tasks=[],partition=1,minimumPass=pass_number)
+                      # A moving page list is not evidence that an earlier ID
+                      # ceased to exist. Preserve the union until a stable scan.
+                      pending_tasks=[],partition=1,minimumPass=pass_number if consistent else 1)
         store.complete(execution_id,KIND,cursor)
     else:
         cursor.update(passNumber=pass_number+1,passPages=0,pending_tasks=[{'mode':'proposta','modality':0,'page':1,'fingerprints':[]}],

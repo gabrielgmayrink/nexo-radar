@@ -66,7 +66,7 @@ def load_collection_status(*, opener=urlopen,db=None):
                      'pages':metrics.get('pages',0),'recordsReceived':metrics.get('recordsReceived',0),
                      'completedPartitions':metrics.get('completedPartitions',0),
                      'totalPartitions':metrics.get('totalPartitions',0),
-                     **{key:metrics.get(key) for key in ('scope','expectedRecords','expectedPages','passPages','uniqueRecords','coverageComplete','captureComplete','indexingComplete','consistency','quarantinedRecords','passNumber')}})
+                     **{key:metrics.get(key) for key in ('scope','expectedRecords','expectedPages','passPages','uniqueRecords','coverageComplete','captureComplete','indexingComplete','consistency','quarantinedRecords','passNumber','completedFullPasses')}})
     return {'enabled':os.environ.get('RADAR_COLLECTION_ENABLED')=='1',
             'scope':'all_open_brazil','collections':collections,'executions':jobs}
 

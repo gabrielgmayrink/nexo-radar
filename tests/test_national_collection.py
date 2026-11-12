@@ -83,6 +83,7 @@ class NationalTests(unittest.TestCase):
         final=commit(store,payload(3),2)
         self.assertTrue(final['done']);self.assertTrue(final['coverageComplete'])
         self.assertEqual(final['consistency'],'stable_sets');self.assertEqual(len(store.ledger),6)
+        self.assertEqual(store.cursor['minimumPass'],2)
 
     def test_equal_counts_replaced_id_outside_head_does_not_prove_complete(self):
         store=Store();full_pass(store,100);commit(store,payload(1,100),2)
@@ -90,6 +91,8 @@ class NationalTests(unittest.TestCase):
         self.assertTrue(final['done']);self.assertTrue(final['captureComplete'])
         self.assertFalse(final['coverageComplete']);self.assertEqual(final['consistency'],'source_changed')
         self.assertIn('12345678000100-1-000100/2026',store.rows)
+        self.assertEqual(store.cursor['minimumPass'],1)
+        self.assertIn('12345678000100-1-000099/2026',store.rows)
 
     def test_equal_ids_changed_body_cannot_prove_consistency(self):
         store=Store();full_pass(store,51);commit(store,payload(1,51),2)
