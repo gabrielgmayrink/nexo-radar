@@ -17,7 +17,7 @@ class handler(BaseHTTPRequestHandler):
             length=int(self.headers.get('Content-Length','0'))
             if not 1<=length<=1024:raise ValueError()
             body=json.loads(self.rfile.read(length))
-            if not isinstance(body,dict) or body.get('kind') not in ('weekly','urgent','test','verify','verify_smtp'):raise ValueError()
+            if not isinstance(body,dict) or body.get('kind') not in ('weekly','urgent','test','verify','verify_smtp','delivery_test'):raise ValueError()
         except (ValueError,TypeError):
             self.respond(400,{'error':'Parâmetros inválidos.'});return
         from radar.postgres_store import PostgresStore
@@ -28,6 +28,9 @@ class handler(BaseHTTPRequestHandler):
                 from radar.mail import verify_gmail
                 self.respond(200,verify_gmail());return
             store=PostgresStore(service='collector')
+            if body['kind']=='delivery_test':
+                from radar.notifications import send_delivery_test
+                self.respond(200,send_delivery_test(store.db));return
             if body['kind']=='verify':
                 def probe(records):
                     try:

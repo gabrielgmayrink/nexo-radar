@@ -38,6 +38,7 @@ class NotificationFlowTests(unittest.TestCase):
         self.assertEqual(result['sent'],1);self.assertEqual(result['verified'],1)
         writer.assert_called_once();sender.assert_called_once()
         self.assertIn('conferida individualmente',sender.call_args.args[4])
+        self.assertIn('cobertura nacional ainda não foi confirmada',sender.call_args.args[4])
 
     def test_cancelled_candidate_is_not_sent_from_a_stale_cached_card(self):
         sender=Mock()

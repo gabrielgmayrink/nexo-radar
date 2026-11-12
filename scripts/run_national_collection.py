@@ -187,13 +187,17 @@ def wire_fields(source,page):
 
 def write_summary(progress,complete):
     verified=bool(complete and progress.get('coverageComplete'))
+    capture_ready=bool(verified or complete and progress.get('captureComplete') is True
+                      and progress.get('indexingComplete') is True and progress.get('completedFullPasses',0)>=2)
     data={'event':'national_complete' if complete else 'national_incomplete','captureComplete':complete,'coverageComplete':verified,
           **{key:progress.get(key) for key in ('executionId','recordsReceived','uniqueRecords','expectedRecords','expectedPages','pages','passNumber','error')}}
     print(json.dumps(data),flush=True)
     output=os.environ.get('GITHUB_OUTPUT')
     if output:
         from pathlib import Path
-        with Path(output).open('a',encoding='utf-8') as stream:stream.write('coverage_verified='+str(verified).lower()+'\n')
+        with Path(output).open('a',encoding='utf-8') as stream:
+            stream.write('coverage_verified='+str(verified).lower()+'\n')
+            stream.write('capture_ready='+str(capture_ready).lower()+'\n')
     if not complete:print('::warning title=Varredura nacional incompleta::Todas as páginas ainda não foram confirmadas. O progresso está salvo e será retomado.',flush=True)
     elif not verified:print('::warning title=Conferência pendente::Páginas capturadas; a fonte mudou entre as passagens ou há registros em quarentena. A cobertura permanece não confirmada.',flush=True)
     path=os.environ.get('GITHUB_STEP_SUMMARY')

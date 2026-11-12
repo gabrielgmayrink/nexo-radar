@@ -9,13 +9,18 @@ from radar.access_security import throttle,TooManyAttempts,account_state,lock_ac
 
 
 class AuthenticationFailed(ValueError): pass
+def password_reset_required(db,email):
+    row=db.execute('select password_reset_required from radar_account_security where email=%s',(email,)).fetchone()
+    return bool(row and row[0] is True)
+
+
 def create_session(db,user,email,*,expected_generation=None,assurance='aal1'):
     if user.get('email','').lower()!=email or not user.get('email_confirmed_at') or not user.get('id'):
         raise AuthenticationFailed('Unverified identity')
     with db.transaction():
         lock_account(db,email)
         generation,required,disabled=account_state(db,email,lock=True)
-        if disabled or (expected_generation is not None and generation!=expected_generation):
+        if disabled or password_reset_required(db,email) or (expected_generation is not None and generation!=expected_generation):
             raise AuthenticationFailed('Account changed; authenticate again')
         if (required or email in email_list('RADAR_MFA_REQUIRED_EMAILS')) and assurance!='aal2':raise AuthenticationFailed('Second factor required')
         token=secrets.token_urlsafe(32)
@@ -33,7 +38,7 @@ def password_login(db,email,password,*,provider=auth_request,origin='unknown'):
     if not EMAIL_PATTERN.fullmatch(email) or email not in email_list('RADAR_TEAM_EMAILS'):
         raise AuthenticationFailed('Invalid credentials')
     generation,_,disabled=account_state(db,email)
-    if disabled:raise AuthenticationFailed('Account unavailable')
+    if disabled or password_reset_required(db,email):raise AuthenticationFailed('Use a new personal invite')
     try:response=provider('token?grant_type=password',{'email':email,'password':password})
     except HTTPError as exc:
         if exc.code in (400,401,403):raise AuthenticationFailed('Invalid credentials') from None
@@ -67,6 +72,13 @@ def setup_password(db,token,password,*,provider=auth_request,origin='unknown'):
         response=provider('admin/users/'+str(existing[0]),{'password':password,'email_confirm':True},method='PUT')
     else:response=provider('admin/users',{'email':email,'password':password,'email_confirm':True})
     user=response.get('user',response)
+    if user.get('email','').lower()!=email or not user.get('id') or not user.get('email_confirmed_at'):
+        raise AuthenticationFailed('Unverified identity')
+    with db.transaction():
+        lock_account(db,email)
+        current_generation,_,disabled=account_state(db,email,lock=True)
+        if disabled or current_generation!=generation:raise AuthenticationFailed('Account changed; use a new invite')
+        db.execute('update radar_account_security set password_reset_required=false,updated_at=now() where email=%s',(email,))
     factors=[factor for factor in user.get('factors',[]) if factor.get('status')=='verified']
     if factors or account_state(db,email)[1] or email in email_list('RADAR_MFA_REQUIRED_EMAILS'):
         # An administrative password response is not proof of a second factor.

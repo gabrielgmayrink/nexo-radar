@@ -1,6 +1,7 @@
 """Read-only cloud snapshot -> encrypted private upload -> empty local restore.
 
-Only an explicitly selected non-production Supabase project is accepted. Hashes
+Production additionally requires the explicit production wrapper and dedicated
+read-only login. Hashes
 are computed under the same exported snapshot used by pg_dump, so a collector may
 continue writing without invalidating the comparison. No source rows are changed.
 """
@@ -20,10 +21,12 @@ from backup_database import pg_environment,run_pg
 from backup_blob import PrivateBlob,upload_archive
 
 
-def validate_source(reference,url):
-    if not re.fullmatch(r'[a-z0-9]{20}',reference or '') or reference=='hxngkmrsthyjycxaellk':
+def validate_source(reference,url,*,production=False):
+    if not re.fullmatch(r'[a-z0-9]{20}',reference or '') or reference=='hxngkmrsthyjycxaellk' and not production:
         raise ValueError('Non-production project required')
     parsed=urlparse(url)
+    if production and (reference!='hxngkmrsthyjycxaellk' or (parsed.username or '').split('.')[0]!='nexo_backup_login'):
+        raise ValueError('Dedicated production backup login required')
     if reference not in (parsed.username or '') and reference not in (parsed.hostname or ''):
         raise ValueError('Backup source project mismatch')
 
@@ -40,10 +43,10 @@ def fingerprints(db,tables):
     return result
 
 
-def main():
+def main(*,production=False):
     reference=os.environ.get('RADAR_SUPABASE_PROJECT_REF','')
     source_url=os.environ.get('POSTGRES_URL_NON_POOLING','')
-    validate_source(reference,source_url)
+    validate_source(reference,source_url,production=production)
     restore_url=os.environ.get('RADAR_RESTORE_TEST_URL','')
     parsed=urlparse(restore_url)
     if parsed.hostname not in ('localhost','127.0.0.1') or not parsed.path[1:].startswith('radar_restore_test_'):

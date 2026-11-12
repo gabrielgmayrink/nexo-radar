@@ -1,7 +1,5 @@
-name: Encrypted Radar Backup
+name: Legacy S3 Radar Backup
 on:
-  schedule:
-    - cron: '41 6 * * *' # 03:41 Brasília
   workflow_dispatch:
 permissions:
   contents: read
@@ -10,7 +8,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   backup:
-    if: github.ref == 'refs/heads/main' && vars.RADAR_BACKUP_ENABLED == '1'
+    if: github.ref == 'refs/heads/main' && vars.RADAR_BACKUP_S3_ENABLED == '1'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: backup

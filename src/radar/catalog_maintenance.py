@@ -73,8 +73,10 @@ def cleanup(store,*,dry_run=False,now=None,run_key='manual'):
 def weekly_ready(cursor,run_key,now):
     local=now.astimezone(TZ)
     source_run=str(cursor.get('last_run_key') or cursor.get('run_key','')).split(':')[0]
+    captured=cursor.get('coverageComplete') is True or (cursor.get('captureComplete') is True
+              and cursor.get('indexingComplete') is True and cursor.get('completedFullPasses',0)>=2)
     return (local.weekday()==0 and local.hour>=7 and cursor.get('end')==local.date().isoformat()
-            and cursor.get('status')=='ok' and cursor.get('coverageComplete') is True
+            and cursor.get('status')=='ok' and captured
             and source_run==run_key.split(':')[0])
 
 

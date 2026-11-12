@@ -1,5 +1,6 @@
 """Small, deduplicated digests. Rule suggestions are never labelled AI-validated."""
 import html
+import os
 import re
 from datetime import datetime,timedelta,timezone
 from radar.mail import APP_URL,email_list,reserve,send_reserved
@@ -8,6 +9,17 @@ from radar.learning import apply_examples
 from radar.company_access import memberships,visible_card,COMPANIES
 from radar.profiles import load_profiles
 from radar.verification import verify_shortlist,fetch_record
+
+
+def send_delivery_test(db,*,sender=send_reserved):
+    recipient=os.environ.get('RADAR_DELIVERY_TEST_EMAIL','').strip().lower()
+    if recipient not in email_list('RADAR_TEAM_EMAILS'):raise ValueError('Authorized test recipient required')
+    identifier=reserve(db,recipient,'test','delivery-test-v1:'+recipient)
+    if not identifier:return {'sent':0,'skipped':1,'kind':'delivery_test'}
+    text='Este é o teste de envio autorizado do Nexo Radar. Acesse seu painel: '+APP_URL
+    sender(db,identifier,recipient,'Nexo Radar — teste de envio',
+           '<h1>Nexo Radar</h1><p>Este é o teste de envio autorizado.</p><p><a href="'+html.escape(APP_URL,quote=True)+'">Abrir meu painel</a></p>',text)
+    return {'sent':1,'skipped':0,'kind':'delivery_test'}
 
 
 def future_deadline(card,now):
@@ -90,10 +102,11 @@ def _notify_company(db,kind,company,recipients,*,now=None,sender=send_reserved,f
     keys=[f'{kind}:{period}:{recipient}' for recipient in recipients]
     handled=db.execute('select count(*) from radar_mail_outbox where dedupe_key=any(%s)',(keys,)).fetchone()[0]
     if not dry_run and handled==len(recipients):return {'sent':0,'skipped':handled,'candidates':0,'kind':kind,'verified':0}
-    cards=[];verified=0;check_errors=0
+    cards=[];verified=0;check_errors=0;coverage_complete=False
     if kind!='test':
         profile=next(profile for profile in load_profiles() if profile['id']==company)
         state=db.execute("select content from radar_catalog_state where id='open'").fetchone()
+        coverage_complete=bool(state and state[0].get('coverageComplete') is True)
         completed=datetime.fromisoformat(state[0]['completedAt'].replace('Z','+00:00')) if state else None
         if completed and completed.tzinfo is None:completed=completed.replace(tzinfo=TZ)
         stale=not completed or now-completed>timedelta(hours=72)
@@ -130,6 +143,10 @@ def _notify_company(db,kind,company,recipients,*,now=None,sender=send_reserved,f
             raise ValueError('Collection is stale and no verified candidates are available')
         if kind=='urgent' and not cards:return {'sent':0,'skipped':len(recipients),'reason':'no_urgent_candidates'}
     subject,body,text=render_digest(cards,kind,now)
+    if kind!='test' and not coverage_complete:
+        notice='A cobertura nacional ainda não foi confirmada. As oportunidades listadas são conferidas individualmente no PNCP; este resumo não representa todos os editais disponíveis nem confirma a inexistência de outros processos.'
+        body=body.replace('</h1>','</h1><p>'+notice+'</p>',1)
+        text=notice+'\n\n'+text
     if dry_run:return {'sent':0,'candidates':len(cards),'kind':kind,'verified':verified,'verificationErrors':check_errors,'dryRun':True}
     sent,skipped=0,0
     for recipient in sorted(recipients):

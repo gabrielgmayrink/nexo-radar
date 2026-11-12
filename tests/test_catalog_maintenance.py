@@ -58,6 +58,14 @@ class MaintenanceTests(unittest.TestCase):
             self.assertFalse(weekly_ready(cursor|changes,'123:1',monday))
         self.assertFalse(weekly_ready(cursor|{'end':'2026-11-10'},'123:1',datetime(2026,11,10,10,tzinfo=timezone.utc)))
 
+    def test_live_source_changes_allow_a_scoped_digest_only_after_two_indexed_passes(self):
+        monday=datetime(2026,11,9,10,tzinfo=timezone.utc)
+        cursor={'status':'ok','coverageComplete':False,'captureComplete':True,'indexingComplete':True,
+                'completedFullPasses':2,'end':'2026-11-09','last_run_key':'123:1'}
+        self.assertTrue(weekly_ready(cursor,'123:1',monday))
+        self.assertFalse(weekly_ready(cursor|{'indexingComplete':False},'123:1',monday))
+        self.assertFalse(weekly_ready(cursor|{'completedFullPasses':1},'123:1',monday))
+
     def test_cleanup_cannot_run_during_incomplete_collection(self):
         class Store:
             released=False

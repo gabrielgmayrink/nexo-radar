@@ -15,7 +15,7 @@ def main():
     result=json.loads(body)
     health=result.get('health',result)
     print(json.dumps({'event':'independent_health_check','ok':health.get('ok',False),
-                      'alerts':health.get('alerts',[])}))
+                      'alerts':[check['id'] for check in health.get('checks',[]) if check.get('ok') is not True]}))
     if health.get('ok') is not True:raise SystemExit(1)
 
 

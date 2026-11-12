@@ -103,6 +103,7 @@ def session_user(db,header):
         left join radar_account_security a on a.email=s.email
         where s.token_digest=%s and s.expires_at>now() and s.auth_generation=coalesce(a.generation,0)
         and a.disabled_at is null and (u.banned_until is null or u.banned_until<=now())
+        and not coalesce(a.password_reset_required,false)
         and s.credential_fingerprint is not distinct from u.credential_fingerprint
         and (not coalesce(a.require_mfa,false) or s.assurance_level='aal2')
         and (s.assurance_level='aal2' or not exists(select 1 from public.radar_verified_mfa_users f where f.user_id=u.id))

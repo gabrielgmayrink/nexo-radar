@@ -31,6 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       coverage_verified: ${{ steps.national.outputs.coverage_verified }}
+      capture_ready: ${{ steps.national.outputs.capture_ready }}
     timeout-minutes: 330 # Até três tentativas de 90 min, retomando o mesmo cursor
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -121,7 +122,7 @@ jobs:
           RADAR_TASK_DRY_RUN: ${{ inputs.kind == 'cleanup_preview' && '1' || '0' }}
   weekly-summary:
     needs: collect
-    if: needs.collect.result == 'success' && needs.collect.outputs.coverage_verified == 'true' && github.event_name == 'schedule' && github.event.schedule == '0 10 * * 1' && vars.RADAR_EMAIL_ENABLED == '1'
+    if: needs.collect.result == 'success' && needs.collect.outputs.capture_ready == 'true' && github.event_name == 'schedule' && github.event.schedule == '0 10 * * 1' && vars.RADAR_EMAIL_ENABLED == '1'
     runs-on: ubuntu-latest
     timeout-minutes: 6
     concurrency:

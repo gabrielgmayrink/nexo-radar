@@ -76,10 +76,11 @@ def auth_user_request(path,payload=None,*,access_token,method='POST',opener=None
 
 
 def finish_first_factor(db,response,email,generation):
-    from radar.password_auth import AuthenticationFailed,create_session
+    from radar.password_auth import AuthenticationFailed,create_session,password_reset_required
     user=response.get('user') or {}
     if user.get('email','').lower()!=email or not user.get('id') or not user.get('email_confirmed_at'):
         raise AuthenticationFailed('Unverified identity')
+    if password_reset_required(db,email):raise AuthenticationFailed('Use a new personal invite')
     state=account_state(db,email)
     factors=[{'id':f['id'],'factor_type':f.get('factor_type'),'friendly_name':f.get('friendly_name','Autenticador')}
              for f in user.get('factors',[]) if isinstance(f,dict) and f.get('status')=='verified' and re.fullmatch(UUID,str(f.get('id','')))]
