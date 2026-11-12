@@ -25,7 +25,7 @@ def initial_cursor(kind, today, last_completed=None):
     return {'kind': kind, 'start': (today if kind=='national_open' else start).isoformat(), 'end': end.isoformat(),
             **({'target_end':today.isoformat()} if kind=='incremental' else {}),
             'horizon': '9999-12-31' if kind=='national_open' else (today + timedelta(days=365)).isoformat(),
-            **({'scope':'all_open_brazil','passNumber':1} if kind=='national_open' else {}),
+            **({'scope':'all_open_brazil','passNumber':1,'verificationPolicy':'stable_sets_v1'} if kind=='national_open' else {}),
             'partition': 0, 'page': 1, 'fingerprints': [], 'status': 'running',
             'pages': 0, 'received': 0, 'request_count': 0, 'request_errors': 0,
             'latency_total_ms': 0, 'latency_max_ms': 0, 'http_statuses': {},

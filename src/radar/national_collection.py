@@ -104,6 +104,18 @@ def handle_national(store,action,body,run_key):
         if requested is not None and (type(requested) is not int or requested<1):raise ValueError('Invalid execution')
         execution_id,cursor=store.start_or_resume(KIND,run_key,requested,datetime.now(TZ).date())
         cursor=upgrade_cursor(cursor)
+        if cursor.get('verificationPolicy')!='stable_sets_v1':
+            # Older checkpoints count last-seen rows, without immutable per-page
+            # observations. Preserve their captures, but restart a new numbered
+            # pass so they cannot be mistaken for complete receipt evidence.
+            number=cursor.get('passNumber',1)+(1 if cursor.get('pages',0) else 0)
+            cursor.update(verificationPolicy='stable_sets_v1',passNumber=number,passPages=0,
+                          completedFullPasses=0,captureComplete=False,indexingComplete=False,
+                          coverageComplete=False,quarantinedRecords=0,consistency='verifying',
+                          pending_tasks=[{'mode':'proposta','modality':0,'page':1,'fingerprints':[]}],
+                          partition=0,page=1,fingerprints=[],status='running',error=None)
+            cursor.pop('previousPassEvidence',None)
+            store.save_failure(execution_id,KIND,cursor)
         # The proposal route is live and unbounded by publication date. This is
         # the observation day, including a resumed capture started on another day.
         cursor['end']=datetime.now(TZ).date().isoformat()

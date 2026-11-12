@@ -69,6 +69,26 @@ def full_pass(store,total,number=1):
     return result
 
 
+class LegacyReceiptTransitionTests(unittest.TestCase):
+    def test_old_cursor_restarts_numbered_pass_and_keeps_captures(self):
+        from datetime import date
+        store=Store();store.cursor=initial_cursor('national_open',date(2026,11,12))
+        store.cursor.update(passNumber=6,pages=1569,passPages=12,coverageComplete=True,
+                            consistency='legacy_count_check',previousPassEvidence={'count':120})
+        store.cursor.pop('verificationPolicy')
+        store.cursor['pending_tasks'][0]['page']=13
+        store.ledger[(6,1)]='historic-receipt'
+        plan=handle_national(store,'national_plan',{},'release')
+        self.assertEqual(plan['plan']['passNumber'],7);self.assertEqual(plan['plan']['page'],1)
+        self.assertFalse(plan['coverageComplete']);self.assertFalse(plan['captureComplete'])
+        self.assertEqual(plan['completedFullPasses'],0);self.assertIn((6,1),store.ledger)
+        self.assertNotIn('previousPassEvidence',store.cursor)
+        with self.assertRaises(StalePage):commit(store,payload(13,700),6)
+        self.assertEqual(handle_national(store,'national_plan',{},'release')['plan']['passNumber'],7)
+        full_pass(store,120,7);result=full_pass(store,120,8)
+        self.assertTrue(result['coverageComplete']);self.assertEqual(result['completedFullPasses'],2)
+
+
 class NationalTests(unittest.TestCase):
     def test_plan_has_no_business_or_state_filter(self):
         result=handle_national(Store(),'national_plan',{},'run')
