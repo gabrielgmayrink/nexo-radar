@@ -88,7 +88,8 @@ def finish_if_ready(store,cursor,execution_id):
                       'quarantine_pending' if evidence['quarantined'] else 'source_changed',
                       # A moving page list is not evidence that an earlier ID
                       # ceased to exist. Preserve the union until a stable scan.
-                      pending_tasks=[],partition=1,minimumPass=pass_number if consistent else 1)
+                      pending_tasks=[],partition=1,
+                      minimumPass=pass_number if consistent else max(1,pass_number-completed+1))
         store.complete(execution_id,KIND,cursor)
     else:
         cursor.update(passNumber=pass_number+1,passPages=0,pending_tasks=[{'mode':'proposta','modality':0,'page':1,'fingerprints':[]}],
@@ -104,13 +105,13 @@ def handle_national(store,action,body,run_key):
         if requested is not None and (type(requested) is not int or requested<1):raise ValueError('Invalid execution')
         execution_id,cursor=store.start_or_resume(KIND,run_key,requested,datetime.now(TZ).date())
         cursor=upgrade_cursor(cursor)
-        if cursor.get('verificationPolicy')!='stable_sets_v1':
+        if cursor.get('verificationPolicy')!='stable_sets_v1' or cursor.get('consistency')=='legacy_count_check':
             # Older checkpoints count last-seen rows, without immutable per-page
             # observations. Preserve their captures, but restart a new numbered
             # pass so they cannot be mistaken for complete receipt evidence.
             number=cursor.get('passNumber',1)+(1 if cursor.get('pages',0) else 0)
             cursor.update(verificationPolicy='stable_sets_v1',passNumber=number,passPages=0,
-                          completedFullPasses=0,captureComplete=False,indexingComplete=False,
+                          completedFullPasses=0,captureComplete=False,basePagesComplete=False,indexingComplete=False,
                           coverageComplete=False,quarantinedRecords=0,consistency='verifying',
                           pending_tasks=[{'mode':'proposta','modality':0,'page':1,'fingerprints':[]}],
                           partition=0,page=1,fingerprints=[],status='running',error=None)

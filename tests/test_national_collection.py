@@ -75,7 +75,8 @@ class LegacyReceiptTransitionTests(unittest.TestCase):
         store=Store();store.cursor=initial_cursor('national_open',date(2026,11,12))
         store.cursor.update(passNumber=6,pages=1569,passPages=12,coverageComplete=True,
                             consistency='legacy_count_check',previousPassEvidence={'count':120})
-        store.cursor.pop('verificationPolicy')
+        # Migration 014 labels the policy but explicitly retains this legacy state.
+        self.assertEqual(store.cursor['verificationPolicy'],'stable_sets_v1')
         store.cursor['pending_tasks'][0]['page']=13
         store.ledger[(6,1)]='historic-receipt'
         plan=handle_national(store,'national_plan',{},'release')
@@ -87,6 +88,16 @@ class LegacyReceiptTransitionTests(unittest.TestCase):
         self.assertEqual(handle_national(store,'national_plan',{},'release')['plan']['passNumber'],7)
         full_pass(store,120,7);result=full_pass(store,120,8)
         self.assertTrue(result['coverageComplete']);self.assertEqual(result['completedFullPasses'],2)
+
+    def test_changed_source_preserves_union_of_fresh_passes_without_legacy_membership(self):
+        from datetime import date
+        store=Store();store.cursor=initial_cursor('national_open',date(2026,11,12))
+        store.cursor.update(passNumber=6,pages=100,consistency='legacy_count_check')
+        store.cursor.pop('verificationPolicy')
+        handle_national(store,'national_plan',{},'release')
+        full_pass(store,120,7);result=full_pass(store,121,8)
+        self.assertFalse(result['coverageComplete']);self.assertEqual(store.cursor['minimumPass'],7)
+        self.assertEqual(result['completedFullPasses'],2)
 
 
 class NationalTests(unittest.TestCase):
