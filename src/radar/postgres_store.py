@@ -58,7 +58,7 @@ def prepared_record(row):
     card['id']=identifier
     raw = json.dumps(row, sort_keys=True, ensure_ascii=False)
     return (identifier, Jsonb(row), Jsonb(card['scores']), card['ruleVersion'],
-            card['score'], Jsonb(card), source_version(row), hashlib.sha256(raw.encode()).hexdigest(),
+            card['score'], Jsonb(card) if card['score']>=40 else None, source_version(row), hashlib.sha256(raw.encode()).hexdigest(),
             card.get('classificationVersion',card['ruleVersion']),object_hash(card['object'],card['additionalInfo']))
 
 

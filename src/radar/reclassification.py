@@ -21,7 +21,7 @@ def reclassify_batch(store,*,limit=200,deadline_seconds=30):
             for identifier,payload,content_hash in rows:
                 if values and time.monotonic()-started>=deadline_seconds:break
                 card=to_card(payload)
-                values.append({'id':identifier,'hash':content_hash,'card':card,'scores':card['scores'],'score':card['score'],
+                values.append({'id':identifier,'hash':content_hash,'card':card if card['score']>=40 else None,'scores':card['scores'],'score':card['score'],
                                'rule_version':card['ruleVersion'],'classification_version':version,
                                'object_hash':object_hash(card['object'],card['additionalInfo'])})
             with store.db.transaction():

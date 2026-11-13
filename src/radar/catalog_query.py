@@ -6,6 +6,7 @@ from radar.profiles import load_profiles,profile_context
 from radar.relevance import VERSION,classify,classification_version,normalize
 from radar.search import ALIASES,parse_query
 from radar.catalog_storage import load_collection_status
+from radar.identifiers import parse_pncp_id
 
 VIEWS=('all','matches','review','open','tracked','dismissed','discover','learning')
 SORTS={'deadline':'deadline asc nulls last,id asc','published':'published desc nulls last,id asc',
@@ -138,6 +139,7 @@ def filter_sql(config,profile=None):
 def private_card(payload,stored,company,*,review_candidate=False,profiles=None):
     name=COMPANIES[company]
     card=stored or to_card(payload)
+    if not stored and card.get('id'):card={**card,'id':parse_pncp_id(card['id']).canonical}
     if card.get('classificationVersion')!=classification_version(profiles):card={**card,**classify(payload.get('objetoCompra') or '',payload.get('informacaoComplementar') or '',profiles=profiles)}
     decision=card.get('decisionByCompany',{}).get(name)
     return {**card,'scores':{name:card.get('scores',{}).get(name,0)},'score':card.get('scores',{}).get(name,0),

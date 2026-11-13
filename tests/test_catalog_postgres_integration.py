@@ -36,6 +36,20 @@ class CatalogPostgresTests(unittest.TestCase):
         for source in ('pncp','compras_gov'):
             self.db.execute('insert into radar_item_search values(%s,%s,%s,%s,%s)',(self.identifier,sha,source,'1','consultoria estrategica municipal'))
         result=self.page(q='estratégica municipal');self.assertEqual(result['total'],1)
+
+    def test_uncached_zero_score_source_is_preserved_and_discoverable(self):
+        original={**self.row,'numeroControlePNCP':'ab123456789012-1-990001/2026',
+                  'objetoCompra':'Aquisição de cadeiras e mesas para o auditório onde acontecem palestras'}
+        identifier=original['numeroControlePNCP'].upper()
+        self.store.write_records([original])
+        stored=self.db.execute('select payload,card,score,content_hash from radar_opportunities where id=%s',(identifier,)).fetchone()
+        self.assertEqual(stored[0],original);self.assertIsNone(stored[1]);self.assertEqual(stored[2],0)
+        self.assertEqual(self.page(q='"cadeiras e mesas"')['total'],0)
+        page=self.page(view='discover',q='"cadeiras e mesas"')
+        self.assertEqual(page['total'],1);self.assertEqual(page['opportunities'][0]['object'],original['objetoCompra'])
+        self.assertEqual(page['opportunities'][0]['id'],identifier)
+        self.assertEqual(page['opportunities'][0]['score'],0);self.assertTrue(page['opportunities'][0]['reviewCandidate'])
+        self.assertTrue(self.db.execute('select 1 from radar_raw where opportunity_id=%s and content_hash=%s',(identifier,stored[3])).fetchone())
     def test_search_projection_tracks_official_payload_changes(self):
         self.db.execute("update radar_opportunities set payload=jsonb_set(payload,'{objetoCompra}',%s::jsonb) where id=%s",(Jsonb('Contratação de apoio administrativo e ORGANIZAÇÃO DOCUMENTAL'),self.identifier))
         self.assertEqual(self.page(q='"organização documental"')['total'],1)

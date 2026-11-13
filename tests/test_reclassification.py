@@ -22,7 +22,7 @@ class ReclassificationTests(unittest.TestCase):
         self.assertTrue(result['done']);self.assertEqual(result['updated'],1)
         update=next(call for call in store.db.execute.call_args_list if call.args[0].startswith('update radar_opportunities'))
         value=update.args[1][0].obj[0]
-        self.assertEqual(value['score'],0);self.assertIsNotNone(value['card']);self.assertEqual(value['hash'],'source-hash')
+        self.assertEqual(value['score'],0);self.assertIsNone(value['card']);self.assertEqual(value['hash'],'source-hash')
         self.assertIn('o.content_hash is not distinct from r.hash',update.args[0])
         self.assertIn("catalog_archive_reason='outside_profile'",update.args[0]);store.release.assert_called_once()
 

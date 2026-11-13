@@ -14,9 +14,10 @@ class Database:
 
 
 class CaptureTests(unittest.TestCase):
-    def test_zero_score_still_has_card_and_source_identifiers_are_preserved(self):
+    def test_zero_score_keeps_source_identifiers_without_presentation_cache(self):
         raw=payload(1,1)['data'][0];raw['objetoCompra']='Contratação de serviços para modernização de auditório com obras estruturais';record=prepared_record(raw)
-        self.assertEqual(record[4],0);self.assertEqual(record[5].obj['id'],raw['numeroControlePNCP'])
+        self.assertEqual(record[4],0);self.assertIsNone(record[5])
+        self.assertEqual(record[1].obj,raw)
         self.assertTrue(record[8]);self.assertTrue(record[9])
 
     def test_malformed_record_and_duplicate_are_quarantined_with_good_neighbors(self):
