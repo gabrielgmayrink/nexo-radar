@@ -13,10 +13,13 @@ def health_report(store):
       on o.id=j.opportunity_id and o.content_hash=j.source_hash group by j.status''').fetchall())
     quarantine = db.execute('select count(*) from radar_quarantine where resolved_at is null').fetchone()[0]
     database_bytes=db.execute('select pg_database_size(current_database())').fetchone()[0]
-    # A completed historical pass does not prove that today's capture is current.
-    incremental = db.execute("select max(finished_at) from radar_executions where task='sync:incremental' and status='ok'").fetchone()[0]
-    checks = [{'id': 'incremental_freshness', 'ok': bool(incremental and now - incremental < timedelta(hours=30)),
-               'state': 'current' if incremental and now - incremental < timedelta(hours=30) else 'stale_or_not_started'},
+    # A fresh fully indexed national capture is also a current open-catalog
+    # baseline. Legacy counts or a pass with unindexed rows are not sufficient.
+    captured = db.execute('''select max(finished_at) from radar_executions where status='ok' and
+      (task='sync:incremental' or (task='sync:national_open' and
+       metrics @> '{"captureComplete":true,"indexingComplete":true,"completedFullPasses":2}'::jsonb))''').fetchone()[0]
+    checks = [{'id': 'capture_freshness', 'ok': bool(captured and now - captured < timedelta(hours=30)),
+               'state': 'current' if captured and now - captured < timedelta(hours=30) else 'stale_or_not_started'},
               {'id': 'quarantine', 'ok': quarantine == 0, 'state': 'clear' if quarantine == 0 else 'pending_records'},
               {'id': 'enrichment', 'ok': queues.get('blocked', 0) == 0,
                'state': 'clear' if not queues.get('blocked') else 'blocked_jobs'},

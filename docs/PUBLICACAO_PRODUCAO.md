@@ -2,6 +2,8 @@
 
 Endereço canônico: https://nexo-radar-taupe.vercel.app. A liberação foi expressamente autorizada pelo titular, mantendo planos gratuitos. Este documento acompanha a conclusão; o relatório de homologação registra o ensaio anterior.
 
+**Publicação concluída.** Código integrado à main e domínio produtivo atualizado, credenciais restritas ativas, backup privado restaurado, redefinição de senhas por convites privados e somente resumos semanais habilitados. A base nacional concluída está disponível; a atualização incremental de rotina segue em segundo plano e não é apresentada como concluída. [Evidência produtiva sanitizada](validation/2026-11-12-production.json).
+
 ## Evidências já obtidas
 
 - Backup produtivo anterior à migração restaurado em banco isolado no [GitHub Actions](https://github.com/gabrielgmayrink/nexo-radar/actions/runs/43302849254): 59 tabelas, 92.305 linhas, 74.851.499 bytes cifrados, download conferido e hashes/contagens iguais. Origem somente de leitura; nenhuma escrita produtiva pelo ensaio.
@@ -22,7 +24,9 @@ Na retomada, o checkpoint marcado `legacy_count_check` começa uma nova passagem
 
 ## Operação prevista e limites
 
-A medição produtiva identificou 54.378 cartões de apresentação sem aderência armazenando 81.317.029 bytes regeneráveis. A migração 034 remove apenas esse cache (`score<40`), preservando todas as linhas, originais, hashes, pontuações, recibos e decisões. Novas capturas e reclassificações evitam recriá-lo em massa. Descoberta e revisão geram o cartão para a página solicitada; o teste SQL exercita registro de pontuação zero, objeto integral, fonte bruta e identificação canônica. A homologação manteve seleção, UF, texto e descoberta funcionando; a suíte passou com 276 testes e zero ignorados. Aplicação produtiva e espaço final devem ser conferidos antes de declarar a economia efetiva.
+A medição produtiva identificou 54.378 cartões de apresentação sem aderência armazenando 81.317.029 bytes regeneráveis. A migração 034 remove apenas esse cache (`score<40`), preservando todas as linhas, originais, hashes, pontuações, recibos e decisões. Novas capturas e reclassificações evitam recriá-lo em massa. Descoberta e revisão geram o cartão para a página solicitada; o teste SQL exercita registro de pontuação zero, objeto integral, fonte bruta e identificação canônica. A homologação manteve seleção, UF, texto e descoberta funcionando; a suíte passou com 276 testes e zero ignorados.
+
+A migração 034 foi aplicada também em produção com a atualização pausada: **55.311 registros e o mesmo fingerprint de fontes antes/depois**, 54.797 caches removidos e nenhum registro oficial excluído. A compactação seguinte preservou a mesma contagem e reduziu o banco de 481.441.459 para **326.227.635 bytes (311MiB)** em 51,84s; a diferença inclui o cache e espaço morto gerado pelas atualizações. Versão publicada e atualização retomada. Esse resultado libera capacidade para a carga inicial, sem prometer armazenamento ilimitado.
 
 Coleta nacional segunda às 07h, atualização diária às 09h17, arquivamento do catálogo ativo domingo às 23h, Brasília. O agendador pode atrasar. Toda página capturada tem recibo; a coleta retoma o cursor em falhas, preserva a união das passagens e distingue captura concluída de cobertura comprovada. A quantidade real é medida, sem meta artificial de um milhão.
 
@@ -33,6 +37,10 @@ Backup produtivo semanal, segunda às 03h41, com restauração isolada em cada e
 Senhas anteriormente compartilhadas devem ser substituídas por convites individuais de uso único, válidos por 24 horas; o administrador configura segundo fator. Convites e chaves de recuperação ficam em arquivos locais ignorados pelo Git. Nenhuma senha ou convite deve ser incluído em evidências públicas. A senha Gmail nova permanece exclusivamente na configuração secreta de produção; o teste autorizado tem destinatário fixo e trava de envio único.
 
 ## Estado da conclusão
+
+O monitor avalia a atualidade da base por atualização incremental concluída ou por captura nacional recente com duas passagens e indexação completa. Uma carga nacional antiga, apenas contagem histórica ou indexação incompleta não elimina o alerta. A recência operacional e a confirmação de cobertura permanecem independentes: fonte em movimento pode estar recente com `coverageComplete=false`. O teste SQL reproduz esses casos e o vencimento após 30h; a suíte final tem 277 testes.
+
+A conferência operacional final sobre o banco real encontrou base recente, quarentena zerada, nenhum enriquecimento bloqueado e espaço abaixo do alerta. Havia 1.657 enriquecimentos pendentes, etapa separada da captura; não se afirma extração integral de todos os itens/PDFs. O incremental ativo não tinha erro e mantinha cursor salvo. Public continuava com 311 oportunidades na seleção consultada; os números mudam com os dados e filtros.
 
 PR #1 integrado e produção publicada. Testes HTTP no domínio canônico: página 200, catálogo privado anônimo 401, sessão anônima sem dados, gravação de outra origem 403 e job sem identidade 403. Login visual verificado no domínio produtivo; o fluxo real completo com senha, MFA e negação cruzada foi exercitado na homologação, sem representar como concluída a definição das senhas pessoais em produção.
 

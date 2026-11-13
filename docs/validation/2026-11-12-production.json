@@ -1,0 +1,168 @@
+{
+  "productionUrl": "https://nexo-radar-taupe.vercel.app",
+  "nationalRun": "https://github.com/gabrielgmayrink/nexo-radar/actions/runs/43310703193",
+  "national": {
+    "execution_id": 6,
+    "status": "ok",
+    "completedAt": "2026-11-12T23:35:50.333028+00:00",
+    "firstReceiptPass": 7,
+    "passNumber": 8,
+    "minimumPass": 7,
+    "completedFullPasses": 2,
+    "captureComplete": true,
+    "indexingComplete": true,
+    "coverageComplete": false,
+    "consistency": "source_changed",
+    "expectedRecords": 39847,
+    "expectedPages": 797
+  },
+  "passes": [
+    {
+      "pass": 7,
+      "pages": 797,
+      "received": 39811
+    },
+    {
+      "pass": 8,
+      "pages": 797,
+      "received": 39847
+    }
+  ],
+  "unionIds": 39848,
+  "public": {
+    "total": 311,
+    "returned": 1,
+    "elapsedMs": 6156
+  },
+  "health": {
+    "ok": true,
+    "checkedAt": "2026-11-13T00:16:41.005890+00:00",
+    "checks": [
+      {
+        "id": "capture_freshness",
+        "ok": true,
+        "state": "current"
+      },
+      {
+        "id": "quarantine",
+        "ok": true,
+        "state": "clear"
+      },
+      {
+        "id": "enrichment",
+        "ok": true,
+        "state": "clear"
+      },
+      {
+        "id": "database_capacity",
+        "ok": true,
+        "state": "headroom"
+      }
+    ]
+  },
+  "enrichmentQueue": {
+    "pending": 1657,
+    "retry": 0,
+    "blocked": 0
+  },
+  "storage": {
+    "databaseBytes": 333330099,
+    "warningAtBytes": 419430400,
+    "collectionStopAtBytes": 471859200
+  },
+  "incremental": [
+    {
+      "key": "sync:incremental",
+      "status": "running",
+      "pendingTasks": 9,
+      "page": 14,
+      "error": null
+    }
+  ],
+  "sourcePreservationDuringCacheReduction": {
+    "before": {
+      "rows": 55311,
+      "sourceFingerprint": "eaf3a1b6c3f670cfab36d596d4f05d28",
+      "unselectedCachedCards": 54797
+    },
+    "after": {
+      "rows": 55311,
+      "sourceFingerprint": "eaf3a1b6c3f670cfab36d596d4f05d28",
+      "unselectedCachedCards": 0
+    },
+    "sourceRowsAndHashesPreserved": true
+  },
+  "restrictedServices": {
+    "environment": "hxngkmrsthyjycxaellk",
+    "writesRolledBack": true,
+    "emailsSent": 0,
+    "apiDedicatedLogin": true,
+    "apiForbiddenOperationsDenied": true,
+    "authIdentitiesReadable": true,
+    "catalog": [
+      {
+        "case": "public",
+        "elapsedMs": 3562,
+        "total": 311,
+        "returned": 1
+      },
+      {
+        "case": "state",
+        "elapsedMs": 2609,
+        "total": 52,
+        "returned": 1
+      },
+      {
+        "case": "search",
+        "elapsedMs": 2625,
+        "total": 53,
+        "returned": 1
+      },
+      {
+        "case": "gerico",
+        "elapsedMs": 547,
+        "total": 0,
+        "returned": 0
+      }
+    ],
+    "collectorDedicatedLogin": true,
+    "collectorWriteValidatedAndRolledBack": true,
+    "collectorAuthAccessDenied": true
+  },
+  "environmentIsolation": {
+    "administrativeVariablesAbsentFromProduction": true,
+    "oldVariablesPreservedOutsideProduction": true,
+    "dedicatedServiceAndAuthAndSmtpConfigurationPresent": true,
+    "secretValuesDisplayed": false
+  },
+  "httpAccessChecks": [
+    {
+      "case": "page",
+      "status": 200
+    },
+    {
+      "case": "private_catalog",
+      "status": 401
+    },
+    {
+      "case": "anonymous_session",
+      "status": 200
+    },
+    {
+      "case": "cross_origin_write",
+      "status": 403
+    },
+    {
+      "case": "unauthenticated_job",
+      "status": 403
+    }
+  ],
+  "backupRun": "https://github.com/gabrielgmayrink/nexo-radar/actions/runs/43312049833",
+  "backupConclusion": "success",
+  "weeklyEmailEnabled": true,
+  "dailyDeadlineEmailsEnabled": false,
+  "manualTestEmailsSent": 1,
+  "manualCustomerSummariesSent": 0,
+  "paidPlansActivated": false,
+  "sourceCompletenessGuaranteed": false
+}

@@ -72,6 +72,20 @@ class CatalogPostgresTests(unittest.TestCase):
         self.assertEqual(self.page(q='homologação',situation='suspended')['total'],1)
         self.assertEqual(self.page(q='homologação',situation='open')['total'],0)
 
+    def test_fresh_indexed_national_baseline_is_current_before_first_incremental(self):
+        from radar.source_health import health_report
+        identifier=self.db.execute("insert into radar_executions(task,status,finished_at) values('sync:national_open','ok',now()) returning id").fetchone()[0]
+        self.assertFalse(health_report(self.store)['health']['checks'][0]['ok'])
+        metadata={'captureComplete':True,'indexingComplete':True,'completedFullPasses':2,'coverageComplete':False}
+        self.db.execute('update radar_executions set metrics=%s where id=%s',(Jsonb(metadata),identifier))
+        self.assertTrue(health_report(self.store)['health']['checks'][0]['ok'])
+        self.db.execute('update radar_executions set metrics=%s where id=%s',(Jsonb({**metadata,'indexingComplete':False}),identifier))
+        self.assertFalse(health_report(self.store)['health']['checks'][0]['ok'])
+        self.db.execute("update radar_executions set metrics=%s,finished_at=now()-interval '31 hours' where id=%s",(Jsonb(metadata),identifier))
+        self.assertFalse(health_report(self.store)['health']['checks'][0]['ok'])
+        self.db.execute("insert into radar_executions(task,status,finished_at) values('sync:incremental','ok',now())")
+        self.assertTrue(health_report(self.store)['health']['checks'][0]['ok'])
+
     def test_scalar_filters_follow_payload_updates_and_preserve_numeric_types(self):
         changed={**self.row,'unidadeOrgao':{'ufSigla':'ES','municipioNome':'Cidade de homologação'},
                  'modalidadeNome':'Dispensa','valorTotalEstimado':1234.5}
